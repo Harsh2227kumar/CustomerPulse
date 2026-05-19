@@ -15,9 +15,17 @@ class ComplaintProcessRequest(BaseModel):
     issue: str | None = Field(default=None, max_length=255)
     company: str | None = Field(default=None, max_length=255)
 
-    @field_validator("complaint_id", "narrative", "channel", "product", "issue", "company")
+    @field_validator("complaint_id", "narrative")
     @classmethod
-    def clean_strings(cls, value: str | None) -> str | None:
+    def clean_required_strings(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("value must not be blank")
+        return cleaned
+
+    @field_validator("channel", "product", "issue", "company")
+    @classmethod
+    def clean_optional_strings(cls, value: str | None) -> str | None:
         if value is None:
             return value
         cleaned = value.strip()
@@ -31,6 +39,9 @@ class ComplaintFilters(Pagination):
     churn_risk: ChurnRisk | None = None
     urgency_min: int | None = Field(default=None, ge=0, le=100)
     urgency_max: int | None = Field(default=None, ge=0, le=100)
+    date_received_min: datetime | None = None
+    date_received_max: datetime | None = None
+    timely_response: bool | None = None
     search: str | None = None
     sort_by: str = Field(default="created_at")
     sort_direction: str = Field(default="desc", pattern="^(asc|desc)$")
@@ -42,6 +53,8 @@ class ComplaintListItem(BaseModel):
     channel: str | None = None
     product: str | None = None
     issue: str | None = None
+    date_received: datetime | None = None
+    timely_response: str | None = None
     sentiment: Sentiment | None = None
     category: str | None = None
     urgency_score: int | None = None

@@ -18,6 +18,7 @@ class AIEnrichment(BaseModel):
     churn_risk: ChurnRisk
     draft_response: str = Field(min_length=1)
     next_action: str = Field(min_length=1)
+    similar_cases: list[str] = Field(default_factory=list)
     confidence_scores: ConfidenceScores
     ai_confidence: float = Field(ge=0, le=1)
     ai_reasoning: str | None = None

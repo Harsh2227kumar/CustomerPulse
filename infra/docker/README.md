@@ -20,6 +20,22 @@ Fill real values, then run:
 docker compose up --build
 ```
 
+Backend startup runs Phase 1 checks before serving traffic:
+
+- PostgreSQL connection.
+- Target database.
+- `pgvector`.
+- `complaints` table and indexes.
+- Basic row permissions.
+- OpenAI model access.
+
+If Docker is running without an interactive terminal, prepare the database first:
+
+```bash
+cd backend
+python -m app.db.setup
+```
+
 Backend health endpoint:
 
 ```bash

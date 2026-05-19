@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,6 +21,9 @@ async def list_complaints(
     churn_risk: ChurnRisk | None = None,
     urgency_min: int | None = Query(default=None, ge=0, le=100),
     urgency_max: int | None = Query(default=None, ge=0, le=100),
+    date_received_min: datetime | None = None,
+    date_received_max: datetime | None = None,
+    timely_response: bool | None = None,
     search: str | None = None,
     sort_by: str = "created_at",
     sort_direction: str = Query(default="desc", pattern="^(asc|desc)$"),
@@ -33,6 +38,9 @@ async def list_complaints(
         churn_risk=churn_risk,
         urgency_min=urgency_min,
         urgency_max=urgency_max,
+        date_received_min=date_received_min,
+        date_received_max=date_received_max,
+        timely_response=timely_response,
         search=search,
         sort_by=sort_by,
         sort_direction=sort_direction,

@@ -49,6 +49,12 @@ class ComplaintService:
             stmt = stmt.where(Complaint.urgency_score >= filters.urgency_min)
         if filters.urgency_max is not None:
             stmt = stmt.where(Complaint.urgency_score <= filters.urgency_max)
+        if filters.date_received_min is not None:
+            stmt = stmt.where(Complaint.date_received >= filters.date_received_min)
+        if filters.date_received_max is not None:
+            stmt = stmt.where(Complaint.date_received <= filters.date_received_max)
+        if filters.timely_response is not None:
+            stmt = stmt.where(Complaint.timely_response == filters.timely_response)
         if filters.search:
             pattern = f"%{filters.search}%"
             stmt = stmt.where(
@@ -71,6 +77,8 @@ class ComplaintService:
             channel=complaint.channel,
             product=complaint.product,
             issue=complaint.issue,
+            date_received=complaint.date_received,
+            timely_response=self._format_timely_response(complaint.timely_response),
             sentiment=complaint.sentiment,
             category=complaint.category,
             urgency_score=complaint.urgency_score,
@@ -79,3 +87,8 @@ class ComplaintService:
             processed_at=complaint.processed_at,
             ai_status=complaint.ai_status,
         )
+
+    def _format_timely_response(self, value: bool | None) -> str | None:
+        if value is None:
+            return None
+        return "Yes" if value else "No"

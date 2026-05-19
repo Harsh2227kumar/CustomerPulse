@@ -10,7 +10,7 @@ async def with_retries(operation: Callable[[], Awaitable[T]], max_retries: int) 
     for attempt in range(max_retries + 1):
         try:
             return await operation()
-        except Exception as exc:  # Let caller log the final contextual failure.
+        except Exception as exc:
             last_error = exc
             if attempt >= max_retries:
                 break

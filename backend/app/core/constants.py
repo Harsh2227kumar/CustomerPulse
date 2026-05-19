@@ -24,7 +24,7 @@ class WebSocketEvent(StrEnum):
     RECEIVED = "received"
     PREPROCESSING = "preprocessing"
     LOCAL_ML = "local_ml"
-    CLAUDE_PROCESSING = "claude_processing"
+    OPENAI_PROCESSING = "openai_processing"
     VALIDATING = "validating"
     SAVED = "saved"
     FAILED = "failed"
