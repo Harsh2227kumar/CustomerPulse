@@ -2,7 +2,7 @@ from app.core.constants import ChurnRisk, Sentiment
 
 
 SYSTEM_PROMPT = """You are CustomerPulse AI, an enterprise BFSI complaint intelligence engine.
-Return only valid JSON. Do not include markdown, commentary, or extra keys.
+Return only valid JSON that matches the requested schema.
 Use the customer's complaint text and provided local signals.
 Never invent facts that are not supported by the complaint.
 If evidence is weak, lower confidence instead of guessing.
@@ -28,6 +28,7 @@ Analyze this real customer complaint and return JSON matching this exact shape:
   "churn_risk": "{churn_values}",
   "draft_response": "professional customer-facing response",
   "next_action": "specific operational next step",
+  "similar_cases": [],
   "confidence_scores": {{
     "sentiment": 0,
     "category": 0,
@@ -45,6 +46,7 @@ Rules:
 - urgency_score and confidence values must be 0 to 100
 - ai_confidence must be 0.0 to 1.0
 - Use the local signals as hints, not final truth
+- similar_cases must be an empty array unless actual similar complaint IDs are provided
 
 Complaint ID: {complaint_id}
 Channel: {channel or "unknown"}
