@@ -23,3 +23,10 @@ Pending integration:
 - Real Anthropic API key from Harsh/team.
 - Confirm final raw complaint table alignment with Yash ingestion.
 - Add Redis pub/sub and pgvector similarity API after base flow is tested.
+
+## DevOps Update
+
+- Added Docker Compose stack.
+- Added Nginx reverse proxy config.
+- Added EC2 bootstrap and deploy scripts.
+- Added deployment tracker documentation.
