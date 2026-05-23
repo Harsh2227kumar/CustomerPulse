@@ -1,14 +1,13 @@
-# CustomerPulse
+# CustomerPulse Infrastructure
 
-Phase 1 runs the backend and frontend locally while using PostgreSQL for real complaint storage and AWS Bedrock Claude for AI enrichment.
+Infrastructure and deployment configuration for CustomerPulse. This feature branch contains infrastructure assets and root orchestration files only; application source is published from its own feature branches.
 
-Backend setup is automatic on startup, and can also be run manually:
+The Compose definition runs an externally built backend image behind Nginx. Prepare deployment-only settings first:
 
 ```bash
-cd backend
-python -m app.db.setup
+cp .env.template .env
+# Fill the deployment values in .env.
+docker compose up -d
 ```
 
-Fill `.env` from `.env.template` before running the backend. Set `BEDROCK_API_KEY` to the key from the AWS account that owns Bedrock access. Never commit real secrets.
-
-The shared API contract lives at `shared/schema/complaint.schema.json`.
+Fill deployment values from `.env.template` locally or through managed deployment settings. Never commit real secrets.

@@ -1,31 +1,17 @@
 services:
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ${BACKEND_IMAGE:?Set BACKEND_IMAGE to the published backend container image}
     container_name: customerpulse-backend
     restart: unless-stopped
     env_file:
       - path: .env
         required: false
-    ports:
-      - "${BACKEND_PORT:-8000}:8000"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 20s
-    networks:
-      - customerpulse
-
-  redis:
-    image: redis:7-alpine
-    container_name: customerpulse-redis
-    restart: unless-stopped
-    command: ["redis-server", "--appendonly", "yes"]
-    volumes:
-      - redis-data:/data
     networks:
       - customerpulse
 
@@ -45,6 +31,3 @@ services:
 networks:
   customerpulse:
     driver: bridge
-
-volumes:
-  redis-data:
