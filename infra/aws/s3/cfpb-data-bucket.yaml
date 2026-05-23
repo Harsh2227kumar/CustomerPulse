@@ -1,13 +1,10 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Private CustomerPulse CFPB raw-data bucket readable by the Account 1 backend role.
+Description: Private CustomerPulse CFPB raw-data bucket hosted with the application runtime in Account 3.
 
 Parameters:
   BucketName:
     Type: String
     Description: Globally unique S3 bucket name for CFPB CSV exports.
-  Account1BackendRoleArn:
-    Type: String
-    Description: IAM role ARN used by the backend or ingestion runtime in Account 1.
 
 Resources:
   CfpbRawDataBucket:
@@ -48,26 +45,6 @@ Resources:
             Condition:
               Bool:
                 "aws:SecureTransport": "false"
-          - Sid: AllowAccount1BackendListCfpbPrefix
-            Effect: Allow
-            Principal:
-              AWS: !Ref Account1BackendRoleArn
-            Action: "s3:ListBucket"
-            Resource: !GetAtt CfpbRawDataBucket.Arn
-            Condition:
-              StringLike:
-                "s3:prefix":
-                  - "raw/cfpb"
-                  - "raw/cfpb/*"
-          - Sid: AllowAccount1BackendReadCfpbObjects
-            Effect: Allow
-            Principal:
-              AWS: !Ref Account1BackendRoleArn
-            Action:
-              - "s3:GetObject"
-              - "s3:GetObjectVersion"
-            Resource: !Sub "${CfpbRawDataBucket.Arn}/raw/cfpb/*"
-
 Outputs:
   BucketName:
     Description: Private CFPB raw-data bucket.

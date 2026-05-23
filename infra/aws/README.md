@@ -5,8 +5,8 @@ CustomerPulse is being built in two stages:
 - Phase 1: run backend and frontend locally, while using PostgreSQL for real complaint data and AWS Bedrock Claude for AI processing.
 - Phase 2: host backend on AWS EC2 with Docker Compose, Nginx, Redis, and a managed PostgreSQL database.
 
-For the private cross-account CFPB CSV bucket and bounded S3-to-RDS import setup,
-follow `infra/aws/S3_CROSS_ACCOUNT_SETUP.md`.
+For the three-account CFPB flow and bounded S3-to-RDS import setup, follow
+`infra/aws/S3_THREE_ACCOUNT_SETUP.md`.
 
 ## Phase 1: Local Backend With PostgreSQL And Bedrock
 
@@ -47,12 +47,13 @@ S3_BUCKET_NAME=
 
 ## Multiple Cloud Accounts
 
-This project can use different AWS accounts for database and AI.
+This project uses separate AWS accounts for database, AI, and application data/hosting.
 
 - User1 AWS account owns PostgreSQL/RDS. Keep that in `DATABASE_URL`.
 - User2 AWS account owns Amazon Bedrock Claude access. Keep that in `BEDROCK_API_KEY`, `BEDROCK_REGION`, and `BEDROCK_MODEL`.
+- User3 AWS account owns the private S3 CFPB bucket during development and will own the EC2 backend host in Phase 2.
 
-The backend does not need user2 AWS IAM credentials when using a Bedrock API key. It only needs network access to the Bedrock endpoint and the key itself. The database account remains separate; RDS networking still controls whether the backend can connect to user1 PostgreSQL.
+During local development, the backend uses an Account 3 local AWS profile to read S3. In Phase 2, the backend uses the IAM role attached to the Account 3 EC2 instance to read the same Account 3 bucket. The backend does not need Account 2 IAM credentials when using a Bedrock API key. RDS networking still controls whether local development or Account 3 EC2 can connect to Account 1 PostgreSQL.
 
 ## Phase 2: One-Time EC2 Setup
 
