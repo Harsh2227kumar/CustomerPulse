@@ -1,0 +1,77 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Private CustomerPulse CFPB raw-data bucket readable by the Account 1 backend role.
+
+Parameters:
+  BucketName:
+    Type: String
+    Description: Globally unique S3 bucket name for CFPB CSV exports.
+  Account1BackendRoleArn:
+    Type: String
+    Description: IAM role ARN used by the backend or ingestion runtime in Account 1.
+
+Resources:
+  CfpbRawDataBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref BucketName
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+      Tags:
+        - Key: application
+          Value: customerpulse
+        - Key: data
+          Value: cfpb-raw
+
+  CfpbRawDataBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref CfpbRawDataBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: "*"
+            Action: "s3:*"
+            Resource:
+              - !GetAtt CfpbRawDataBucket.Arn
+              - !Sub "${CfpbRawDataBucket.Arn}/*"
+            Condition:
+              Bool:
+                "aws:SecureTransport": "false"
+          - Sid: AllowAccount1BackendListCfpbPrefix
+            Effect: Allow
+            Principal:
+              AWS: !Ref Account1BackendRoleArn
+            Action: "s3:ListBucket"
+            Resource: !GetAtt CfpbRawDataBucket.Arn
+            Condition:
+              StringLike:
+                "s3:prefix":
+                  - "raw/cfpb"
+                  - "raw/cfpb/*"
+          - Sid: AllowAccount1BackendReadCfpbObjects
+            Effect: Allow
+            Principal:
+              AWS: !Ref Account1BackendRoleArn
+            Action:
+              - "s3:GetObject"
+              - "s3:GetObjectVersion"
+            Resource: !Sub "${CfpbRawDataBucket.Arn}/raw/cfpb/*"
+
+Outputs:
+  BucketName:
+    Description: Private CFPB raw-data bucket.
+    Value: !Ref CfpbRawDataBucket
+  UploadPrefix:
+    Description: Key prefix accepted by the backend access policy.
+    Value: !Sub "s3://${CfpbRawDataBucket}/raw/cfpb/"
