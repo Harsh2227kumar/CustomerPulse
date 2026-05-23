@@ -1,6 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
-from pydantic import AnyUrl, Field, field_validator, model_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -34,14 +34,16 @@ class Settings(BaseSettings):
     aws_region: str = Field(default="ap-south-1", min_length=1)
 
     cors_origins: str = ""
-    redis_url: str | None = None
-    vector_dimensions: int = Field(default=384, ge=1)
     ai_max_retries: int = Field(default=2, ge=0, le=5)
     ai_timeout_seconds: float = Field(default=30.0, gt=0)
 
     @property
     def parsed_cors_origins(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    @property
+    def s3_import_configured(self) -> bool:
+        return bool(self.s3_bucket_name and self.cfpb_s3_key)
 
     @field_validator(
         "database_admin_url",
@@ -79,18 +81,12 @@ class Settings(BaseSettings):
             return value.replace("postgresql://", "postgresql+asyncpg://", 1)
         return value
 
-    @field_validator("redis_url")
-    @classmethod
-    def validate_redis_url(cls, value: str | None) -> str | None:
-        if value is None or value == "":
-            return None
-        AnyUrl(value)
-        return value
-
     @model_validator(mode="after")
-    def validate_ai_provider_settings(self) -> "Settings":
+    def validate_service_settings(self) -> "Settings":
         if not self.bedrock_api_key:
             raise ValueError("BEDROCK_API_KEY is required when AI_PROVIDER=bedrock")
+        if bool(self.s3_bucket_name) != bool(self.cfpb_s3_key):
+            raise ValueError("S3_BUCKET_NAME and CFPB_S3_KEY must be configured together")
         return self
 
 

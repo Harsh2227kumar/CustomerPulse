@@ -1,11 +1,12 @@
 from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
+import logging
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api import complaints, health, ingestion, process, search, websocket
+from app.api import complaints, health, ingestion, process, websocket
 from app.core.config import get_settings
 from app.core.logging import configure_logging
 from app.db.setup import run_startup_checks
@@ -13,6 +14,7 @@ from app.db.setup import run_startup_checks
 
 settings = get_settings()
 configure_logging()
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -34,13 +36,13 @@ app.add_middleware(
 app.include_router(health.router)
 app.include_router(process.router)
 app.include_router(complaints.router)
-app.include_router(search.router)
 app.include_router(ingestion.router)
 app.include_router(websocket.router)
 
 
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    logger.exception("Unhandled API error at %s.", request.url.path)
     return JSONResponse(
         status_code=500,
         content={"detail": "Internal server error", "path": str(request.url.path)},

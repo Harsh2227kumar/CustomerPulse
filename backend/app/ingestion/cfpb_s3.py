@@ -145,7 +145,7 @@ class CfpbS3IngestionService:
 
     @property
     def source(self) -> S3SourceSummary:
-        return S3SourceSummary(bucket=self.bucket, key=self.key)
+        return S3SourceSummary(label="Private CFPB import source")
 
     @contextmanager
     def _csv_stream(self) -> Iterator[TextIO]:
@@ -270,7 +270,7 @@ class CfpbS3IngestionService:
     ) -> S3ImportResponse:
         scanned, matched, skipped, rows = selection
         logs = [
-            S3ImportLog(level="info", message=f"Read S3 object s3://{self.bucket}/{self.key}."),
+            S3ImportLog(level="info", message="Read configured private CFPB import source."),
             S3ImportLog(level="info", message=f"Selected {len(rows)} matching complaint rows."),
         ]
         imported = 0

@@ -7,7 +7,7 @@ from sqlalchemy import DateTime, Float, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.core.constants import ProcessingStatus
+from app.core.constants import EMBEDDING_DIMENSIONS, ProcessingStatus
 from app.db.base import Base
 
 
@@ -36,7 +36,7 @@ class Complaint(Base):
     confidence_scores: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     ai_confidence: Mapped[float | None] = mapped_column(Float)
     ai_reasoning: Mapped[str | None] = mapped_column(Text)
-    embedding: Mapped[list[float] | None] = mapped_column(Vector(384))
+    embedding: Mapped[list[float] | None] = mapped_column(Vector(EMBEDDING_DIMENSIONS))
     processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
     ai_status: Mapped[str] = mapped_column(
         String(32),

@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 from app.ai.bedrock.client import BedrockClient
 from app.core.config import Settings, get_settings
+from app.core.constants import EMBEDDING_DIMENSIONS
 from app.db.base import Base
 from app.models.complaint import Complaint
 
@@ -86,7 +87,7 @@ EXPECTED_COMPLAINT_COLUMNS: dict[str, str] = {
     "confidence_scores": "JSONB",
     "ai_confidence": "DOUBLE PRECISION",
     "ai_reasoning": "TEXT",
-    "embedding": "VECTOR(384)",
+    "embedding": f"VECTOR({EMBEDDING_DIMENSIONS})",
     "processed_at": "TIMESTAMP WITH TIME ZONE",
     "ai_status": "VARCHAR(32)",
     "retry_count": "INTEGER",

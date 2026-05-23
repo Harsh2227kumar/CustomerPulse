@@ -35,8 +35,7 @@ class S3ComplaintImportFilters(BaseModel):
 
 
 class S3SourceSummary(BaseModel):
-    bucket: str
-    key: str
+    label: str
 
 
 class S3ImportOptionsResponse(BaseModel):
