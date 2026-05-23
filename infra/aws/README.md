@@ -5,6 +5,9 @@ CustomerPulse is being built in two stages:
 - Phase 1: run backend and frontend locally, while using PostgreSQL for real complaint data and AWS Bedrock Claude for AI processing.
 - Phase 2: host backend on AWS EC2 with Docker Compose, Nginx, Redis, and a managed PostgreSQL database.
 
+For the private cross-account CFPB CSV bucket and bounded S3-to-RDS import setup,
+follow `infra/aws/S3_CROSS_ACCOUNT_SETUP.md`.
+
 ## Phase 1: Local Backend With PostgreSQL And Bedrock
 
 Services needed now:
