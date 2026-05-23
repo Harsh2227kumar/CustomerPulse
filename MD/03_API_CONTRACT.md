@@ -92,6 +92,25 @@ Query parameters:
 
 Keyword search now; pgvector similarity later.
 
+## S3 Complaint Import
+
+The backend reads the private CFPB CSV or CSV ZIP configured by `S3_BUCKET_NAME` and
+`CFPB_S3_KEY`. The frontend does not receive S3 credentials or access raw objects.
+
+`GET /api/ingestion/s3/options` scans eligible narrative rows and returns selectable
+raw CFPB filter values for `product`, `sub_product`, `issue`, `company`, and
+`channel`.
+
+`POST /api/ingestion/s3/preview` accepts raw-file filters plus `max_records`
+(`1` to `5000`) and returns the matching count and the rows that would be imported.
+
+`POST /api/ingestion/s3/import` applies the same filters and upserts no more than
+`max_records` real rows into PostgreSQL. New imported complaints are stored with
+`ai_status=pending`; Bedrock enrichment remains a separate processing action.
+
+`Product` is the raw-data category filter, for example `Credit card`. AI
+`category` is not available until a complaint has been imported and processed.
+
 ## WebSocket `/ws`
 
 Events:

@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     bedrock_model: str = Field(default="global.anthropic.claude-sonnet-4-6", min_length=1)
     bedrock_base_url: str | None = None
     s3_bucket_name: str | None = None
+    cfpb_s3_key: str | None = None
+    aws_region: str = Field(default="ap-south-1", min_length=1)
 
     cors_origins: str = ""
     redis_url: str | None = None
@@ -46,6 +48,7 @@ class Settings(BaseSettings):
         "bedrock_api_key",
         "bedrock_base_url",
         "s3_bucket_name",
+        "cfpb_s3_key",
         mode="before",
     )
     @classmethod

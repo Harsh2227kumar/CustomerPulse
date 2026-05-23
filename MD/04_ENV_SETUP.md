@@ -27,7 +27,9 @@ Use this setup while developing locally:
 - `BEDROCK_REGION`: AWS region where the Bedrock API key and model access are configured.
 - `BEDROCK_MODEL`: Bedrock Claude model used for complaint enrichment. Default: `global.anthropic.claude-sonnet-4-6`.
 - `CORS_ORIGINS`: comma-separated frontend origins.
-- `S3_BUCKET_NAME`: optional for Harsh's backend path, required when the CFPB raw JSON archive path is enabled.
+- `S3_BUCKET_NAME`: private bucket containing the CFPB CSV or CSV ZIP used for controlled import.
+- `CFPB_S3_KEY`: object key such as `raw/cfpb/complaints.csv.zip`.
+- `AWS_REGION`: S3 bucket region. The backend AWS identity must have cross-account read permission when the bucket is owned by another account.
 
 Recommended Phase 1 `.env` shape:
 
@@ -41,6 +43,8 @@ BEDROCK_REGION=us-east-1
 BEDROCK_MODEL=global.anthropic.claude-sonnet-4-6
 BEDROCK_BASE_URL=
 S3_BUCKET_NAME=
+CFPB_S3_KEY=raw/cfpb/complaints.csv.zip
+AWS_REGION=ap-south-1
 
 CORS_ORIGINS=http://localhost:5173,http://localhost:3000
 REDIS_URL=
@@ -91,7 +95,7 @@ python -m app.db.setup
 - `VECTOR_DIMENSIONS`: defaults to `384`.
 - `AI_MAX_RETRIES`: defaults to `2`.
 - `AI_TIMEOUT_SECONDS`: defaults to `30`.
-- `S3_BUCKET_NAME`: needed for the CFPB raw JSON archive path.
+- `S3_BUCKET_NAME`, `CFPB_S3_KEY`, and `AWS_REGION`: needed for the controlled S3 CSV import page.
 
 ## Current Code Note
 
