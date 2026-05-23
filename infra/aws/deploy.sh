@@ -2,7 +2,7 @@
 set -euo pipefail
 
 PROJECT_DIR="${PROJECT_DIR:-$HOME/CustomerPulse}"
-BRANCH="${BRANCH:-feature/backend-ai-pipeline}"
+BRANCH="${BRANCH:-feature/s3-cross-account-setup}"
 
 if [ ! -d "$PROJECT_DIR/.git" ]; then
   echo "PROJECT_DIR must point to a cloned CustomerPulse repository: $PROJECT_DIR" >&2
@@ -19,6 +19,6 @@ if [ ! -f ".env" ]; then
   exit 1
 fi
 
-docker compose build
+docker compose pull
 docker compose up -d
 docker compose ps
