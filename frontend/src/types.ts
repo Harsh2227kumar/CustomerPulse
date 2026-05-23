@@ -84,3 +84,66 @@ export interface WebSocketMessage {
   payload: Record<string, unknown>;
   timestamp: string;
 }
+
+export interface S3ImportFilters {
+  product: string | null;
+  sub_product: string | null;
+  issue: string | null;
+  company: string | null;
+  channel: string | null;
+  timely_response: boolean | null;
+  date_received_min: string | null;
+  date_received_max: string | null;
+  max_records: number;
+}
+
+export interface S3SourceSummary {
+  bucket: string;
+  key: string;
+}
+
+export interface S3ImportOptionsResponse {
+  source: S3SourceSummary;
+  scanned_rows: number;
+  eligible_rows: number;
+  products: string[];
+  sub_products: string[];
+  issues: string[];
+  companies: string[];
+  channels: string[];
+}
+
+export interface S3PreviewItem {
+  complaint_id: string;
+  narrative: string;
+  product: string | null;
+  sub_product: string | null;
+  issue: string | null;
+  company: string | null;
+  channel: string | null;
+  timely_response: boolean | null;
+  date_received: string | null;
+}
+
+export interface S3ImportPreviewResponse {
+  source: S3SourceSummary;
+  scanned_rows: number;
+  matched_rows: number;
+  selected_rows: number;
+  items: S3PreviewItem[];
+}
+
+export interface S3ImportLog {
+  level: "info" | "success" | "error";
+  message: string;
+}
+
+export interface S3ImportResponse {
+  status: "success";
+  source: S3SourceSummary;
+  scanned_rows: number;
+  matched_rows: number;
+  imported_rows: number;
+  skipped_rows: number;
+  logs: S3ImportLog[];
+}

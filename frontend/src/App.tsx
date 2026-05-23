@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   FileText,
+  Database,
   Gauge,
   Inbox,
   LayoutDashboard,
@@ -22,6 +23,7 @@ import {
 } from "lucide-react";
 import { type CSSProperties, type FormEvent, useEffect, useMemo, useState } from "react";
 import { getComplaints, getHealth, processComplaint, websocketUrl } from "./api/client";
+import { S3ImportPage } from "./S3ImportPage";
 import type {
   ChurnRisk,
   ComplaintFilters,
@@ -47,7 +49,7 @@ const eventLabels: Record<string, string> = {
   received: "Received",
   preprocessing: "Preprocessing",
   local_ml: "Local scoring",
-  openai_processing: "OpenAI analysis",
+  bedrock_processing: "Bedrock analysis",
   validating: "Validation",
   saved: "Saved",
   failed: "Failed",
@@ -147,6 +149,7 @@ function EmptyPanel({ title, body }: { title: string; body: string }) {
 }
 
 export function App() {
+  const [activeView, setActiveView] = useState<"dashboard" | "import">("dashboard");
   const [filters, setFilters] = useState<ComplaintFilters>(initialFilters);
   const [complaints, setComplaints] = useState<ComplaintListItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -265,6 +268,10 @@ export function App() {
     }
   }
 
+  if (activeView === "import") {
+    return <S3ImportPage onBack={() => setActiveView("dashboard")} />;
+  }
+
   return (
     <main className="app-shell">
       <aside className="sidebar">
@@ -275,6 +282,7 @@ export function App() {
         <nav className="nav-list" aria-label="Primary navigation">
           <a className="active" href="#dashboard"><LayoutDashboard size={16} />Dashboard</a>
           <a href="#complaints"><Inbox size={16} />Complaints</a>
+          <button type="button" onClick={() => setActiveView("import")}><Database size={16} />S3 Import</button>
           <a href="#intake"><MessageSquareText size={16} />Live Intake</a>
           <a href="#analytics"><BarChart3 size={16} />Analytics</a>
           <a href="#activity"><Activity size={16} />Activity</a>

@@ -4,6 +4,10 @@ import type {
   ComplaintProcessRequest,
   HealthResponse,
   ProcessedComplaintResponse,
+  S3ImportFilters,
+  S3ImportOptionsResponse,
+  S3ImportPreviewResponse,
+  S3ImportResponse,
 } from "../types";
 
 const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") ?? "";
@@ -37,8 +41,15 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
 
   if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || `Request failed with ${response.status}`);
+    const body = await response.text();
+    let detail: string | undefined;
+    try {
+      const parsed = JSON.parse(body) as { detail?: string };
+      detail = parsed.detail;
+    } catch {
+      detail = undefined;
+    }
+    throw new Error(detail || body || `Request failed with ${response.status}`);
   }
 
   return response.json() as Promise<T>;
@@ -68,6 +79,24 @@ export function getComplaints(filters: ComplaintFilters, limit = 50, offset = 0)
 
 export function processComplaint(payload: ComplaintProcessRequest): Promise<ProcessedComplaintResponse> {
   return request<ProcessedComplaintResponse>("/api/process", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function getS3ImportOptions(): Promise<S3ImportOptionsResponse> {
+  return request<S3ImportOptionsResponse>("/api/ingestion/s3/options");
+}
+
+export function previewS3Import(payload: S3ImportFilters): Promise<S3ImportPreviewResponse> {
+  return request<S3ImportPreviewResponse>("/api/ingestion/s3/preview", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function importS3Complaints(payload: S3ImportFilters): Promise<S3ImportResponse> {
+  return request<S3ImportResponse>("/api/ingestion/s3/import", {
     method: "POST",
     body: JSON.stringify(payload),
   });
