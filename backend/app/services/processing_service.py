@@ -34,7 +34,10 @@ class ProcessingService:
                 complaint_request.complaint_id,
                 {"urgency_score": local_signals.urgency_score, "category": local_signals.category},
             )
-            await broadcast_processing_event(WebSocketEvent.OPENAI_PROCESSING, complaint_request.complaint_id)
+            await broadcast_processing_event(
+                WebSocketEvent.BEDROCK_PROCESSING,
+                complaint_request.complaint_id,
+            )
             enrichment, _ = await self.pipeline.process(complaint_request)
             await broadcast_processing_event(WebSocketEvent.VALIDATING, complaint_request.complaint_id)
 

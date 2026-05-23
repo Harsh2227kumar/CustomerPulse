@@ -1,9 +1,9 @@
 # Team Handoff
 
 ## Harsh
-Owns backend, AI pipeline, OpenAI integration, validation, WebSockets, AI enrichment fields, and the automatic Phase 1 startup/setup checks.
+Owns backend, AI pipeline, AWS Bedrock integration, validation, WebSockets, AI enrichment fields, and the automatic Phase 1 startup/setup checks.
 
-Phase 1 backend startup now verifies database/schema readiness, row permissions, and OpenAI model access before serving API requests.
+Phase 1 backend startup now verifies database/schema readiness, row permissions, and Bedrock model access before serving API requests.
 
 ## Yash
 Owns CFPB ingestion and raw complaint insertion.
@@ -22,11 +22,11 @@ Frontend should not rely on mock backend records once the real DB is connected.
 
 The shared schema is `shared/schema/complaint.schema.json`. Treat it as the single source of truth before changing frontend types or API response assumptions.
 
-Backend may take longer on startup because it runs database and OpenAI readiness checks before accepting frontend traffic.
+Backend may take longer on startup because it runs database and Bedrock readiness checks before accepting frontend traffic.
 
 ## Sparsh
 Owns Docker, EC2 or other hosting, database connectivity, environment injection, Nginx, and deployment.
 
 Deployment must provide real environment variables. The backend does not contain committed secrets.
 
-On EC2, put `OPENAI_API_KEY` in a managed secret source or deployment-only `.env`. If terminal prompts are unavailable in a hosted environment, run `python -m app.db.setup` during deployment or ensure the database/schema already exists before starting the backend.
+On EC2, put `BEDROCK_API_KEY` from the user2 AWS account in a managed secret source or deployment-only `.env`. Keep `DATABASE_URL` pointed at the user1 PostgreSQL account. If terminal prompts are unavailable in a hosted environment, run `python -m app.db.setup` during deployment or ensure the database/schema already exists before starting the backend.

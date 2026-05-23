@@ -16,5 +16,5 @@ def parse_json_object(raw_text: str) -> dict[str, Any]:
             raise
         value = json.loads(match.group(0))
     if not isinstance(value, dict):
-        raise ValueError("OpenAI response must be a JSON object")
+        raise ValueError("Bedrock response must be a JSON object")
     return value

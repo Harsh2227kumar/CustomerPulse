@@ -9,7 +9,7 @@ Before the API accepts requests, backend startup verifies:
 - `pgvector` extension.
 - `complaints` table and indexes.
 - Basic row permissions.
-- OpenAI API access using `OPENAI_API_KEY` and `OPENAI_MODEL`.
+- AWS Bedrock access using `AI_PROVIDER=bedrock`, `BEDROCK_API_KEY`, `BEDROCK_REGION`, and `BEDROCK_MODEL`.
 
 If database or schema objects are missing, the backend prompts in the terminal before creating them. The same setup can be run manually from the `backend` folder:
 
@@ -99,7 +99,7 @@ Events:
 - `received`
 - `preprocessing`
 - `local_ml`
-- `openai_processing`
+- `bedrock_processing`
 - `validating`
 - `saved`
 - `failed`

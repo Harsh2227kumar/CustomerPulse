@@ -2,7 +2,7 @@
 
 ## Core
 - `backend/app/main.py`: FastAPI app, middleware, router registration, and startup checks.
-- `backend/app/core/config.py`: Pydantic settings from environment, including database, optional admin DB URL, and OpenAI values.
+- `backend/app/core/config.py`: Pydantic settings from environment, including database, optional admin DB URL, and AWS Bedrock values.
 - `backend/app/core/constants.py`: shared enums.
 - `backend/app/core/logging.py`: logging setup.
 
@@ -10,7 +10,7 @@
 - `backend/app/db/session.py`: async SQLAlchemy engine and session dependency.
 - `backend/app/db/base.py`: declarative base.
 - `backend/app/db/init_db.py`: extension creation, table creation, DB check.
-- `backend/app/db/setup.py`: automatic Phase 1 setup and verification command for database creation, schema, indexes, permissions, and OpenAI readiness.
+- `backend/app/db/setup.py`: automatic Phase 1 setup and verification command for database creation, schema, indexes, permissions, and Bedrock readiness.
 - `backend/app/models/complaint.py`: raw complaint plus AI enrichment fields.
 
 ## API
@@ -23,7 +23,7 @@
 ## AI
 - `backend/app/ai/preprocessing/`: text cleaning, extraction, prompt compression.
 - `backend/app/ai/ml_models/`: lightweight local scoring hooks.
-- `backend/app/ai/openai/`: OpenAI client, prompt, parser, retry.
+- `backend/app/ai/bedrock/`: AWS Bedrock client, prompt, parser, retry.
 - `backend/app/ai/validators/`: JSON/schema/confidence/output guards.
 - `backend/app/ai/pipelines/complaint_pipeline.py`: full complaint enrichment pipeline.
 - `backend/app/ai/embeddings/`: sentence-transformers generation and pgvector similarity helpers.
