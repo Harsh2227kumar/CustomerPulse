@@ -1,6 +1,9 @@
 from enum import StrEnum
 
 
+EMBEDDING_DIMENSIONS = 384
+
+
 class Sentiment(StrEnum):
     POSITIVE = "Positive"
     NEUTRAL = "Neutral"

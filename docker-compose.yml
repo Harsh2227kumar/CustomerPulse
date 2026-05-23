@@ -19,32 +19,6 @@ services:
     networks:
       - customerpulse
 
-  redis:
-    image: redis:7-alpine
-    container_name: customerpulse-redis
-    restart: unless-stopped
-    command: ["redis-server", "--appendonly", "yes"]
-    volumes:
-      - redis-data:/data
-    networks:
-      - customerpulse
-
-  nginx:
-    image: nginx:1.27-alpine
-    container_name: customerpulse-nginx
-    restart: unless-stopped
-    depends_on:
-      - backend
-    ports:
-      - "${HTTP_PORT:-80}:80"
-    volumes:
-      - ./infra/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
-    networks:
-      - customerpulse
-
 networks:
   customerpulse:
     driver: bridge
-
-volumes:
-  redis-data:

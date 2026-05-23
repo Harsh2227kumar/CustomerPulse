@@ -1,6 +1,6 @@
-# CustomerPulse
+# CustomerPulse Backend
 
-Phase 1 runs the backend and frontend locally while using PostgreSQL for real complaint storage and AWS Bedrock Claude for AI enrichment.
+FastAPI backend for CustomerPulse complaint ingestion and AWS Bedrock Claude enrichment. This feature branch contains backend source and backend runtime support files only.
 
 Backend setup is automatic on startup, and can also be run manually:
 
@@ -9,6 +9,12 @@ cd backend
 python -m app.db.setup
 ```
 
-Fill `.env` from `.env.template` before running the backend. Set `BEDROCK_API_KEY` to the key from the AWS account that owns Bedrock access. Never commit real secrets.
+Fill `.env` from `.env.template` before running the backend. Set the PostgreSQL, Bedrock, and private S3 configuration values through local or deployment-managed environment settings. Never commit real secrets.
 
-The shared API contract lives at `shared/schema/complaint.schema.json`.
+The API exposes complaint querying through `GET /api/complaints`, S3 import through `/api/ingestion/s3/*`, and Bedrock processing through `POST /api/process` or `POST /api/process/{complaint_id}` for imported rows.
+
+Run the backend container independently:
+
+```bash
+docker compose up --build
+```

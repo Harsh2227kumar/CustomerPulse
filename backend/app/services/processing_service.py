@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+import logging
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,6 +11,14 @@ from app.models.complaint import Complaint
 from app.schemas.ai_response import ProcessedComplaintResponse
 from app.schemas.complaint import ComplaintProcessRequest
 from app.websocket.broadcaster import broadcast_processing_event
+
+
+logger = logging.getLogger(__name__)
+PUBLIC_PROCESSING_ERROR = "Complaint processing failed."
+
+
+class ComplaintNotFoundError(LookupError):
+    pass
 
 
 class ProcessingService:
@@ -70,16 +79,40 @@ class ProcessingService:
             )
             return response
         except Exception as exc:
+            logger.exception("Complaint processing failed for %s.", complaint_request.complaint_id)
             complaint.ai_status = ProcessingStatus.FAILED.value
             complaint.retry_count += 1
-            complaint.error_message = str(exc)
+            complaint.error_message = PUBLIC_PROCESSING_ERROR
             await db.commit()
             await broadcast_processing_event(
                 WebSocketEvent.FAILED,
                 complaint_request.complaint_id,
-                {"error": str(exc)},
+                {"error": PUBLIC_PROCESSING_ERROR},
             )
             raise
+
+    async def process_imported_complaint(
+        self,
+        db: AsyncSession,
+        complaint_id: str,
+    ) -> ProcessedComplaintResponse:
+        result = await db.execute(
+            select(Complaint).where(Complaint.source_complaint_id == complaint_id)
+        )
+        complaint = result.scalar_one_or_none()
+        if complaint is None:
+            raise ComplaintNotFoundError(complaint_id)
+        return await self.process_complaint(
+            db,
+            ComplaintProcessRequest(
+                complaint_id=complaint.source_complaint_id or complaint.id,
+                narrative=complaint.narrative,
+                channel=complaint.channel,
+                product=complaint.product,
+                issue=complaint.issue,
+                company=complaint.company,
+            ),
+        )
 
     async def _get_or_create_complaint(
         self,

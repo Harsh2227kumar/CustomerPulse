@@ -65,6 +65,8 @@ class CfpbS3IngestionTests(unittest.TestCase):
     def test_options_exclude_rows_without_narrative(self) -> None:
         options = FixtureService().load_options()
 
+        self.assertEqual(options.source.label, "Private CFPB import source")
+        self.assertNotIn("fixture-bucket", options.model_dump_json())
         self.assertEqual(options.scanned_rows, 4)
         self.assertEqual(options.eligible_rows, 3)
         self.assertEqual(options.products, ["Credit card", "Mortgage"])
