@@ -76,6 +76,7 @@ export interface HealthResponse {
   service: string;
   version: string;
   environment: string;
+  s3_import_configured: boolean;
 }
 
 export interface WebSocketMessage {
@@ -98,8 +99,7 @@ export interface S3ImportFilters {
 }
 
 export interface S3SourceSummary {
-  bucket: string;
-  key: string;
+  label: string;
 }
 
 export interface S3ImportOptionsResponse {

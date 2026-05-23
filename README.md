@@ -1,14 +1,28 @@
-# CustomerPulse
+# CustomerPulse Frontend
 
-Phase 1 runs the backend and frontend locally while using PostgreSQL for real complaint storage and the OpenAI API for AI enrichment.
+React/Vite interface for CustomerPulse complaint operations and controlled S3 import. This branch contains frontend assets and frontend-specific documentation only.
 
-Backend setup is automatic on startup, and can also be run manually:
+The UI consumes an external CustomerPulse backend configured for PostgreSQL and AWS Bedrock Claude enrichment. Backend source, cloud infrastructure, service credentials, and deployment composition intentionally do not live in this branch.
+
+## Run Locally
 
 ```bash
-cd backend
-python -m app.db.setup
+cd frontend
+npm install
+npm run dev
 ```
 
-Fill `.env` from `.env.template` before running the backend. Set `OPENAI_API_KEY` to your real key. Never commit real secrets.
+Configure endpoints in `frontend/.env` when the backend is not exposed through the same origin:
 
-The shared API contract lives at `shared/schema/complaint.schema.json`.
+```env
+VITE_API_BASE_URL=http://localhost:8000
+VITE_WS_BASE_URL=ws://localhost:8000
+```
+
+`VITE_API_BASE_URL` may remain empty in deployments that proxy `/api` to the external backend on the same host.
+
+To build and run the frontend container with external backend endpoints:
+
+```bash
+docker compose --env-file .env.template up --build
+```

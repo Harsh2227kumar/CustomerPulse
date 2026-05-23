@@ -9,8 +9,9 @@ import {
   RefreshCcw,
 } from "lucide-react";
 import { type FormEvent, useEffect, useState } from "react";
-import { getS3ImportOptions, importS3Complaints, previewS3Import } from "./api/client";
+import { getS3ImportOptions, importS3Complaints, previewS3Import, processImportedComplaint } from "./api/client";
 import type {
+  ProcessedComplaintResponse,
   S3ImportFilters,
   S3ImportLog,
   S3ImportOptionsResponse,
@@ -48,6 +49,9 @@ export function S3ImportPage({ onBack }: { onBack: () => void }) {
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<S3ImportResponse | null>(null);
   const [failureLogs, setFailureLogs] = useState<S3ImportLog[]>([]);
+  const [processingId, setProcessingId] = useState<string | null>(null);
+  const [processedRows, setProcessedRows] = useState<Record<string, ProcessedComplaintResponse>>({});
+  const [processingError, setProcessingError] = useState<string | null>(null);
 
   async function loadOptions() {
     setLoadingOptions(true);
@@ -69,6 +73,8 @@ export function S3ImportPage({ onBack }: { onBack: () => void }) {
     setPreview(null);
     setResult(null);
     setFailureLogs([]);
+    setProcessedRows({});
+    setProcessingError(null);
   }, [filters]);
 
   async function runPreview(event?: FormEvent<HTMLFormElement>) {
@@ -105,6 +111,19 @@ export function S3ImportPage({ onBack }: { onBack: () => void }) {
     }
   }
 
+  async function runProcessing(complaintId: string) {
+    setProcessingId(complaintId);
+    setProcessingError(null);
+    try {
+      const processed = await processImportedComplaint(complaintId);
+      setProcessedRows((current) => ({ ...current, [complaintId]: processed }));
+    } catch (error) {
+      setProcessingError(error instanceof Error ? error.message : "Complaint processing failed.");
+    } finally {
+      setProcessingId(null);
+    }
+  }
+
   return (
     <main className="import-page">
       <header className="import-header">
@@ -122,7 +141,7 @@ export function S3ImportPage({ onBack }: { onBack: () => void }) {
       </header>
 
       <section className="source-band" aria-label="S3 source status">
-        <div><CloudDownload size={18} /><span>Source</span><strong>{options ? `s3://${options.source.bucket}/${options.source.key}` : "Not loaded"}</strong></div>
+        <div><CloudDownload size={18} /><span>Source</span><strong>{options?.source.label ?? "Not loaded"}</strong></div>
         <div><FileSearch size={18} /><span>Eligible rows</span><strong>{options?.eligible_rows.toLocaleString() ?? "-"}</strong></div>
         <div><Database size={18} /><span>Import limit</span><strong>{filters.max_records.toLocaleString()}</strong></div>
       </section>
@@ -259,6 +278,13 @@ export function S3ImportPage({ onBack }: { onBack: () => void }) {
               <span>Review the operation log below.</span>
             </article>
           )}
+          {processingError && (
+            <article className="import-alert failure">
+              <AlertCircle size={20} />
+              <strong>Processing failed</strong>
+              <span>{processingError}</span>
+            </article>
+          )}
           <article className="panel preview-panel">
             <div className="panel-heading">
               <div>
@@ -273,7 +299,7 @@ export function S3ImportPage({ onBack }: { onBack: () => void }) {
             {preview?.items.length ? (
               <div className="table-scroll">
                 <table>
-                  <thead><tr><th>Product</th><th>Issue</th><th>Company</th><th>Received</th></tr></thead>
+                  <thead><tr><th>Product</th><th>Issue</th><th>Company</th><th>Received</th><th>AI action</th></tr></thead>
                   <tbody>
                     {preview.items.map((item) => (
                       <tr key={item.complaint_id}>
@@ -281,6 +307,21 @@ export function S3ImportPage({ onBack }: { onBack: () => void }) {
                         <td>{item.issue ?? "Unknown"}</td>
                         <td>{item.company ?? "Unknown"}</td>
                         <td>{formatDate(item.date_received)}</td>
+                        <td>
+                          {processedRows[item.complaint_id] ? (
+                            <span className="status-pill">Processed</span>
+                          ) : (
+                            <button
+                              className="secondary-action"
+                              type="button"
+                              onClick={() => runProcessing(item.complaint_id)}
+                              disabled={!result || processingId !== null}
+                            >
+                              {processingId === item.complaint_id ? <Loader2 className="spin" size={16} /> : null}
+                              {result ? "Process" : "Import first"}
+                            </button>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

@@ -84,6 +84,12 @@ export function processComplaint(payload: ComplaintProcessRequest): Promise<Proc
   });
 }
 
+export function processImportedComplaint(complaintId: string): Promise<ProcessedComplaintResponse> {
+  return request<ProcessedComplaintResponse>(`/api/process/${encodeURIComponent(complaintId)}`, {
+    method: "POST",
+  });
+}
+
 export function getS3ImportOptions(): Promise<S3ImportOptionsResponse> {
   return request<S3ImportOptionsResponse>("/api/ingestion/s3/options");
 }

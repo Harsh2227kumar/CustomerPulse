@@ -1,14 +1,8 @@
 .env
-.venv/
-venv/
-__pycache__/
-*.py[cod]
 *.tsbuildinfo
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
 .codex_tmp/
 node_modules/
 dist/
 build/
+.vite/
 .DS_Store
