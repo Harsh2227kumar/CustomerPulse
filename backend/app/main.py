@@ -5,7 +5,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api import complaints, health, process, search, websocket
+from app.api import complaints, health, ingestion, process, search, websocket
 from app.core.config import get_settings
 from app.core.logging import configure_logging
 from app.db.setup import run_startup_checks
@@ -35,6 +35,7 @@ app.include_router(health.router)
 app.include_router(process.router)
 app.include_router(complaints.router)
 app.include_router(search.router)
+app.include_router(ingestion.router)
 app.include_router(websocket.router)
 
 
