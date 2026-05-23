@@ -4,9 +4,9 @@ from app.ai.ml_models.classifier import classify_category
 from app.ai.ml_models.confidence import combine_confidence
 from app.ai.ml_models.sentiment import predict_sentiment
 from app.ai.ml_models.urgency import estimate_urgency
-from app.ai.openai.client import OpenAIClient
-from app.ai.openai.parser import parse_json_object
-from app.ai.openai.retry_handler import with_retries
+from app.ai.bedrock.client import BedrockClient
+from app.ai.bedrock.parser import parse_json_object
+from app.ai.bedrock.retry_handler import with_retries
 from app.ai.preprocessing.cleaner import clean_complaint_text
 from app.ai.preprocessing.extractor import extract_signals
 from app.ai.preprocessing.summarizer import compress_for_prompt
@@ -35,7 +35,7 @@ class LocalSignals:
 class ComplaintAIPipeline:
     def __init__(self, settings: Settings):
         self.settings = settings
-        self.openai = OpenAIClient(settings)
+        self.bedrock = BedrockClient(settings)
 
     def run_local_layer(self, complaint: ComplaintProcessRequest) -> LocalSignals:
         cleaned = clean_complaint_text(complaint.narrative)
@@ -63,8 +63,8 @@ class ComplaintAIPipeline:
     async def process(self, complaint: ComplaintProcessRequest) -> tuple[AIEnrichment, LocalSignals]:
         local = self.run_local_layer(complaint)
 
-        async def call_openai() -> str:
-            return await self.openai.analyze_complaint(
+        async def call_bedrock() -> str:
+            return await self.bedrock.analyze_complaint(
                 complaint_id=complaint.complaint_id,
                 narrative=local.prompt_narrative,
                 channel=complaint.channel,
@@ -73,7 +73,7 @@ class ComplaintAIPipeline:
                 local_urgency=local.urgency_score,
             )
 
-        raw_response = await with_retries(call_openai, self.settings.ai_max_retries)
+        raw_response = await with_retries(call_bedrock, self.settings.ai_max_retries)
         parsed = parse_json_object(raw_response)
         enrichment = validate_ai_enrichment(parsed)
         enrichment = enforce_minimum_confidence(enrichment)

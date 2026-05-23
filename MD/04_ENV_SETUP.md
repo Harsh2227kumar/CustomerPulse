@@ -1,6 +1,6 @@
 # Environment Setup
 
-CustomerPulse Phase 1 runs the backend and frontend locally while using PostgreSQL for real complaint data and OpenAI for AI enrichment.
+CustomerPulse Phase 1 runs the backend and frontend locally while using PostgreSQL for real complaint data and AWS Bedrock Claude for AI enrichment.
 
 Copy `.env.template` to `.env` locally and fill real values. Never commit `.env`.
 
@@ -11,7 +11,7 @@ Use this setup while developing locally:
 - Backend: local FastAPI server.
 - Frontend: local dev server, usually `http://localhost:5173` or `http://localhost:3000`.
 - Database: PostgreSQL. AWS RDS is still fine for the shared team database.
-- AI: OpenAI API using `OPENAI_API_KEY`.
+- AI: AWS Bedrock API-key Messages endpoint using `BEDROCK_API_KEY`.
 - Redis: optional for now, reserved for Phase 2 WebSocket/pub-sub work.
 
 ## Required Values
@@ -22,9 +22,10 @@ Use this setup while developing locally:
 - `DATABASE_ADMIN_URL`: optional admin/default PostgreSQL URL used only when the backend needs to create the target database.
   - Leave blank if the same user can connect to the default `postgres` database.
   - Set it when the app user can use `customerpulse` but cannot create databases.
-- `AI_PROVIDER`: set to `openai`.
-- `OPENAI_API_KEY`: your OpenAI API key.
-- `OPENAI_MODEL`: model used for complaint enrichment. Default: `gpt-4o-mini`.
+- `AI_PROVIDER`: set to `bedrock`.
+- `BEDROCK_API_KEY`: Amazon Bedrock API key from the AWS account that has Claude model access.
+- `BEDROCK_REGION`: AWS region where the Bedrock API key and model access are configured.
+- `BEDROCK_MODEL`: Bedrock Claude model used for complaint enrichment. Default: `global.anthropic.claude-sonnet-4-6`.
 - `CORS_ORIGINS`: comma-separated frontend origins.
 - `S3_BUCKET_NAME`: optional for Harsh's backend path, required when the CFPB raw JSON archive path is enabled.
 
@@ -34,10 +35,11 @@ Recommended Phase 1 `.env` shape:
 DATABASE_URL=postgresql+asyncpg://USER:PASSWORD@HOST:5432/customerpulse
 DATABASE_ADMIN_URL=
 
-AI_PROVIDER=openai
-OPENAI_API_KEY=replace_with_real_key
-OPENAI_MODEL=gpt-4o-mini
-OPENAI_BASE_URL=
+AI_PROVIDER=bedrock
+BEDROCK_API_KEY=replace_with_user2_bedrock_key
+BEDROCK_REGION=us-east-1
+BEDROCK_MODEL=global.anthropic.claude-sonnet-4-6
+BEDROCK_BASE_URL=
 S3_BUCKET_NAME=
 
 CORS_ORIGINS=http://localhost:5173,http://localhost:3000
@@ -61,7 +63,7 @@ On backend startup, the app checks:
 - Whether the `vector` extension exists.
 - Whether the `complaints` table and indexes exist.
 - Whether the configured user can insert, select, update, and delete complaint rows.
-- Whether OpenAI can be invoked with the configured model.
+- Whether AWS Bedrock can be invoked with the configured model.
 
 If the database or schema is missing, the backend asks in the terminal before creating it.
 
@@ -72,17 +74,19 @@ cd backend
 python -m app.db.setup
 ```
 
-## OpenAI Setup Checklist
+## Bedrock Setup Checklist
 
-1. Create or choose an OpenAI API key.
-2. Put the key only in local `.env` or managed deployment secret storage.
-3. Set `AI_PROVIDER=openai`.
-4. Set `OPENAI_MODEL=gpt-4o-mini` unless the team agrees to another model.
-5. Run `python -m app.db.setup` to verify database and OpenAI readiness.
+1. In the user2 AWS account, request Claude model access in Amazon Bedrock.
+2. Generate an Amazon Bedrock API key in the same region.
+3. Put the key only in local `.env` or managed deployment secret storage.
+4. Set `AI_PROVIDER=bedrock`.
+5. Set `BEDROCK_REGION` to the region where the key was generated.
+6. Set `BEDROCK_MODEL` to a Claude model that user2's Bedrock account can access.
+7. Run `python -m app.db.setup` to verify user1 PostgreSQL access and user2 Bedrock readiness.
 
 ## Optional Values
 
-- `OPENAI_BASE_URL`: leave blank unless routing through an OpenAI-compatible gateway.
+- `BEDROCK_BASE_URL`: leave blank to use `https://bedrock-runtime.{BEDROCK_REGION}.amazonaws.com`.
 - `REDIS_URL`: keep empty locally for Phase 1. Use `redis://redis:6379/0` in Docker/EC2 later.
 - `VECTOR_DIMENSIONS`: defaults to `384`.
 - `AI_MAX_RETRIES`: defaults to `2`.
@@ -91,4 +95,4 @@ python -m app.db.setup
 
 ## Current Code Note
 
-The backend uses the OpenAI Python SDK and the Responses API with structured JSON output. It keeps the existing prompt, parser, validation, and complaint processing pipeline.
+The backend calls AWS Bedrock's API-key Messages endpoint directly with structured JSON output. The PostgreSQL account and Bedrock account are intentionally separate: `DATABASE_URL` points to user1 AWS/RDS, while `BEDROCK_*` points to user2 AWS/Bedrock.

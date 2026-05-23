@@ -27,7 +27,7 @@ Backend startup runs Phase 1 checks before serving traffic:
 - `pgvector`.
 - `complaints` table and indexes.
 - Basic row permissions.
-- OpenAI model access.
+- AWS Bedrock model access.
 
 If Docker is running without an interactive terminal, prepare the database first:
 

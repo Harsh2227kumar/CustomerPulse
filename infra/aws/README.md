@@ -2,15 +2,15 @@
 
 CustomerPulse is being built in two stages:
 
-- Phase 1: run backend and frontend locally, while using PostgreSQL for real complaint data and OpenAI for AI processing.
+- Phase 1: run backend and frontend locally, while using PostgreSQL for real complaint data and AWS Bedrock Claude for AI processing.
 - Phase 2: host backend on AWS EC2 with Docker Compose, Nginx, Redis, and a managed PostgreSQL database.
 
-## Phase 1: Local Backend With PostgreSQL And OpenAI
+## Phase 1: Local Backend With PostgreSQL And Bedrock
 
 Services needed now:
 
 - PostgreSQL database. AWS RDS is acceptable for the shared team database.
-- OpenAI API key.
+- Amazon Bedrock API key from the AWS account that owns Claude model access.
 
 Database:
 
@@ -26,35 +26,30 @@ DATABASE_ADMIN_URL=
 - If using RDS, allow the developer machine public IP in the RDS security group on port `5432`.
 - Start the backend or run `python -m app.db.setup` from the `backend` folder to create/verify the database, `vector` extension, `complaints` table, indexes, and permissions.
 
-OpenAI:
+Bedrock:
 
-- Create or choose an OpenAI API key.
+- In the user2 AWS account, request Claude model access and generate an Amazon Bedrock API key.
 - Put it in `.env`, never in git:
 
 ```env
-AI_PROVIDER=openai
-OPENAI_API_KEY=replace_with_real_key
-OPENAI_MODEL=gpt-4o-mini
-OPENAI_BASE_URL=
+AI_PROVIDER=bedrock
+BEDROCK_API_KEY=replace_with_user2_bedrock_key
+BEDROCK_REGION=us-east-1
+BEDROCK_MODEL=global.anthropic.claude-sonnet-4-6
+BEDROCK_BASE_URL=
 S3_BUCKET_NAME=
 ```
 
-`OPENAI_BASE_URL` should stay blank unless the team intentionally uses an OpenAI-compatible gateway.
+`BEDROCK_BASE_URL` should stay blank unless the team intentionally overrides the Bedrock Runtime endpoint.
 
 ## Multiple Cloud Accounts
 
-Using multiple cloud accounts is possible, but it adds complexity.
+This project can use different AWS accounts for database and AI.
 
-Simplest setup:
+- User1 AWS account owns PostgreSQL/RDS. Keep that in `DATABASE_URL`.
+- User2 AWS account owns Amazon Bedrock Claude access. Keep that in `BEDROCK_API_KEY`, `BEDROCK_REGION`, and `BEDROCK_MODEL`.
 
-- PostgreSQL, hosting, and deployment secrets are managed by the same team owner.
-
-If accounts are split:
-
-- One account may hold the database.
-- Another account may host EC2.
-- EC2 must be allowed to connect to the database across accounts.
-- Networking may require VPC peering, private connectivity, or tightly restricted public database rules.
+The backend does not need user2 AWS IAM credentials when using a Bedrock API key. It only needs network access to the Bedrock endpoint and the key itself. The database account remains separate; RDS networking still controls whether the backend can connect to user1 PostgreSQL.
 
 ## Phase 2: One-Time EC2 Setup
 
@@ -85,13 +80,14 @@ Do not expose PostgreSQL publicly in production. The backend should reach the da
 Create `.env` from `.env.template` on EC2 and fill:
 
 - `DATABASE_URL`.
-- `AI_PROVIDER=openai`.
-- `OPENAI_API_KEY`.
-- `OPENAI_MODEL`.
+- `AI_PROVIDER=bedrock`.
+- `BEDROCK_API_KEY`.
+- `BEDROCK_REGION`.
+- `BEDROCK_MODEL`.
 - `CORS_ORIGINS`.
 - `REDIS_URL=redis://redis:6379/0`.
 
-Put `OPENAI_API_KEY` in managed deployment secret storage when possible.
+Put `BEDROCK_API_KEY` in managed deployment secret storage when possible.
 
 ## Deploy
 

@@ -8,7 +8,7 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
-from app.ai.openai.client import OpenAIClient
+from app.ai.bedrock.client import BedrockClient
 from app.core.config import Settings, get_settings
 from app.db.base import Base
 from app.models.complaint import Complaint
@@ -360,30 +360,30 @@ async def ensure_database_ready(settings: Settings, *, prompt: bool = True) -> D
     return status
 
 
-async def verify_openai_ready(settings: Settings) -> None:
+async def verify_bedrock_ready(settings: Settings) -> None:
     try:
-        await OpenAIClient(settings).check_connection()
+        await BedrockClient(settings).check_connection()
     except Exception as exc:
-        raise SetupError(f"OpenAI connection check failed: {exc}") from exc
+        raise SetupError(f"Bedrock connection check failed: {exc}") from exc
 
 
 async def run_startup_checks(
     settings: Settings | None = None,
     *,
     prompt: bool = True,
-    verify_openai: bool = True,
+    verify_bedrock: bool = True,
 ) -> None:
     resolved_settings = settings or get_settings()
     status = await ensure_database_ready(resolved_settings, prompt=prompt)
     logger.info("Database startup check passed: %s", status)
-    if verify_openai:
-        await verify_openai_ready(resolved_settings)
-        logger.info("OpenAI startup check passed.")
+    if verify_bedrock:
+        await verify_bedrock_ready(resolved_settings)
+        logger.info("Bedrock startup check passed.")
 
 
 async def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
-    await run_startup_checks(get_settings(), prompt=True, verify_openai=True)
+    await run_startup_checks(get_settings(), prompt=True, verify_bedrock=True)
     print("CustomerPulse backend setup completed successfully.")
 
 

@@ -1,7 +1,5 @@
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal
-
 from pydantic import AnyUrl, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -26,10 +24,11 @@ class Settings(BaseSettings):
 
     database_url: str = Field(min_length=1)
     database_admin_url: str | None = None
-    ai_provider: Literal["openai"] = Field(default="openai")
-    openai_api_key: str = Field(min_length=1)
-    openai_model: str = Field(default="gpt-4o-mini", min_length=1)
-    openai_base_url: str | None = None
+    ai_provider: str = Field(default="bedrock", pattern="^bedrock$")
+    bedrock_api_key: str | None = None
+    bedrock_region: str = Field(default="us-east-1", min_length=1)
+    bedrock_model: str = Field(default="global.anthropic.claude-sonnet-4-6", min_length=1)
+    bedrock_base_url: str | None = None
     s3_bucket_name: str | None = None
 
     cors_origins: str = ""
@@ -44,7 +43,8 @@ class Settings(BaseSettings):
 
     @field_validator(
         "database_admin_url",
-        "openai_base_url",
+        "bedrock_api_key",
+        "bedrock_base_url",
         "s3_bucket_name",
         mode="before",
     )
@@ -86,8 +86,8 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_ai_provider_settings(self) -> "Settings":
-        if self.ai_provider != "openai":
-            raise ValueError("Only OpenAI is supported for AI_PROVIDER")
+        if not self.bedrock_api_key:
+            raise ValueError("BEDROCK_API_KEY is required when AI_PROVIDER=bedrock")
         return self
 
 

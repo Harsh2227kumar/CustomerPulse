@@ -17,7 +17,7 @@ configure_logging()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    await run_startup_checks(settings, prompt=True, verify_openai=True)
+    await run_startup_checks(settings, prompt=True, verify_bedrock=True)
     yield
 
 
