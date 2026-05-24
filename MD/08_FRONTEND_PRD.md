@@ -32,7 +32,7 @@ Build a production-ready React dashboard for CustomerPulse that visually follows
 - Frontend API base URL must be configurable through `VITE_API_BASE_URL`; same-origin `/api` and `/ws` remain valid when hosting provides a reverse proxy.
 
 ## Interface Contract
-- Source of truth: `shared/schema/complaint.schema.json`; frontend types must be revised when that contract changes.
+- Source of truth: the API contract maintained on the backend branch; frontend types must be revised when that contract changes.
 - REST endpoints used:
   - `GET /api/health`
   - `GET /api/complaints`

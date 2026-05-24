@@ -104,13 +104,17 @@ export interface S3SourceSummary {
 
 export interface S3ImportOptionsResponse {
   source: S3SourceSummary;
-  scanned_rows: number;
-  eligible_rows: number;
+  query_mode: "csv" | "athena";
+  scanned_rows: number | null;
+  eligible_rows: number | null;
   products: string[];
   sub_products: string[];
   issues: string[];
   companies: string[];
   channels: string[];
+  timely_responses: boolean[];
+  date_received_min: string | null;
+  date_received_max: string | null;
 }
 
 export interface S3PreviewItem {
@@ -127,9 +131,11 @@ export interface S3PreviewItem {
 
 export interface S3ImportPreviewResponse {
   source: S3SourceSummary;
+  query_mode: "csv" | "athena";
   scanned_rows: number;
   matched_rows: number;
   selected_rows: number;
+  result_limited: boolean;
   items: S3PreviewItem[];
 }
 
