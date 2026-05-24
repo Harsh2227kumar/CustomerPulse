@@ -43,13 +43,18 @@ Never use the friend's uploader credential in the backend.
       "Resource": "*"
     },
     {
-      "Sid": "NavigateCfpbUploadFolder",
+      "Sid": "InspectUploadBucket",
       "Effect": "Allow",
       "Action": [
         "s3:GetBucketLocation",
-        "s3:ListBucket",
         "s3:ListBucketMultipartUploads"
       ],
+      "Resource": "arn:aws:s3:::customerpulse-cfpb-data"
+    },
+    {
+      "Sid": "NavigateCfpbUploadFolder",
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
       "Resource": "arn:aws:s3:::customerpulse-cfpb-data",
       "Condition": {
         "StringLike": {
@@ -123,12 +128,15 @@ permit reading bucket objects.
   "Version": "2012-10-17",
   "Statement": [
     {
+      "Sid": "InspectCfpbBucketLocation",
+      "Effect": "Allow",
+      "Action": "s3:GetBucketLocation",
+      "Resource": "arn:aws:s3:::customerpulse-cfpb-data"
+    },
+    {
       "Sid": "ListCfpbImportFolder",
       "Effect": "Allow",
-      "Action": [
-        "s3:GetBucketLocation",
-        "s3:ListBucket"
-      ],
+      "Action": "s3:ListBucket",
       "Resource": "arn:aws:s3:::customerpulse-cfpb-data",
       "Condition": {
         "StringLike": {
@@ -194,23 +202,14 @@ Replace `REPLACE_WITH_ACCOUNT3_ID` before saving.
       ]
     },
     {
-      "Sid": "ListProcessedAndResultFolders",
+      "Sid": "InspectAthenaDataAndOutputBucket",
       "Effect": "Allow",
       "Action": [
         "s3:GetBucketLocation",
-        "s3:ListBucket"
+        "s3:ListBucket",
+        "s3:ListBucketMultipartUploads"
       ],
-      "Resource": "arn:aws:s3:::customerpulse-cfpb-data",
-      "Condition": {
-        "StringLike": {
-          "s3:prefix": [
-            "processed/cfpb_parquet_glue",
-            "processed/cfpb_parquet_glue/*",
-            "athena/results",
-            "athena/results/*"
-          ]
-        }
-      }
+      "Resource": "arn:aws:s3:::customerpulse-cfpb-data"
     },
     {
       "Sid": "ReadProcessedParquet",
@@ -223,13 +222,20 @@ Replace `REPLACE_WITH_ACCOUNT3_ID` before saving.
       "Effect": "Allow",
       "Action": [
         "s3:GetObject",
-        "s3:PutObject"
+        "s3:PutObject",
+        "s3:AbortMultipartUpload",
+        "s3:ListMultipartUploadParts"
       ],
       "Resource": "arn:aws:s3:::customerpulse-cfpb-data/athena/results/*"
     }
   ]
 }
 ```
+
+Athena must check the S3 result bucket before starting a query. Keep
+`s3:GetBucketLocation` outside any `s3:prefix` condition. The runtime policy
+above permits bucket inspection only for the one private CustomerPulse bucket,
+reads only the processed Parquet data, and writes only Athena result objects.
 
 ## Create Backend Development User
 
