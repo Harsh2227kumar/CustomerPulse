@@ -1,0 +1,54 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Private CustomerPulse CFPB raw-data bucket hosted with the application runtime in Account 3.
+
+Parameters:
+  BucketName:
+    Type: String
+    Description: Globally unique S3 bucket name for CFPB CSV exports.
+
+Resources:
+  CfpbRawDataBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref BucketName
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+      Tags:
+        - Key: application
+          Value: customerpulse
+        - Key: data
+          Value: cfpb-raw
+
+  CfpbRawDataBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref CfpbRawDataBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: "*"
+            Action: "s3:*"
+            Resource:
+              - !GetAtt CfpbRawDataBucket.Arn
+              - !Sub "${CfpbRawDataBucket.Arn}/*"
+            Condition:
+              Bool:
+                "aws:SecureTransport": "false"
+Outputs:
+  BucketName:
+    Description: Private CFPB raw-data bucket.
+    Value: !Ref CfpbRawDataBucket
+  UploadPrefix:
+    Description: Key prefix accepted by the backend access policy.
+    Value: !Sub "s3://${CfpbRawDataBucket}/raw/cfpb/"
