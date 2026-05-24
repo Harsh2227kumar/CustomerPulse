@@ -40,13 +40,17 @@ class S3SourceSummary(BaseModel):
 
 class S3ImportOptionsResponse(BaseModel):
     source: S3SourceSummary
-    scanned_rows: int
-    eligible_rows: int
+    query_mode: Literal["csv", "athena"]
+    scanned_rows: int | None = None
+    eligible_rows: int | None = None
     products: list[str]
     sub_products: list[str]
     issues: list[str]
     companies: list[str]
     channels: list[str]
+    timely_responses: list[bool]
+    date_received_min: date | None = None
+    date_received_max: date | None = None
 
 
 class S3ComplaintPreviewItem(BaseModel):
@@ -63,9 +67,11 @@ class S3ComplaintPreviewItem(BaseModel):
 
 class S3ImportPreviewResponse(BaseModel):
     source: S3SourceSummary
+    query_mode: Literal["csv", "athena"]
     scanned_rows: int
     matched_rows: int
     selected_rows: int
+    result_limited: bool
     items: list[S3ComplaintPreviewItem]
 
 
