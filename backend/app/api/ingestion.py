@@ -6,7 +6,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings, get_settings
 from app.db.session import get_db_session
-from app.ingestion.cfpb_s3 import CfpbS3IngestionService, S3IngestionError
+from app.ingestion.cfpb_s3 import (
+    CfpbS3IngestionService,
+    S3IngestionError,
+    S3QueryModeRequiredError,
+)
 from app.schemas.ingestion import (
     S3ComplaintImportFilters,
     S3ImportOptionsResponse,
@@ -33,6 +37,11 @@ async def get_import_options(
 ) -> S3ImportOptionsResponse:
     try:
         return await asyncio.to_thread(_service(settings).load_options)
+    except S3QueryModeRequiredError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail="This large CSV requires Athena setup before filter values can be loaded.",
+        ) from exc
     except S3IngestionError as exc:
         logger.exception("Unable to load S3 complaint import options.")
         raise HTTPException(status_code=502, detail="Unable to read the configured complaint source.") from exc

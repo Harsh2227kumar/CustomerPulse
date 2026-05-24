@@ -56,6 +56,7 @@ export function S3ImportPage({ onBack }: { onBack: () => void }) {
   async function loadOptions() {
     setLoadingOptions(true);
     setOptionsError(null);
+    setOptions(null);
     try {
       setOptions(await getS3ImportOptions());
     } catch (error) {
@@ -142,7 +143,7 @@ export function S3ImportPage({ onBack }: { onBack: () => void }) {
 
       <section className="source-band" aria-label="S3 source status">
         <div><CloudDownload size={18} /><span>Source</span><strong>{options?.source.label ?? "Not loaded"}</strong></div>
-        <div><FileSearch size={18} /><span>Eligible rows</span><strong>{options?.eligible_rows.toLocaleString() ?? "-"}</strong></div>
+        <div><FileSearch size={18} /><span>Filter source</span><strong>{options?.query_mode === "athena" ? "Athena / Parquet" : options ? "CSV" : "-"}</strong></div>
         <div><Database size={18} /><span>Import limit</span><strong>{filters.max_records.toLocaleString()}</strong></div>
       </section>
 
@@ -158,11 +159,12 @@ export function S3ImportPage({ onBack }: { onBack: () => void }) {
         <form className="panel import-controls" onSubmit={runPreview}>
           <div className="panel-heading">
             <h2>Import Selection</h2>
-            <span>Raw CSV filters</span>
+            <span>S3 query filters</span>
           </div>
           <label>
             Product category
             <select
+              disabled={!options || loadingOptions}
               value={filters.product ?? ""}
               onChange={(event) => setFilters((current) => ({ ...current, product: valueOrNull(event.target.value) }))}
             >
@@ -173,6 +175,7 @@ export function S3ImportPage({ onBack }: { onBack: () => void }) {
           <label>
             Sub-product
             <select
+              disabled={!options || loadingOptions}
               value={filters.sub_product ?? ""}
               onChange={(event) => setFilters((current) => ({ ...current, sub_product: valueOrNull(event.target.value) }))}
             >
@@ -183,6 +186,7 @@ export function S3ImportPage({ onBack }: { onBack: () => void }) {
           <label>
             Issue
             <select
+              disabled={!options || loadingOptions}
               value={filters.issue ?? ""}
               onChange={(event) => setFilters((current) => ({ ...current, issue: valueOrNull(event.target.value) }))}
             >
@@ -192,20 +196,20 @@ export function S3ImportPage({ onBack }: { onBack: () => void }) {
           </label>
           <label>
             Company
-            <input
-              list="s3-companies"
+            <select
+              disabled={!options || loadingOptions}
               value={filters.company ?? ""}
               onChange={(event) => setFilters((current) => ({ ...current, company: valueOrNull(event.target.value) }))}
-              placeholder="All companies"
-            />
-            <datalist id="s3-companies">
-              {options?.companies.map((company) => <option key={company} value={company} />)}
-            </datalist>
+            >
+              <option value="">All companies</option>
+              {options?.companies.map((company) => <option key={company} value={company}>{company}</option>)}
+            </select>
           </label>
           <div className="control-pair">
             <label>
               Channel
               <select
+                disabled={!options || loadingOptions}
                 value={filters.channel ?? ""}
                 onChange={(event) => setFilters((current) => ({ ...current, channel: valueOrNull(event.target.value) }))}
               >
@@ -216,6 +220,7 @@ export function S3ImportPage({ onBack }: { onBack: () => void }) {
             <label>
               Timely response
               <select
+                disabled={!options || loadingOptions}
                 value={filters.timely_response === null ? "" : String(filters.timely_response)}
                 onChange={(event) => setFilters((current) => ({
                   ...current,
@@ -223,25 +228,40 @@ export function S3ImportPage({ onBack }: { onBack: () => void }) {
                 }))}
               >
                 <option value="">Any</option>
-                <option value="true">Yes</option>
-                <option value="false">No</option>
+                {options?.timely_responses.includes(true) && <option value="true">Yes</option>}
+                {options?.timely_responses.includes(false) && <option value="false">No</option>}
               </select>
             </label>
           </div>
           <div className="control-pair">
             <label>
               Received after
-              <input type="date" value={filters.date_received_min ?? ""} onChange={(event) => setFilters((current) => ({ ...current, date_received_min: valueOrNull(event.target.value) }))} />
+              <input
+                type="date"
+                disabled={!options || loadingOptions}
+                min={options?.date_received_min ?? undefined}
+                max={options?.date_received_max ?? undefined}
+                value={filters.date_received_min ?? ""}
+                onChange={(event) => setFilters((current) => ({ ...current, date_received_min: valueOrNull(event.target.value) }))}
+              />
             </label>
             <label>
               Received before
-              <input type="date" value={filters.date_received_max ?? ""} onChange={(event) => setFilters((current) => ({ ...current, date_received_max: valueOrNull(event.target.value) }))} />
+              <input
+                type="date"
+                disabled={!options || loadingOptions}
+                min={options?.date_received_min ?? undefined}
+                max={options?.date_received_max ?? undefined}
+                value={filters.date_received_max ?? ""}
+                onChange={(event) => setFilters((current) => ({ ...current, date_received_max: valueOrNull(event.target.value) }))}
+              />
             </label>
           </div>
           <label>
             Maximum complaints to import
             <input
               type="number"
+              disabled={!options || loadingOptions}
               min={1}
               max={5000}
               value={filters.max_records}
@@ -291,7 +311,9 @@ export function S3ImportPage({ onBack }: { onBack: () => void }) {
                 <h2>Selected Complaints</h2>
                 <p>
                   {preview
-                    ? `${preview.selected_rows.toLocaleString()} selected from ${preview.matched_rows.toLocaleString()} matches`
+                    ? preview.result_limited
+                      ? `First ${preview.selected_rows.toLocaleString()} matching complaints ready`
+                      : `${preview.selected_rows.toLocaleString()} matching complaints found`
                     : "Preview a selection before importing"}
                 </p>
               </div>
@@ -335,7 +357,7 @@ export function S3ImportPage({ onBack }: { onBack: () => void }) {
               </div>
             )}
           </article>
-          {(result?.logs.length || failureLogs.length) && (
+          {Boolean(result?.logs.length || failureLogs.length) && (
             <article className="panel log-panel">
               <div className="panel-heading"><h2>Operation Log</h2></div>
               <ol>

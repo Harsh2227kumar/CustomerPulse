@@ -1,5 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
+
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -32,6 +34,12 @@ class Settings(BaseSettings):
     s3_bucket_name: str | None = None
     cfpb_s3_key: str | None = None
     aws_region: str = Field(default="ap-south-1", min_length=1)
+    cfpb_ingestion_mode: Literal["csv", "athena"] = "csv"
+    athena_database: str | None = None
+    athena_table: str | None = None
+    athena_output_location: str | None = None
+    athena_workgroup: str = Field(default="primary", min_length=1)
+    athena_query_timeout_seconds: float = Field(default=90.0, gt=0, le=300)
 
     cors_origins: str = ""
     ai_max_retries: int = Field(default=2, ge=0, le=5)
@@ -43,7 +51,11 @@ class Settings(BaseSettings):
 
     @property
     def s3_import_configured(self) -> bool:
-        return bool(self.s3_bucket_name and self.cfpb_s3_key)
+        if not self.s3_bucket_name or not self.cfpb_s3_key:
+            return False
+        if self.cfpb_ingestion_mode == "athena":
+            return bool(self.athena_database and self.athena_table and self.athena_output_location)
+        return True
 
     @field_validator(
         "database_admin_url",
@@ -51,6 +63,9 @@ class Settings(BaseSettings):
         "bedrock_base_url",
         "s3_bucket_name",
         "cfpb_s3_key",
+        "athena_database",
+        "athena_table",
+        "athena_output_location",
         mode="before",
     )
     @classmethod
@@ -87,6 +102,13 @@ class Settings(BaseSettings):
             raise ValueError("BEDROCK_API_KEY is required when AI_PROVIDER=bedrock")
         if bool(self.s3_bucket_name) != bool(self.cfpb_s3_key):
             raise ValueError("S3_BUCKET_NAME and CFPB_S3_KEY must be configured together")
+        if self.cfpb_ingestion_mode == "athena" and not all(
+            (self.athena_database, self.athena_table, self.athena_output_location)
+        ):
+            raise ValueError(
+                "ATHENA_DATABASE, ATHENA_TABLE, and ATHENA_OUTPUT_LOCATION "
+                "are required when CFPB_INGESTION_MODE=athena"
+            )
         return self
 
 
