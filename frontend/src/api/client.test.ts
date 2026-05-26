@@ -5,9 +5,13 @@ import type { ComplaintFilters } from "../types";
 const filters: ComplaintFilters = {
   search: " late fee ",
   sentiment: "Negative",
+  channel: "Email",
+  product: "Credit card",
   churn_risk: "High",
   urgency_min: "70",
   urgency_max: "",
+  date_received_min: "2026-01-01",
+  date_received_max: "",
   timely_response: "false",
   sort_by: "urgency_score",
   sort_direction: "asc",
@@ -39,7 +43,7 @@ describe("API client", () => {
     const response = await getComplaints(filters, 25, 5);
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/complaints?limit=25&offset=5&sort_by=urgency_score&sort_direction=asc&search=late+fee&sentiment=Negative&churn_risk=High&urgency_min=70&timely_response=false",
+      "/api/complaints?limit=25&offset=5&sort_by=urgency_score&sort_direction=asc&search=late+fee&sentiment=Negative&channel=Email&product=Credit+card&churn_risk=High&urgency_min=70&date_received_min=2026-01-01&timely_response=false",
       { headers: { "Content-Type": "application/json" } },
     );
     expect(response.count).toBe(0);
