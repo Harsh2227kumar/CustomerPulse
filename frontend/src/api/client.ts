@@ -69,9 +69,13 @@ export function getComplaints(filters: ComplaintFilters, limit = 50, offset = 0)
 
   if (filters.search.trim()) params.set("search", filters.search.trim());
   if (filters.sentiment) params.set("sentiment", filters.sentiment);
+  if (filters.channel.trim()) params.set("channel", filters.channel.trim());
+  if (filters.product.trim()) params.set("product", filters.product.trim());
   if (filters.churn_risk) params.set("churn_risk", filters.churn_risk);
   if (filters.urgency_min) params.set("urgency_min", filters.urgency_min);
   if (filters.urgency_max) params.set("urgency_max", filters.urgency_max);
+  if (filters.date_received_min) params.set("date_received_min", filters.date_received_min);
+  if (filters.date_received_max) params.set("date_received_max", filters.date_received_max);
   if (filters.timely_response) params.set("timely_response", filters.timely_response);
 
   return request<ComplaintListResponse>(`/api/complaints?${params.toString()}`);
