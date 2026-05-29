@@ -1,11 +1,13 @@
 from datetime import datetime
+from typing import Literal
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.constants import ChurnRisk, Sentiment
+from app.core.constants import ChurnRisk, ProcessingStatus, ReviewReason, Sentiment
 from app.db.session import get_db_session
-from app.schemas.complaint import ComplaintFilters, ComplaintListResponse
+from app.schemas.complaint import ComplaintDetail, ComplaintFilters, ComplaintListResponse
 from app.services.complaint_service import ComplaintService
 
 router = APIRouter(prefix="/api", tags=["complaints"])
@@ -24,25 +26,56 @@ async def list_complaints(
     date_received_min: datetime | None = None,
     date_received_max: datetime | None = None,
     timely_response: bool | None = None,
-    search: str | None = None,
-    sort_by: str = "created_at",
-    sort_direction: str = Query(default="desc", pattern="^(asc|desc)$"),
+    ai_status: ProcessingStatus | None = None,
+    human_review_reason: ReviewReason | None = None,
+    search: str | None = Query(default=None, max_length=256),
+    sort_by: Literal[
+        "created_at",
+        "date_received",
+        "processed_at",
+        "urgency_score",
+        "sentiment",
+        "churn_risk",
+        "ai_confidence",
+        "ai_status",
+        "relevance",
+    ] = "created_at",
+    sort_direction: Literal["asc", "desc"] = "desc",
     db: AsyncSession = Depends(get_db_session),
 ) -> ComplaintListResponse:
-    filters = ComplaintFilters(
-        limit=limit,
-        offset=offset,
-        sentiment=sentiment,
-        channel=channel,
-        product=product,
-        churn_risk=churn_risk,
-        urgency_min=urgency_min,
-        urgency_max=urgency_max,
-        date_received_min=date_received_min,
-        date_received_max=date_received_max,
-        timely_response=timely_response,
-        search=search,
-        sort_by=sort_by,
-        sort_direction=sort_direction,
-    )
+    try:
+        filters = ComplaintFilters(
+            limit=limit,
+            offset=offset,
+            sentiment=sentiment,
+            channel=channel,
+            product=product,
+            churn_risk=churn_risk,
+            urgency_min=urgency_min,
+            urgency_max=urgency_max,
+            date_received_min=date_received_min,
+            date_received_max=date_received_max,
+            timely_response=timely_response,
+            ai_status=ai_status,
+            human_review_reason=human_review_reason,
+            search=search,
+            sort_by=sort_by,
+            sort_direction=sort_direction,
+        )
+    except ValidationError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail="Invalid complaint filter or sorting combination.",
+        ) from exc
     return await ComplaintService().list_complaints(db, filters)
+
+
+@router.get("/complaints/{complaint_id}", response_model=ComplaintDetail)
+async def get_complaint_detail(
+    complaint_id: str,
+    db: AsyncSession = Depends(get_db_session),
+) -> ComplaintDetail:
+    detail = await ComplaintService().get_detail(db, complaint_id)
+    if detail is None:
+        raise HTTPException(status_code=404, detail="Complaint not found.")
+    return detail

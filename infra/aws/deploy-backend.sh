@@ -19,7 +19,7 @@ if [ ! -f ".env" ]; then
   exit 1
 fi
 
-docker compose build
+docker compose build backend
 docker compose run --rm backend python -m app.db.setup --yes --verify-embedding
-docker compose up -d
-docker compose ps
+docker compose up -d backend
+docker compose ps backend

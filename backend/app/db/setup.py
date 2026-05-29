@@ -1,4 +1,5 @@
 import asyncio
+import argparse
 import logging
 import sys
 from dataclasses import dataclass
@@ -12,7 +13,8 @@ from app.ai.bedrock.client import BedrockClient
 from app.core.config import Settings, get_settings
 from app.core.constants import EMBEDDING_DIMENSIONS
 from app.db.base import Base
-from app.models.complaint import Complaint
+from app.models import Complaint, ComplaintProcessingRun, ProcessingJob, ProcessingJobItem  # noqa: F401
+from app.services.embedding_service import EmbeddingService
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +28,7 @@ class DatabaseSetupStatus:
     database_exists: bool
     vector_extension_exists: bool
     complaints_table_exists: bool
+    missing_tables: tuple[str, ...]
     missing_columns: tuple[str, ...]
     missing_indexes: tuple[str, ...]
 
@@ -35,6 +38,7 @@ class DatabaseSetupStatus:
             self.database_exists
             and self.vector_extension_exists
             and self.complaints_table_exists
+            and not self.missing_tables
             and not self.missing_columns
             and not self.missing_indexes
         )
@@ -88,13 +92,24 @@ EXPECTED_COMPLAINT_COLUMNS: dict[str, str] = {
     "ai_confidence": "DOUBLE PRECISION",
     "ai_reasoning": "TEXT",
     "embedding": f"VECTOR({EMBEDDING_DIMENSIONS})",
+    "embedding_model": "VARCHAR(128)",
+    "embedded_at": "TIMESTAMP WITH TIME ZONE",
+    "similar_case_evidence": "JSONB",
     "processed_at": "TIMESTAMP WITH TIME ZONE",
     "ai_status": "VARCHAR(32)",
     "retry_count": "INTEGER",
     "error_message": "TEXT",
+    "human_review_reason": "VARCHAR(64)",
+    "human_review_created_at": "TIMESTAMP WITH TIME ZONE",
+    "reviewed_at": "TIMESTAMP WITH TIME ZONE",
+    "reviewer": "VARCHAR(128)",
+    "review_resolution": "VARCHAR(64)",
+    "approved_response": "TEXT",
+    "review_notes": "TEXT",
     "created_at": "TIMESTAMP WITH TIME ZONE",
     "updated_at": "TIMESTAMP WITH TIME ZONE",
 }
+REQUIRED_TABLES = ("complaint_processing_runs", "processing_jobs", "processing_job_items")
 
 
 async def _prompt_yes_no(question: str) -> bool:
@@ -134,6 +149,7 @@ async def inspect_database(settings: Settings) -> DatabaseSetupStatus:
             database_exists=False,
             vector_extension_exists=False,
             complaints_table_exists=False,
+            missing_tables=REQUIRED_TABLES,
             missing_columns=tuple(EXPECTED_COMPLAINT_COLUMNS),
             missing_indexes=tuple(index.name or "" for index in Complaint.__table__.indexes),
         )
@@ -146,6 +162,15 @@ async def inspect_database(settings: Settings) -> DatabaseSetupStatus:
             )
             table_result = await conn.execute(text("SELECT to_regclass('public.complaints')"))
             complaints_table_exists = table_result.scalar_one_or_none() is not None
+            missing_tables_list: list[str] = []
+            for table_name in REQUIRED_TABLES:
+                table_check = await conn.execute(
+                    text("SELECT to_regclass(:table_name)"),
+                    {"table_name": f"public.{table_name}"},
+                )
+                if table_check.scalar_one_or_none() is None:
+                    missing_tables_list.append(table_name)
+            missing_tables = tuple(missing_tables_list)
             existing_index_names: set[str] = set()
             existing_column_names: set[str] = set()
             if complaints_table_exists:
@@ -170,6 +195,7 @@ async def inspect_database(settings: Settings) -> DatabaseSetupStatus:
                 database_exists=True,
                 vector_extension_exists=vector_result.scalar_one_or_none() == 1,
                 complaints_table_exists=complaints_table_exists,
+                missing_tables=missing_tables,
                 missing_columns=missing_columns,
                 missing_indexes=missing_indexes,
             )
@@ -186,6 +212,7 @@ async def create_schema(settings: Settings) -> None:
             await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
             await conn.run_sync(Base.metadata.create_all)
             await _reconcile_existing_complaints_table(conn)
+            await _reconcile_existing_processing_tables(conn)
 
         # create_all skips indexes when a pre-existing table was created manually.
         async with engine.begin() as conn:
@@ -258,6 +285,29 @@ async def _reconcile_existing_complaints_table(conn) -> None:
             )
         )
 
+    # This computed column is safe to rebuild because it contains derived data only.
+    await conn.execute(text("ALTER TABLE complaints DROP COLUMN IF EXISTS search_vector"))
+    await conn.execute(
+        text(
+            """
+            ALTER TABLE complaints ADD COLUMN search_vector tsvector
+            GENERATED ALWAYS AS (
+                setweight(to_tsvector('english', coalesce(narrative, '')), 'A') ||
+                setweight(
+                    to_tsvector('english', coalesce(issue, '') || ' ' || coalesce(product, '')),
+                    'B'
+                ) ||
+                setweight(
+                    to_tsvector('english', coalesce(company, '') || ' ' || coalesce(category, '')),
+                    'C'
+                )
+            ) STORED
+            """
+        )
+    )
+
+    await _add_complaint_integrity_constraints(conn)
+
     nullable_columns = set(EXPECTED_COMPLAINT_COLUMNS) - {
         "id",
         "narrative",
@@ -287,6 +337,59 @@ async def _reconcile_existing_complaints_table(conn) -> None:
     await conn.execute(text("UPDATE complaints SET retry_count = 0 WHERE retry_count IS NULL"))
     await conn.execute(text("UPDATE complaints SET created_at = now() WHERE created_at IS NULL"))
     await conn.execute(text("UPDATE complaints SET updated_at = now() WHERE updated_at IS NULL"))
+
+
+async def _reconcile_existing_processing_tables(conn) -> None:
+    items_table_exists = (
+        await conn.execute(text("SELECT to_regclass('public.processing_job_items')"))
+    ).scalar_one_or_none()
+    if items_table_exists is not None:
+        await conn.execute(
+            text(
+                "ALTER TABLE processing_job_items "
+                "ADD COLUMN IF NOT EXISTS attempt_history JSONB"
+            )
+        )
+    runs_table_exists = (
+        await conn.execute(text("SELECT to_regclass('public.complaint_processing_runs')"))
+    ).scalar_one_or_none()
+    if runs_table_exists is not None:
+        await conn.execute(
+            text(
+                "ALTER TABLE complaint_processing_runs "
+                "ADD COLUMN IF NOT EXISTS initiated_by VARCHAR(128)"
+            )
+        )
+
+
+async def _add_complaint_integrity_constraints(conn) -> None:
+    statements = (
+        (
+            "ck_complaints_urgency_range",
+            "urgency_score IS NULL OR urgency_score BETWEEN 0 AND 100",
+        ),
+        (
+            "ck_complaints_ai_confidence_range",
+            "ai_confidence IS NULL OR ai_confidence BETWEEN 0 AND 1",
+        ),
+        ("ck_complaints_retry_nonnegative", "retry_count >= 0"),
+    )
+    for constraint_name, condition in statements:
+        await conn.execute(
+            text(
+                f"""
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM pg_constraint WHERE conname = '{constraint_name}'
+                    ) THEN
+                        ALTER TABLE complaints
+                        ADD CONSTRAINT {constraint_name} CHECK ({condition}) NOT VALID;
+                    END IF;
+                END $$;
+                """
+            )
+        )
 
 
 async def verify_permissions(settings: Settings) -> None:
@@ -343,6 +446,8 @@ async def ensure_database_ready(settings: Settings, *, prompt: bool = True) -> D
             missing.append("pgvector extension")
         if not status.complaints_table_exists:
             missing.append("complaints table")
+        if status.missing_tables:
+            missing.append(f"tables: {', '.join(status.missing_tables)}")
         if status.missing_columns:
             missing.append(f"columns: {', '.join(status.missing_columns)}")
         if status.missing_indexes:
@@ -382,9 +487,47 @@ async def run_startup_checks(
         logger.info("Bedrock startup check passed.")
 
 
-async def main() -> None:
+async def verify_embedding_ready(settings: Settings) -> None:
+    await EmbeddingService(settings.embedding_model).ensure_ready()
+    logger.info("Embedding model startup check passed: %s", settings.embedding_model)
+
+
+async def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description="Prepare and verify CustomerPulse backend services.")
+    parser.add_argument(
+        "--yes",
+        action="store_true",
+        help="Create/update the database schema without interactive prompts.",
+    )
+    parser.add_argument(
+        "--skip-bedrock",
+        action="store_true",
+        help="Skip Bedrock connectivity verification.",
+    )
+    parser.add_argument(
+        "--verify-embedding",
+        action="store_true",
+        help="Download/cache and verify the configured embedding model.",
+    )
+    args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
-    await run_startup_checks(get_settings(), prompt=True, verify_bedrock=True)
+    settings = get_settings()
+    if args.yes:
+        if not await database_exists(settings):
+            await create_database(settings)
+        await create_schema(settings)
+        await verify_permissions(settings)
+        status = await inspect_database(settings)
+        if not status.schema_ready:
+            raise SetupError(f"Database schema is incomplete after --yes setup: {status}")
+        logger.info("Database non-interactive setup passed: %s", status)
+        if not args.skip_bedrock:
+            await verify_bedrock_ready(settings)
+            logger.info("Bedrock startup check passed.")
+    else:
+        await run_startup_checks(settings, prompt=True, verify_bedrock=not args.skip_bedrock)
+    if args.verify_embedding:
+        await verify_embedding_ready(settings)
     print("CustomerPulse backend setup completed successfully.")
 
 
