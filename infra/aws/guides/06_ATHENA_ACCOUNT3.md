@@ -623,6 +623,7 @@ on Athena query results.
 | `INVALID_CAST_ARGUMENT` with narrative words | Raw CSV was queried directly | Use Glue output and recreate `cfpb_parquet` from Parquet |
 | Table returns zero rows | Partitions were not registered | Run `MSCK REPAIR TABLE customerpulse_data.cfpb_parquet;` |
 | `AccessDenied` when app loads filters | Backend user lacks Athena/S3/Glue metadata access | Attach the runtime policy in guide 04 |
+| `glue:GetPartition` denied during preview | Runtime policy permits partition listing but not reading an individual partition | Add both `glue:GetPartition` and `glue:GetPartitions` from the corrected policy in guide 04 |
 | `Unable to verify/create output bucket customerpulse-cfpb-data` | Athena cannot inspect or write its S3 results location | Replace `CustomerPulseAthenaRuntime` with the policy in guide 04; `s3:GetBucketLocation` must not be limited by an `s3:prefix` condition |
 | Athena cannot write results | Results object permissions missing | Grant `s3:PutObject`, `s3:GetObject`, and multipart actions to `athena/results/*` |
 

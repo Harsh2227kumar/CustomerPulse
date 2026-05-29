@@ -20,8 +20,8 @@ Keep `.env` private and uncommitted. Configure:
 
 ```env
 # Account 1: PostgreSQL RDS
-DATABASE_URL=postgresql+asyncpg://USER:PASSWORD@RDS_HOST:5432/customerpulse
-DATABASE_ADMIN_URL=
+DATABASE_URL=postgresql+asyncpg://USER:PASSWORD@RDS_HOST:5432/postgres
+DATABASE_ADMIN_URL=postgresql+asyncpg://USER:PASSWORD@RDS_HOST:5432/postgres
 
 # Account 2: Amazon Bedrock Claude
 AI_PROVIDER=bedrock
@@ -44,6 +44,14 @@ ATHENA_QUERY_TIMEOUT_SECONDS=90
 CORS_ORIGINS=http://localhost:5173,http://localhost:3000
 ENVIRONMENT=development
 DEBUG=false
+EMBEDDING_MODEL=all-MiniLM-L6-v2
+EMBEDDING_VERIFY_ON_STARTUP=false
+SIMILARITY_THRESHOLD=0.60
+SIMILAR_CASE_LIMIT=3
+BATCH_PROCESS_LIMIT=50
+EMBEDDING_BACKFILL_LIMIT=100
+JOB_WORKER_POLL_SECONDS=1
+AUTH_PRINCIPALS_JSON={"replace-manager-key":{"actor":"demo-manager","role":"manager"},"replace-agent-key":{"actor":"demo-agent","role":"agent"}}
 ```
 
 ## Local AWS Credentials
@@ -138,6 +146,32 @@ number, for example `1` or `5`.
 The success screen should report saved complaints and show an operation log.
 Verify the imported rows in the dashboard before selecting a larger amount.
 
+### 7. Verify Review, RAG, And Jobs
+
+1. Call protected import/process/job actions with a bearer key configured as
+   `manager` or `agent` according to `backend/API_CONTRACT_PHASE2.md`.
+2. Run embedding backfill for a small imported selection before demonstrating
+   similar-case retrieval.
+3. Confirm a completed complaint stores its embedding model and that later
+   processing returns only thresholded completed similar cases.
+4. Trigger a low-confidence or weak-output case and confirm it returns
+   `human_review`, emits `human_review_required`, and can be approved or
+   resolved by a manager key.
+5. Keep demo process jobs at or below 50 complaints and backfill jobs at or
+   below 100 complaints.
+6. Before a hosted demonstration, cache the MiniLM model on the backend host
+   and set `EMBEDDING_VERIFY_ON_STARTUP=true` so an absent model fails startup
+   rather than the first user action.
+
+Backend setup command:
+
+```powershell
+cd backend
+python -m app.db.setup --yes --verify-embedding
+```
+
+This downloads/caches `all-MiniLM-L6-v2` and validates 384-dimensional output.
+
 ## Routine Full-File Update Process
 
 When you later receive a fresh complete CSV:
@@ -160,3 +194,6 @@ When you later receive a fresh complete CSV:
 - Never add AWS keys or database URLs to Git.
 - Preview before import.
 - Begin with one to five records after infrastructure changes.
+- Run a single backend instance for WebSocket delivery and the in-process job worker; do not add Redis.
+- Complete the hosted-service upgrade checklist in
+  `09_BACKEND_RAG_REVIEW_PRODUCTION_UPGRADE.md` before a deployment review.
