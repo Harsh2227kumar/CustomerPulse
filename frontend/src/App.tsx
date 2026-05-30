@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  ExternalLink,
   FileText,
   Database,
   Gauge,
@@ -21,8 +22,9 @@ import {
   Sparkles,
   UserRound,
 } from "lucide-react";
-import { type CSSProperties, type FormEvent, useEffect, useMemo, useState } from "react";
+import { type CSSProperties, type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { getComplaints, getHealth, processComplaint, websocketUrl } from "./api/client";
+import { OperationsPage } from "./OperationsPage";
 import { S3ImportPage } from "./S3ImportPage";
 import type {
   ChurnRisk,
@@ -31,19 +33,28 @@ import type {
   HealthResponse,
   ProcessedComplaintResponse,
   Sentiment,
+  SimilarCaseDetail,
   WebSocketMessage,
 } from "./types";
 
 const initialFilters: ComplaintFilters = {
   search: "",
   sentiment: "",
+  channel: "",
+  product: "",
   churn_risk: "",
   urgency_min: "",
   urgency_max: "",
+  date_received_min: "",
+  date_received_max: "",
   timely_response: "",
+  ai_status: "",
+  human_review_reason: "",
   sort_by: "created_at",
   sort_direction: "desc",
 };
+
+const pageSizes = [25, 50, 100, 200];
 
 const eventLabels: Record<string, string> = {
   received: "Received",
@@ -53,7 +64,35 @@ const eventLabels: Record<string, string> = {
   validating: "Validation",
   saved: "Saved",
   failed: "Failed",
+  human_review_required: "Human review",
 };
+
+function readInitialFilters(): ComplaintFilters {
+  const params = new URLSearchParams(window.location.search);
+  return {
+    search: params.get("search") ?? initialFilters.search,
+    sentiment: (params.get("sentiment") as ComplaintFilters["sentiment"]) ?? initialFilters.sentiment,
+    channel: params.get("channel") ?? initialFilters.channel,
+    product: params.get("product") ?? initialFilters.product,
+    churn_risk: (params.get("churn_risk") as ComplaintFilters["churn_risk"]) ?? initialFilters.churn_risk,
+    urgency_min: params.get("urgency_min") ?? initialFilters.urgency_min,
+    urgency_max: params.get("urgency_max") ?? initialFilters.urgency_max,
+    date_received_min: params.get("date_received_min") ?? initialFilters.date_received_min,
+    date_received_max: params.get("date_received_max") ?? initialFilters.date_received_max,
+    timely_response: (params.get("timely_response") as ComplaintFilters["timely_response"]) ?? initialFilters.timely_response,
+    ai_status: (params.get("ai_status") as ComplaintFilters["ai_status"]) ?? initialFilters.ai_status,
+    human_review_reason: params.get("human_review_reason") ?? initialFilters.human_review_reason,
+    sort_by: (params.get("sort_by") as ComplaintFilters["sort_by"]) ?? initialFilters.sort_by,
+    sort_direction: (params.get("sort_direction") as ComplaintFilters["sort_direction"]) ?? initialFilters.sort_direction,
+  };
+}
+
+function readInitialNumber(name: string, fallback: number, allowed?: number[]): number {
+  const parsed = Number(new URLSearchParams(window.location.search).get(name));
+  if (!Number.isFinite(parsed) || parsed < 0) return fallback;
+  if (allowed && !allowed.includes(parsed)) return fallback;
+  return parsed;
+}
 
 function formatDate(value: string | null): string {
   if (!value) return "Not provided";
@@ -68,6 +107,49 @@ function formatDateTime(value: string | null): string {
 function percent(value: number | null | undefined): string {
   if (value === null || value === undefined || Number.isNaN(value)) return "0%";
   return `${Math.round(value)}%`;
+}
+
+function aiConfidence(value: number | null | undefined): string {
+  if (value === null || value === undefined || Number.isNaN(value)) return "Not scored";
+  return value <= 1 ? percent(value * 100) : percent(value);
+}
+
+function normalizedScore(value: number | null | undefined): number | null {
+  if (value === null || value === undefined || Number.isNaN(value)) return null;
+  return value <= 1 ? value * 100 : value;
+}
+
+function warningClass(value: number | null | undefined): string {
+  const score = normalizedScore(value);
+  if (score === null) return "neutral";
+  if (score < 60) return "danger";
+  if (score < 75) return "warning";
+  return "success";
+}
+
+function confidenceEntries(scores: ComplaintListItem["confidence_scores"] | ProcessedComplaintResponse["confidence_scores"]) {
+  if (!scores) return [];
+  return Object.entries(scores).filter((entry): entry is [string, number] => typeof entry[1] === "number");
+}
+
+function hasWeakConfidence(scores: ComplaintListItem["confidence_scores"] | ProcessedComplaintResponse["confidence_scores"]): boolean {
+  return confidenceEntries(scores).some(([, value]) => normalizedScore(value) !== null && Number(normalizedScore(value)) < 60);
+}
+
+function humanize(value: string): string {
+  return value.replace(/_/g, " ");
+}
+
+function similarCaseId(item: SimilarCaseDetail, index: number): string {
+  return item.complaint_id ?? `Case ${index + 1}`;
+}
+
+function similarCaseScore(item: SimilarCaseDetail): number | null {
+  return normalizedScore(item.similarity_score);
+}
+
+function similarCaseSummary(item: SimilarCaseDetail): string {
+  return item.approved_response ?? item.next_action ?? "No evidence summary returned.";
 }
 
 function average(values: Array<number | null>): number {
@@ -149,8 +231,13 @@ function EmptyPanel({ title, body }: { title: string; body: string }) {
 }
 
 export function App() {
-  const [activeView, setActiveView] = useState<"dashboard" | "import">("dashboard");
-  const [filters, setFilters] = useState<ComplaintFilters>(initialFilters);
+  const [activeView, setActiveView] = useState<"dashboard" | "import" | "queue" | "ops">(() => {
+    const view = new URLSearchParams(window.location.search).get("view");
+    return view === "queue" || view === "import" || view === "ops" ? view : "dashboard";
+  });
+  const [filters, setFilters] = useState<ComplaintFilters>(() => readInitialFilters());
+  const [limit, setLimit] = useState(() => readInitialNumber("limit", 50, pageSizes));
+  const [offset, setOffset] = useState(() => readInitialNumber("offset", 0));
   const [complaints, setComplaints] = useState<ComplaintListItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
@@ -162,6 +249,9 @@ export function App() {
   const [processing, setProcessing] = useState(false);
   const [processResult, setProcessResult] = useState<ProcessedComplaintResponse | null>(null);
   const [processError, setProcessError] = useState<string | null>(null);
+  const filterRef = useRef(filters);
+  const limitRef = useRef(limit);
+  const offsetRef = useRef(offset);
   const [form, setForm] = useState({
     narrative: "",
     channel: "",
@@ -170,12 +260,22 @@ export function App() {
     company: "",
   });
 
-  async function loadComplaints() {
+  useEffect(() => {
+    filterRef.current = filters;
+    limitRef.current = limit;
+    offsetRef.current = offset;
+  }, [filters, limit, offset]);
+
+  async function loadComplaints(
+    activeFilters = filterRef.current,
+    activeLimit = limitRef.current,
+    activeOffset = offsetRef.current,
+  ) {
     setLoading(true);
     setError(null);
     try {
       const [complaintResponse, healthResponse] = await Promise.all([
-        getComplaints(filters),
+        getComplaints(activeFilters, activeLimit, activeOffset),
         getHealth().catch(() => null),
       ]);
       setComplaints(complaintResponse.items);
@@ -193,14 +293,44 @@ export function App() {
 
   useEffect(() => {
     loadComplaints();
-  }, [filters.sort_by, filters.sort_direction]);
+  }, [filters.sort_by, filters.sort_direction, limit, offset]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
-      loadComplaints();
+      if (offset !== 0) {
+        setOffset(0);
+      } else {
+        loadComplaints();
+      }
     }, 350);
     return () => window.clearTimeout(timeout);
-  }, [filters.search, filters.sentiment, filters.churn_risk, filters.urgency_min, filters.urgency_max, filters.timely_response]);
+  }, [
+    filters.search,
+    filters.sentiment,
+    filters.channel,
+    filters.product,
+    filters.churn_risk,
+    filters.urgency_min,
+    filters.urgency_max,
+    filters.date_received_min,
+    filters.date_received_max,
+    filters.timely_response,
+    filters.ai_status,
+    filters.human_review_reason,
+    offset,
+  ]);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (activeView !== "dashboard") params.set("view", activeView);
+    params.set("limit", String(limit));
+    if (offset) params.set("offset", String(offset));
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value) params.set(key, value);
+    });
+    const nextUrl = `${window.location.pathname}?${params.toString()}${window.location.hash}`;
+    window.history.replaceState(null, "", nextUrl);
+  }, [activeView, filters, limit, offset]);
 
   useEffect(() => {
     const socket = new WebSocket(websocketUrl());
@@ -211,8 +341,8 @@ export function App() {
       try {
         const parsed = JSON.parse(message.data) as WebSocketMessage;
         setEvents((current) => [parsed, ...current].slice(0, 8));
-        if (parsed.event === "saved") {
-          loadComplaints();
+        if (parsed.event === "saved" || parsed.event === "human_review_required") {
+          loadComplaints(filterRef.current, limitRef.current, offsetRef.current);
         }
       } catch {
         setWsStatus("offline");
@@ -231,10 +361,14 @@ export function App() {
     const highRisk = complaints.filter((row) => row.churn_risk === "High").length;
     const completed = complaints.filter((row) => row.ai_status === "completed").length;
     const timely = complaints.filter((row) => row.timely_response === "Yes").length;
+    const review = complaints.filter((row) => row.human_review_required || row.ai_status === "human_review" || row.human_review_reason).length;
+    const failed = complaints.filter((row) => row.ai_status === "failed").length;
     return {
       avgUrgency,
       highRisk,
       completed,
+      review,
+      failed,
       timelyRate: complaints.length ? (timely / complaints.length) * 100 : 0,
       products: uniqueCount(complaints, "product"),
     };
@@ -243,6 +377,182 @@ export function App() {
   const sparkline = useMemo(() => buildSparkline(complaints), [complaints]);
   const bars = useMemo(() => weeklyBars(complaints), [complaints]);
   const maxBar = Math.max(...bars, 1);
+  const currentPage = Math.floor(offset / limit) + 1;
+  const pageCount = Math.max(1, Math.ceil(totalCount / limit));
+  const canPageBack = offset > 0;
+  const canPageForward = offset + limit < totalCount;
+
+  function openQueueInNewTab() {
+    const params = new URLSearchParams(window.location.search);
+    params.set("view", "queue");
+    window.open(`${window.location.origin}${window.location.pathname}?${params.toString()}`, "_blank", "noopener,noreferrer");
+  }
+
+  const queuePanel = (mode: "dashboard" | "page" = "dashboard") => (
+    <article className={`panel table-panel queue-panel ${mode === "page" ? "queue-panel-expanded" : ""}`} id="complaints">
+      <div className="panel-heading queue-heading">
+        <div>
+          <h2>Complaint Queue</h2>
+          <p>{loading ? "Loading backend rows" : `${complaints.length} of ${totalCount} records shown`}</p>
+        </div>
+        <div className="queue-actions">
+          <button className="secondary-action compact-action" type="button" onClick={() => loadComplaints()} disabled={loading}>
+            <RefreshCcw size={15} /> Refresh
+          </button>
+          {mode === "dashboard" ? (
+            <button className="primary-action compact-action" type="button" onClick={openQueueInNewTab}>
+              <ExternalLink size={15} /> Open full queue
+            </button>
+          ) : (
+            <button className="secondary-action compact-action" type="button" onClick={() => setActiveView("dashboard")}>
+              <ChevronLeft size={15} /> Dashboard
+            </button>
+          )}
+        </div>
+      </div>
+      {mode === "page" ? (
+        <div className="filter-row queue-filter-row">
+          <input
+            value={filters.product}
+            onChange={(event) => setFilters((current) => ({ ...current, product: event.target.value }))}
+            placeholder="Product"
+          />
+          <input
+            value={filters.channel}
+            onChange={(event) => setFilters((current) => ({ ...current, channel: event.target.value }))}
+            placeholder="Channel"
+          />
+          <select value={filters.sentiment} onChange={(event) => setFilters((current) => ({ ...current, sentiment: event.target.value as Sentiment | "" }))}>
+            <option value="">Sentiment</option>
+            <option value="Positive">Positive</option>
+            <option value="Neutral">Neutral</option>
+            <option value="Negative">Negative</option>
+          </select>
+          <select value={filters.churn_risk} onChange={(event) => setFilters((current) => ({ ...current, churn_risk: event.target.value as ChurnRisk | "" }))}>
+            <option value="">Churn risk</option>
+            <option value="Low">Low</option>
+            <option value="Medium">Medium</option>
+            <option value="High">High</option>
+          </select>
+          <select value={filters.timely_response} onChange={(event) => setFilters((current) => ({ ...current, timely_response: event.target.value as ComplaintFilters["timely_response"] }))}>
+            <option value="">Timely</option>
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+          </select>
+          <select value={filters.ai_status} onChange={(event) => setFilters((current) => ({ ...current, ai_status: event.target.value as ComplaintFilters["ai_status"] }))}>
+            <option value="">AI status</option>
+            <option value="completed">Completed</option>
+            <option value="human_review">Human review</option>
+            <option value="failed">Failed</option>
+            <option value="pending">Pending</option>
+            <option value="processing">Processing</option>
+          </select>
+          <input
+            value={filters.human_review_reason}
+            onChange={(event) => setFilters((current) => ({ ...current, human_review_reason: event.target.value }))}
+            placeholder="Review reason"
+          />
+          <input
+            type="number"
+            min={0}
+            max={100}
+            value={filters.urgency_min}
+            onChange={(event) => setFilters((current) => ({ ...current, urgency_min: event.target.value }))}
+            placeholder="Urgency min"
+          />
+          <input
+            type="number"
+            min={0}
+            max={100}
+            value={filters.urgency_max}
+            onChange={(event) => setFilters((current) => ({ ...current, urgency_max: event.target.value }))}
+            placeholder="Urgency max"
+          />
+          <input
+            type="date"
+            value={filters.date_received_min}
+            onChange={(event) => setFilters((current) => ({ ...current, date_received_min: event.target.value }))}
+            aria-label="Received after"
+          />
+          <input
+            type="date"
+            value={filters.date_received_max}
+            onChange={(event) => setFilters((current) => ({ ...current, date_received_max: event.target.value }))}
+            aria-label="Received before"
+          />
+        </div>
+      ) : null}
+      <div className="queue-summary" aria-label="Complaint status counters">
+        <span><strong>{metrics.completed}</strong> Completed</span>
+        <span><strong>{metrics.review}</strong> Review</span>
+        <span><strong>{metrics.failed}</strong> Failed</span>
+        <span><strong>{metrics.highRisk}</strong> High risk</span>
+      </div>
+      {error ? (
+        <EmptyPanel title="Backend unavailable" body={error} />
+      ) : loading ? (
+        <div className="loading-row"><Loader2 className="spin" size={18} />Fetching real backend records</div>
+      ) : complaints.length ? (
+        <div className="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Complaint</th>
+                <th>Sentiment</th>
+                <th>Urgency</th>
+                <th>Risk</th>
+                <th>Confidence</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {complaints.map((complaint) => (
+                <tr
+                  key={complaint.complaint_id}
+                  className={selectedComplaint?.complaint_id === complaint.complaint_id ? "selected" : ""}
+                  onClick={() => setSelectedId(complaint.complaint_id)}
+                >
+                  <td>
+                    <strong>{complaint.product ?? "Product missing"}</strong>
+                    <em>{[complaint.company, complaint.sub_product, complaint.sub_issue].filter(Boolean).join(" / ") || "No company/subtype metadata"}</em>
+                    <span>{complaint.narrative}</span>
+                  </td>
+                  <td><span className={`badge ${sentimentClass(complaint.sentiment)}`}>{complaint.sentiment ?? "Unknown"}</span></td>
+                  <td>
+                    <div className="bar-cell"><span style={{ width: `${complaint.urgency_score ?? 0}%` }} />{complaint.urgency_score ?? 0}</div>
+                  </td>
+                  <td><span className={`badge ${riskClass(complaint.churn_risk)}`}>{complaint.churn_risk ?? "Unknown"}</span></td>
+                  <td><span className={`badge ${warningClass(complaint.confidence_scores?.sentiment)}`}>{percent(complaint.confidence_scores?.sentiment)}</span></td>
+                  <td><span className={`status-pill ${complaint.ai_status}`}>{complaint.ai_status}</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <EmptyPanel title="No real complaints returned" body="The frontend has no fallback rows. Run real ingestion or submit a live complaint." />
+      )}
+      <div className="pagination-row" aria-label="Complaint pagination">
+        <button type="button" disabled={!canPageBack || loading} onClick={() => setOffset((current) => Math.max(0, current - limit))}>
+          <ChevronLeft size={15} /> Previous
+        </button>
+        <span>Page {currentPage} of {pageCount}</span>
+        <select
+          value={limit}
+          onChange={(event) => {
+            setLimit(Number(event.target.value));
+            setOffset(0);
+          }}
+          aria-label="Rows per page"
+        >
+          {pageSizes.map((size) => <option key={size} value={size}>{size} rows</option>)}
+        </select>
+        <button type="button" disabled={!canPageForward || loading} onClick={() => setOffset((current) => current + limit)}>
+          Next <ChevronRight size={15} />
+        </button>
+      </div>
+    </article>
+  );
 
   async function submitComplaint(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -272,6 +582,87 @@ export function App() {
     return <S3ImportPage onBack={() => setActiveView("dashboard")} />;
   }
 
+  if (activeView === "ops") {
+    return (
+      <OperationsPage
+        selectedComplaintId={selectedComplaint?.complaint_id ?? ""}
+        onBack={() => setActiveView("dashboard")}
+        onRefreshComplaints={() => loadComplaints()}
+      />
+    );
+  }
+
+  if (activeView === "queue") {
+    return (
+      <main className="queue-page">
+        <header className="queue-page-header">
+          <div>
+            <button className="icon-button" type="button" onClick={() => setActiveView("dashboard")} aria-label="Back to dashboard">
+              <ChevronLeft size={18} />
+            </button>
+            <div>
+              <h1>Complaint Queue</h1>
+              <p>Focused review workspace for backend complaint records</p>
+            </div>
+          </div>
+          <label className="searchbar">
+            <Search size={17} />
+            <input
+              value={filters.search}
+              onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))}
+              placeholder="Search real complaints"
+            />
+          </label>
+          <div className="top-actions">
+            <button className="icon-button" type="button" onClick={() => loadComplaints()} aria-label="Refresh"><RefreshCcw size={17} /></button>
+            <div className="user-chip"><UserRound size={18} /><span>Ops User</span></div>
+          </div>
+        </header>
+        <section className="queue-page-grid">
+          <div className="queue-page-main">{queuePanel("page")}</div>
+          <aside className="queue-page-side">
+            <article className="panel status-card">
+              <div className="panel-heading">
+                <h2>Backend Status</h2>
+                <span className={`live-dot ${health ? "online" : "offline"}`} />
+              </div>
+              <div className="status-list">
+                <span>API <strong>{health?.status ?? "Unavailable"}</strong></span>
+                <span>Environment <strong>{health?.environment ?? "Unknown"}</strong></span>
+                <span>WebSocket <strong>{wsStatus}</strong></span>
+                <span>AI completed <strong>{metrics.completed}</strong></span>
+              </div>
+            </article>
+            <article className="panel detail-panel">
+              <div className="panel-heading">
+                <h2>Selected Case</h2>
+                <Bot size={18} />
+              </div>
+              {selectedComplaint ? (
+                <div className="detail-copy">
+                  <span>Product</span>
+                  <strong>{selectedComplaint.product ?? "Unlabeled product"}</strong>
+                  <span>Company</span>
+                  <strong>{selectedComplaint.company ?? "Unknown"}</strong>
+                  <span>Review</span>
+                  <strong className={`badge ${selectedComplaint.human_review_required || selectedComplaint.ai_status === "human_review" ? "warning" : "success"}`}>
+                    {selectedComplaint.human_review_required || selectedComplaint.ai_status === "human_review" ? "Review required" : "No review flag"}
+                  </strong>
+                  <span>Next action</span>
+                  <p>{selectedComplaint.next_action ?? "No next action returned for this row."}</p>
+                  <span>Narrative</span>
+                  <p>{selectedComplaint.narrative}</p>
+                </div>
+              ) : (
+                <EmptyPanel title="No complaint selected" body="Select a row once backend records are available." />
+              )}
+            </article>
+          </aside>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="app-shell">
       <aside className="sidebar">
@@ -286,12 +677,12 @@ export function App() {
           <a href="#intake"><MessageSquareText size={16} />Live Intake</a>
           <a href="#analytics"><BarChart3 size={16} />Analytics</a>
           <a href="#activity"><Activity size={16} />Activity</a>
-          <a href="#settings"><Settings size={16} />Settings</a>
+          <button type="button" onClick={() => setActiveView("ops")}><Settings size={16} />Operations</button>
         </nav>
         <section className="upgrade-card">
           <strong>Real Data Mode</strong>
           <span>Dashboard panels render only backend and database responses.</span>
-          <button type="button" onClick={loadComplaints}>Refresh API</button>
+          <button type="button" onClick={() => loadComplaints()}>Refresh API</button>
         </section>
       </aside>
 
@@ -313,7 +704,7 @@ export function App() {
             />
           </label>
           <div className="top-actions">
-            <button className="icon-button" type="button" onClick={loadComplaints} aria-label="Refresh"><RefreshCcw size={17} /></button>
+            <button className="icon-button" type="button" onClick={() => loadComplaints()} aria-label="Refresh"><RefreshCcw size={17} /></button>
             <button className="icon-button" type="button" aria-label="Notifications"><Bell size={17} /></button>
             <div className="user-chip"><UserRound size={18} /><span>Ops User</span></div>
           </div>
@@ -328,11 +719,16 @@ export function App() {
                 <p>{selectedComplaint.issue ?? "Issue not provided"}</p>
                 <div className="id-pill">{selectedComplaint.complaint_id}</div>
                 <span className={`status-pill ${selectedComplaint.ai_status}`}>{selectedComplaint.ai_status}</span>
+                {selectedComplaint.human_review_required || selectedComplaint.ai_status === "human_review" ? <span className="status-pill review">Review required</span> : null}
                 <div className="info-list">
                   <span>Channel <strong>{selectedComplaint.channel ?? "Unknown"}</strong></span>
+                  <span>Company <strong>{selectedComplaint.company ?? "Unknown"}</strong></span>
+                  <span>Sub-product <strong>{selectedComplaint.sub_product ?? "Unknown"}</strong></span>
                   <span>Date received <strong>{formatDate(selectedComplaint.date_received)}</strong></span>
                   <span>Processed <strong>{formatDateTime(selectedComplaint.processed_at)}</strong></span>
                   <span>Timely response <strong>{selectedComplaint.timely_response ?? "Unknown"}</strong></span>
+                  <span>Retries <strong>{selectedComplaint.retry_count ?? 0}</strong></span>
+                  <span>Review reason <strong>{selectedComplaint.human_review_reason ?? selectedComplaint.review_reason ?? "None"}</strong></span>
                 </div>
               </>
             ) : (
@@ -370,16 +766,28 @@ export function App() {
                   <h2>Complaint Trend</h2>
                   <p>{metrics.products} product groups in the current backend result window</p>
                 </div>
-                <select
-                  value={filters.sort_by}
-                  onChange={(event) => setFilters((current) => ({ ...current, sort_by: event.target.value as ComplaintFilters["sort_by"] }))}
-                >
-                  <option value="created_at">Created</option>
-                  <option value="processed_at">Processed</option>
-                  <option value="urgency_score">Urgency</option>
-                  <option value="sentiment">Sentiment</option>
-                  <option value="churn_risk">Churn risk</option>
-                </select>
+                <div className="sort-controls">
+                  <select
+                    value={filters.sort_by}
+                    onChange={(event) => setFilters((current) => ({ ...current, sort_by: event.target.value as ComplaintFilters["sort_by"] }))}
+                  >
+                    <option value="created_at">Created</option>
+                    <option value="processed_at">Processed</option>
+                    <option value="urgency_score">Urgency</option>
+                    <option value="sentiment">Sentiment</option>
+                    <option value="churn_risk">Churn risk</option>
+                    <option value="ai_confidence">AI confidence</option>
+                    <option value="ai_status">AI status</option>
+                    <option value="relevance" disabled={!filters.search.trim()}>Relevance</option>
+                  </select>
+                  <select
+                    value={filters.sort_direction}
+                    onChange={(event) => setFilters((current) => ({ ...current, sort_direction: event.target.value as ComplaintFilters["sort_direction"] }))}
+                  >
+                    <option value="desc">Desc</option>
+                    <option value="asc">Asc</option>
+                  </select>
+                </div>
               </div>
               {sparkline ? (
                 <svg viewBox="0 0 200 96" role="img" aria-label="Complaint volume trend">
@@ -397,76 +805,7 @@ export function App() {
               )}
             </article>
 
-            <article className="panel table-panel" id="complaints">
-              <div className="panel-heading">
-                <div>
-                  <h2>Complaint Queue</h2>
-                  <p>{loading ? "Loading backend rows" : `${complaints.length} of ${totalCount} records shown`}</p>
-                </div>
-                <div className="filter-row">
-                  <select value={filters.sentiment} onChange={(event) => setFilters((current) => ({ ...current, sentiment: event.target.value as Sentiment | "" }))}>
-                    <option value="">Sentiment</option>
-                    <option value="Positive">Positive</option>
-                    <option value="Neutral">Neutral</option>
-                    <option value="Negative">Negative</option>
-                  </select>
-                  <select value={filters.churn_risk} onChange={(event) => setFilters((current) => ({ ...current, churn_risk: event.target.value as ChurnRisk | "" }))}>
-                    <option value="">Churn risk</option>
-                    <option value="Low">Low</option>
-                    <option value="Medium">Medium</option>
-                    <option value="High">High</option>
-                  </select>
-                  <select value={filters.timely_response} onChange={(event) => setFilters((current) => ({ ...current, timely_response: event.target.value as ComplaintFilters["timely_response"] }))}>
-                    <option value="">Timely</option>
-                    <option value="true">Yes</option>
-                    <option value="false">No</option>
-                  </select>
-                </div>
-              </div>
-              {error ? (
-                <EmptyPanel title="Backend unavailable" body={error} />
-              ) : loading ? (
-                <div className="loading-row"><Loader2 className="spin" size={18} />Fetching real backend records</div>
-              ) : complaints.length ? (
-                <div className="table-scroll">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Complaint</th>
-                        <th>Sentiment</th>
-                        <th>Urgency</th>
-                        <th>Risk</th>
-                        <th>Confidence</th>
-                        <th>Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {complaints.map((complaint) => (
-                        <tr
-                          key={complaint.complaint_id}
-                          className={selectedComplaint?.complaint_id === complaint.complaint_id ? "selected" : ""}
-                          onClick={() => setSelectedId(complaint.complaint_id)}
-                        >
-                          <td>
-                            <strong>{complaint.product ?? "Product missing"}</strong>
-                            <span>{complaint.narrative}</span>
-                          </td>
-                          <td><span className={`badge ${sentimentClass(complaint.sentiment)}`}>{complaint.sentiment ?? "Unknown"}</span></td>
-                          <td>
-                            <div className="bar-cell"><span style={{ width: `${complaint.urgency_score ?? 0}%` }} />{complaint.urgency_score ?? 0}</div>
-                          </td>
-                          <td><span className={`badge ${riskClass(complaint.churn_risk)}`}>{complaint.churn_risk ?? "Unknown"}</span></td>
-                          <td>{percent(complaint.confidence_scores?.sentiment)}</td>
-                          <td><span className={`status-pill ${complaint.ai_status}`}>{complaint.ai_status}</span></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <EmptyPanel title="No real complaints returned" body="The frontend has no fallback rows. Run real ingestion or submit a live complaint." />
-              )}
-            </article>
+            {queuePanel()}
 
             <section className="lower-grid">
               <article className="panel bars-panel">
@@ -493,6 +832,75 @@ export function App() {
                   <div className="detail-copy">
                     <span>Category</span>
                     <strong>{selectedComplaint.category ?? "Not classified"}</strong>
+                    <span>Grounding</span>
+                    <strong className={`grounding-pill ${selectedComplaint.grounded_response === false ? "warning" : "success"}`}>
+                      {selectedComplaint.grounded_response === false ? "Needs evidence review" : selectedComplaint.grounded_response === true ? "Grounded response" : "Grounding not returned"}
+                    </strong>
+                    <span>AI confidence</span>
+                    <strong className={`badge ${warningClass(selectedComplaint.ai_confidence)}`}>{aiConfidence(selectedComplaint.ai_confidence)}</strong>
+                    {hasWeakConfidence(selectedComplaint.confidence_scores) ? (
+                      <div className="warning-note">Weak confidence detected. Review the draft before action.</div>
+                    ) : null}
+                    {selectedComplaint.retrieval_warning ? (
+                      <div className="warning-note">{selectedComplaint.retrieval_warning}</div>
+                    ) : null}
+                    {confidenceEntries(selectedComplaint.confidence_scores).length ? (
+                      <div className="confidence-grid">
+                        {confidenceEntries(selectedComplaint.confidence_scores).map(([name, value]) => (
+                          <span key={name} className={warningClass(value)}>
+                            <strong>{percent(value)}</strong>
+                            {humanize(name)}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                    <span>Next action</span>
+                    <p>{selectedComplaint.next_action ?? "No next action returned for this row."}</p>
+                    <span>Draft response</span>
+                    <p>{selectedComplaint.draft_response ?? "No draft response returned for this row."}</p>
+                    <span>AI reasoning</span>
+                    <p>{selectedComplaint.ai_reasoning ?? "No reasoning returned for this row."}</p>
+                    {selectedComplaint.similar_cases?.length ? (
+                      <>
+                        <span>Similar cases</span>
+                        <div className="similar-cases">
+                          {selectedComplaint.similar_cases.map((item, index) => (
+                            <button type="button" key={`${similarCaseId(item, index)}-${index}`}>
+                              <strong>{similarCaseId(item, index)}</strong>
+                              <small>{similarCaseScore(item) === null ? "Score not returned" : `${Math.round(Number(similarCaseScore(item)))}% match`}</small>
+                              <span>{similarCaseSummary(item)}</span>
+                              {item.category ? <em>{item.category}</em> : null}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="warning-note neutral">No similar past cases returned.</div>
+                    )}
+                    {selectedComplaint.omitted_retrievals?.length ? (
+                      <>
+                        <span>Omitted retrievals</span>
+                        <p>{selectedComplaint.omitted_retrievals.map((item, index) => similarCaseId(item, index)).join(", ")}</p>
+                      </>
+                    ) : null}
+                    {selectedComplaint.error_message ? (
+                      <>
+                        <span>Processing error</span>
+                        <p>{selectedComplaint.error_message}</p>
+                      </>
+                    ) : null}
+                    {selectedComplaint.processing_history?.length ? (
+                      <>
+                        <span>Processing history</span>
+                        <div className="history-list">
+                          {selectedComplaint.processing_history.map((item, index) => (
+                            <p key={`${item.id ?? item.attempt_number}-${index}`}>
+                              <strong>Attempt {item.attempt_number}</strong> {item.status_outcome} via {item.trigger_reason ?? "unknown"} {item.created_at ? formatDateTime(item.created_at) : ""}
+                            </p>
+                          ))}
+                        </div>
+                      </>
+                    ) : null}
                     <span>Narrative</span>
                     <p>{selectedComplaint.narrative}</p>
                   </div>
@@ -558,8 +966,14 @@ export function App() {
               {processResult && (
                 <div className="result-card">
                   <strong>{processResult.category}</strong>
-                  <span>{processResult.sentiment} / {processResult.churn_risk}</span>
+                  <span>{processResult.sentiment} / {processResult.churn_risk} / {aiConfidence(processResult.ai_confidence)}</span>
                   <p>{processResult.next_action}</p>
+                  <p>{processResult.draft_response}</p>
+                  {hasWeakConfidence(processResult.confidence_scores) ? <span className="warning-text">Weak field confidence detected</span> : null}
+                  {processResult.similar_cases.length ? (
+                    <span>Similar: {processResult.similar_cases.map((item, index) => similarCaseId(item, index)).join(", ")}</span>
+                  ) : null}
+                  {processResult.ai_reasoning ? <span>Reasoning: {processResult.ai_reasoning}</span> : null}
                 </div>
               )}
             </article>
