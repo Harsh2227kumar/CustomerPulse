@@ -106,7 +106,7 @@ ACCOUNT1_RDS_HOST:5432
 The EC2 backend environment includes RDS, Bedrock, and Athena configuration:
 
 ```env
-DATABASE_URL=postgresql+asyncpg://USER:PASSWORD@ACCOUNT1_RDS_HOST:5432/customerpulse
+DATABASE_URL=postgresql+asyncpg://USER:PASSWORD@ACCOUNT1_RDS_HOST:5432/postgres
 
 AI_PROVIDER=bedrock
 BEDROCK_API_KEY=replace_with_account2_production_credential_if_still_used
@@ -121,10 +121,22 @@ ATHENA_DATABASE=customerpulse_data
 ATHENA_TABLE=cfpb_parquet
 ATHENA_OUTPUT_LOCATION=s3://customerpulse-cfpb-data/athena/results/
 ATHENA_WORKGROUP=primary
+EMBEDDING_MODEL=all-MiniLM-L6-v2
+EMBEDDING_VERIFY_ON_STARTUP=true
+SIMILARITY_THRESHOLD=0.60
+SIMILAR_CASE_LIMIT=3
+BATCH_PROCESS_LIMIT=50
+EMBEDDING_BACKFILL_LIMIT=100
+JOB_WORKER_POLL_SECONDS=1
+AUTH_PRINCIPALS_JSON={"replace-manager-key":{"actor":"demo-manager","role":"manager"},"replace-agent-key":{"actor":"demo-agent","role":"agent"}}
 ```
 
 There are no `AWS_ACCESS_KEY_ID` or `AWS_SECRET_ACCESS_KEY` values on EC2 for
 Account 3 access; boto3 uses the EC2 IAM role.
+
+Run only one backend container for the current deployment. WebSocket
+connections remain in process memory and PostgreSQL-backed batch/backfill jobs
+are executed by that same instance. Redis is deliberately not required.
 
 ## Smoke Checks After Deployment
 
@@ -134,6 +146,25 @@ Account 3 access; boto3 uses the EC2 IAM role.
 4. Confirm real Athena-backed filters load.
 5. Preview a one-row selection.
 6. Import one row and verify it in Account 1 RDS.
+7. Run a small embedding-backfill job and process another row to verify RAG evidence.
+8. Verify a human-review event and manager approval using configured bearer keys.
+9. Follow `09_BACKEND_RAG_REVIEW_PRODUCTION_UPGRADE.md` for RDS pgvector,
+   encryption, credential storage, monitoring, and acceptance checks.
+
+The deployment script runs backend readiness before starting containers:
+
+```bash
+PROJECT_DIR=$HOME/CustomerPulse BRANCH=dev bash infra/aws/deploy.sh
+```
+
+For backend-only redeploys:
+
+```bash
+PROJECT_DIR=$HOME/CustomerPulse BRANCH=feature/cfpb-s3-import-api bash infra/aws/deploy-backend.sh
+```
+
+Both commands build the backend image, run schema setup, download/cache
+`all-MiniLM-L6-v2`, and verify 384-dimensional embeddings.
 
 ## Official AWS References
 

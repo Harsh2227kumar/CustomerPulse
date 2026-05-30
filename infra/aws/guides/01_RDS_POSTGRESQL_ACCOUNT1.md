@@ -32,11 +32,15 @@ The full 8 GB CSV stays in Account 3 S3 and is not copied into RDS.
     ```
 
 11. Create a strong password, or use AWS Secrets Manager where available.
-12. Set the initial database name:
+12. Set the initial database name. A dedicated application database is cleanest:
 
-    ```text
-    customerpulse
-    ```
+   ```text
+   customerpulse
+   ```
+
+   The project can also use the default `postgres` database if
+   `DATABASE_URL` points there; the backend creates its schema in whichever
+   database is configured.
 
 13. Keep storage encryption enabled.
 14. Set backup retention appropriate to the environment.
@@ -76,8 +80,8 @@ restricted security rules.
 Put the connection URL only in the local backend `.env` file or secret store:
 
 ```env
-DATABASE_URL=postgresql+asyncpg://USER:PASSWORD@RDS_HOST:5432/customerpulse
-DATABASE_ADMIN_URL=
+DATABASE_URL=postgresql+asyncpg://USER:PASSWORD@RDS_HOST:5432/postgres
+DATABASE_ADMIN_URL=postgresql+asyncpg://USER:PASSWORD@RDS_HOST:5432/postgres
 ```
 
 Do not put this URL into a Git commit.
@@ -88,7 +92,7 @@ From the backend folder, the application setup command verifies schema and
 database access:
 
 ```powershell
-python -m app.db.setup
+python -m app.db.setup --yes --verify-embedding
 ```
 
 The application is expected to create or verify its complaint table and related
