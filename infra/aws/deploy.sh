@@ -2,7 +2,7 @@
 set -euo pipefail
 
 PROJECT_DIR="${PROJECT_DIR:-$HOME/CustomerPulse}"
-BRANCH="${BRANCH:-dev}"
+BRANCH="${BRANCH:-main}"
 
 if [ ! -d "$PROJECT_DIR/.git" ]; then
   echo "PROJECT_DIR must point to a cloned CustomerPulse repository: $PROJECT_DIR" >&2
@@ -20,5 +20,6 @@ if [ ! -f ".env" ]; then
 fi
 
 docker compose build
+docker compose run --rm backend python -m app.db.setup --yes --verify-embedding
 docker compose up -d
 docker compose ps

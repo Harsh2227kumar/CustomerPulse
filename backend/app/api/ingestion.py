@@ -5,6 +5,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings, get_settings
+from app.core.constants import Role
+from app.core.security import Principal, require_roles
 from app.db.session import get_db_session
 from app.ingestion.cfpb_s3 import (
     CfpbS3IngestionService,
@@ -64,6 +66,7 @@ async def import_complaints(
     filters: S3ComplaintImportFilters,
     db: AsyncSession = Depends(get_db_session),
     settings: Settings = Depends(get_settings),
+    _principal: Principal = Depends(require_roles(Role.MANAGER, Role.ADMIN)),
 ) -> S3ImportResponse:
     service = _service(settings)
     try:

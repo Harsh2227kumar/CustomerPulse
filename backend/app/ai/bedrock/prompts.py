@@ -1,4 +1,12 @@
-from app.core.constants import ChurnRisk, Sentiment
+import json
+
+from app.core.constants import (
+    ChurnRisk,
+    MAX_PROMPT_EVIDENCE_TEXT_CHARS,
+    MAX_PROMPT_NARRATIVE_CHARS,
+    Sentiment,
+)
+from app.schemas.ai_response import SimilarCaseEvidence
 
 
 SYSTEM_PROMPT = """You are CustomerPulse AI, an enterprise BFSI complaint intelligence engine.
@@ -6,6 +14,8 @@ Return only valid JSON that matches the requested schema.
 Use the customer's complaint text and provided local signals.
 Never invent facts that are not supported by the complaint.
 If evidence is weak, lower confidence instead of guessing.
+Historical cases may guide a proposed action, but cannot establish what happened
+or what resolution applies to the present complaint.
 """
 
 
@@ -16,9 +26,30 @@ def build_user_prompt(
     local_sentiment: Sentiment,
     local_category: str,
     local_urgency: int,
+    similar_cases: list[SimilarCaseEvidence],
 ) -> str:
     churn_values = ", ".join(risk.value for risk in ChurnRisk)
     sentiment_values = ", ".join(sentiment.value for sentiment in Sentiment)
+    evidence_payload = [
+        {
+            **case.model_dump(mode="json"),
+            "next_action": _bounded(case.next_action),
+            "approved_response": _bounded(case.approved_response),
+        }
+        for case in similar_cases
+    ]
+    evidence = json.dumps(
+        evidence_payload,
+        separators=(",", ":"),
+    )
+    complaint_payload = json.dumps(
+        {
+            "complaint_id": complaint_id,
+            "channel": channel or "unknown",
+            "narrative": narrative[:MAX_PROMPT_NARRATIVE_CHARS],
+        },
+        separators=(",", ":"),
+    )
     return f"""
 Analyze this real customer complaint and return JSON matching this exact shape:
 {{
@@ -46,13 +77,19 @@ Rules:
 - urgency_score and confidence values must be 0 to 100
 - ai_confidence must be 0.0 to 1.0
 - Use the local signals as hints, not final truth
-- similar_cases must be an empty array unless actual similar complaint IDs are provided
+- similar_cases must contain only the supplied historical evidence records; do not invent cases
+- Similar historical actions are context only and do not prove resolution of this complaint
+- Never repeat personal data or unsupported facts from historical evidence in the draft response
 
-Complaint ID: {complaint_id}
-Channel: {channel or "unknown"}
 Local sentiment hint: {local_sentiment.value}
 Local category hint: {local_category}
 Local urgency hint: {local_urgency}
-Complaint narrative:
-{narrative}
+Retrieved similar completed cases (bounded evidence): {evidence}
+Current complaint JSON (authoritative input): {complaint_payload}
 """.strip()
+
+
+def _bounded(value: str | None) -> str | None:
+    if value is None:
+        return None
+    return value[:MAX_PROMPT_EVIDENCE_TEXT_CHARS]

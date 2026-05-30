@@ -3,7 +3,7 @@
 CustomerPulse is being built in two stages:
 
 - Phase 1: run backend and frontend locally, while using PostgreSQL for real complaint data and AWS Bedrock Claude for AI processing.
-- Phase 2: host the integrated frontend and backend services on AWS EC2 with Docker Compose, Nginx, and a managed PostgreSQL database.
+- Phase 2: host a published backend container on AWS EC2 with Docker Compose, Nginx, and a managed PostgreSQL database.
 
 For the three-account CFPB flow and bounded S3-to-RDS import setup, begin with
 `infra/aws/guides/00_SETUP_INDEX.md`. The guide set contains repeatable console
@@ -91,15 +91,14 @@ Create `.env` from `.env.template` on EC2 and fill:
 - `BEDROCK_REGION`.
 - `BEDROCK_MODEL`.
 - `CORS_ORIGINS`.
-- `S3_BUCKET_NAME`, `CFPB_S3_KEY`, and `AWS_REGION`.
-- `CFPB_INGESTION_MODE=athena`, plus the Athena database, table, output location, and workgroup settings when querying the large Parquet-backed dataset.
+- `BACKEND_IMAGE` pointing to the published backend container image.
 
 Put `BEDROCK_API_KEY` in managed deployment secret storage when possible.
 
 ## Deploy
 
 ```bash
-PROJECT_DIR=$HOME/CustomerPulse BRANCH=dev bash infra/aws/deploy.sh
+PROJECT_DIR=$HOME/CustomerPulse BRANCH=feature/s3-cross-account-setup bash infra/aws/deploy.sh
 ```
 
 ## Smoke Checks

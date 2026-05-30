@@ -3,6 +3,15 @@ from pydantic import BaseModel, Field, field_validator
 from app.core.constants import ChurnRisk, Sentiment
 
 
+class SimilarCaseEvidence(BaseModel):
+    complaint_id: str
+    similarity_score: float = Field(ge=0, le=1)
+    category: str | None = None
+    next_action: str | None = None
+    approved_response: str | None = None
+    ai_status: str
+
+
 class ConfidenceScores(BaseModel):
     sentiment: int = Field(ge=0, le=100)
     category: int = Field(ge=0, le=100)
@@ -16,9 +25,9 @@ class AIEnrichment(BaseModel):
     category: str = Field(min_length=1, max_length=255)
     urgency_score: int = Field(ge=0, le=100)
     churn_risk: ChurnRisk
-    draft_response: str = Field(min_length=1)
-    next_action: str = Field(min_length=1)
-    similar_cases: list[str] = Field(default_factory=list)
+    draft_response: str = ""
+    next_action: str = ""
+    similar_cases: list[SimilarCaseEvidence] = Field(default_factory=list)
     confidence_scores: ConfidenceScores
     ai_confidence: float = Field(ge=0, le=1)
     ai_reasoning: str | None = None
@@ -36,3 +45,6 @@ class ProcessedComplaintResponse(AIEnrichment):
     narrative: str
     channel: str | None = None
     processed_at: str
+    ai_status: str
+    human_review_reason: str | None = None
+    human_review_created_at: str | None = None
