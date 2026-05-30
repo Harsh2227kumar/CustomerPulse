@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from app.db.base import Base
 from app.db.session import engine
+from app.models import ComplaintProcessingRun, ProcessingJob, ProcessingJobItem  # noqa: F401
 
 
 async def create_extensions(db_engine: AsyncEngine = engine) -> None:

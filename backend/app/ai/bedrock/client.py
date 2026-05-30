@@ -7,6 +7,7 @@ import httpx
 from app.ai.bedrock.prompts import SYSTEM_PROMPT, build_user_prompt
 from app.core.config import Settings
 from app.core.constants import Sentiment
+from app.schemas.ai_response import SimilarCaseEvidence
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +22,20 @@ AI_ENRICHMENT_SCHEMA: dict[str, Any] = {
         "churn_risk": {"type": "string", "enum": ["Low", "Medium", "High"]},
         "draft_response": {"type": "string"},
         "next_action": {"type": "string"},
-        "similar_cases": {"type": "array", "items": {"type": "string"}},
+        "similar_cases": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "complaint_id": {"type": "string"},
+                    "similarity_score": {"type": "number"},
+                    "category": {"type": ["string", "null"]},
+                    "next_action": {"type": ["string", "null"]},
+                    "approved_response": {"type": ["string", "null"]},
+                    "ai_status": {"type": "string"},
+                },
+            },
+        },
         "confidence_scores": {
             "type": "object",
             "additionalProperties": False,
@@ -101,6 +115,7 @@ class BedrockClient:
         local_sentiment: Sentiment,
         local_category: str,
         local_urgency: int,
+        similar_cases: list[SimilarCaseEvidence],
     ) -> str:
         prompt = build_user_prompt(
             complaint_id=complaint_id,
@@ -109,6 +124,7 @@ class BedrockClient:
             local_sentiment=local_sentiment,
             local_category=local_category,
             local_urgency=local_urgency,
+            similar_cases=similar_cases,
         )
         response = await asyncio.to_thread(
             self._create_message,
