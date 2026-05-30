@@ -1,0 +1,46 @@
+name: Deploy To AWS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy EC2 Docker Compose
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate frontend build
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Validate backend image
+        run: docker compose build backend frontend nginx
+
+      - name: Prepare SSH key
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/customerpulse_ec2
+          chmod 600 ~/.ssh/customerpulse_ec2
+          ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy on EC2
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          PROJECT_DIR: ${{ secrets.EC2_PROJECT_DIR }}
+        run: |
+          REMOTE_PROJECT_DIR="${PROJECT_DIR:-/home/$EC2_USER/CustomerPulse}"
+          ssh -i ~/.ssh/customerpulse_ec2 "$EC2_USER@$EC2_HOST" \
+            "PROJECT_DIR='$REMOTE_PROJECT_DIR' BRANCH=main bash '$REMOTE_PROJECT_DIR/infra/aws/deploy.sh'"

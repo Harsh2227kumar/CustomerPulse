@@ -41,7 +41,10 @@ and `reportlab`, downloads/caches `all-MiniLM-L6-v2` in the
 `sentence-transformer-cache` Docker volume, and verifies the model returns
 384-dimensional embeddings. Configure API-key roles with
 `AUTH_PRINCIPALS_JSON`; protected processing, review, job, feedback-list,
-duplicate-action, and export endpoints require bearer credentials.
+duplicate-action, and export endpoints require bearer credentials. In the
+frontend, open **Operations** and save a bearer key locally in the browser
+before calling protected backend actions. Do not pass manager/admin keys as
+Vite build arguments because those values are embedded into static assets.
 
 When building an image in an environment that can access Hugging Face, the model
 can also be baked into the backend image:
