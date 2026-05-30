@@ -59,7 +59,7 @@ policy, Glue script, Athena query, and backend `.env` value.
 | 6 | `06_ATHENA_ACCOUNT3.md` | Registering Parquet and enabling fast app filters |
 | 7 | `07_APPLICATION_CONFIGURATION_AND_TESTING.md` | Connecting backend/frontend and verifying before writes |
 | 8 | `08_PHASE2_EC2_ACCOUNT3.md` | Hosting a stable backend later |
-| 9 | `09_BACKEND_RAG_REVIEW_PRODUCTION_UPGRADE.md` | Final backend RAG/review/job deployment readiness |
+| 9 | `09_BACKEND_RAG_REVIEW_PRODUCTION_UPGRADE.md` | Final combined backend RAG/review/job/reporting deployment readiness |
 
 ## Critical Rule For The CFPB CSV
 

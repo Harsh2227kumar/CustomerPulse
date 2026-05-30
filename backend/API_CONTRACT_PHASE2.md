@@ -11,12 +11,13 @@ through `AUTH_PRINCIPALS_JSON`.
 
 | Role | Permitted Actions |
 | --- | --- |
-| `agent` | Process one complaint; rerun a review case |
-| `manager` / `admin` | Agent actions plus approve/resolve review, import, create/retry batch and embedding jobs |
+| `agent` | Process one complaint; rerun a review case; submit/read feedback for a complaint |
+| `manager` / `admin` | Agent actions plus approve/resolve review, import, create/retry batch and embedding jobs, list/export feedback, run duplicate actions, and export CSV/PDF reports |
 
 Read-only complaint listing, detail, health, and WebSocket connections remain
-open for the demonstration dashboard. Atharva-owned export routes should reuse
-the manager/admin dependency.
+open for the demonstration dashboard. Analytics and SLA summary routes are
+read-only. Export, feedback-list/export, duplicate merge/reject, ingestion, and
+job write routes require bearer credentials.
 
 ## Complaint And Review Endpoints
 
@@ -90,6 +91,39 @@ Job status values are `queued`, `running`, `completed`,
 `completed`, `human_review`, and `failed`. Retried failed items preserve prior
 outcome snapshots in `attempt_history`.
 
+## Analytics, Duplicate, Feedback, Export, And SLA Endpoints
+
+| Method | Path | Auth | Result |
+| --- | --- | --- | --- |
+| `GET` | `/api/analytics/complaint-trends` | Open | Count complaints by `day`, `week`, or `month`. |
+| `GET` | `/api/analytics/product-summary` | Open | Product/category complaint counts and average urgency. |
+| `GET` | `/api/analytics/human-review-trends` | Open | Human-review case counts by period. |
+| `GET` | `/api/analytics/high-urgency` | Open | High-urgency complaint monitor with pagination. |
+| `POST` | `/api/duplicates/detect` | `manager/admin` | Detect exact and near duplicate groups. |
+| `GET` | `/api/duplicates` | `manager/admin` | List duplicate groups with status/type filters. |
+| `GET` | `/api/duplicates/channel-comparison` | `manager/admin` | Compare duplicate distribution by complaint channel. |
+| `GET` | `/api/duplicates/{group_id}` | `manager/admin` | Read one duplicate group and its members. |
+| `POST` | `/api/duplicates/{group_id}/merge` | `manager/admin` | Mark a duplicate group merged with a canonical complaint. |
+| `POST` | `/api/duplicates/{group_id}/reject` | `manager/admin` | Dismiss a duplicate group. |
+| `POST` | `/api/feedback/{complaint_id}` | `agent/manager/admin` | Upsert agent feedback for a complaint. |
+| `GET` | `/api/feedback/{complaint_id}` | `agent/manager/admin` | Read feedback for one complaint. |
+| `GET` | `/api/feedback` | `manager/admin` | List feedback records with filters. |
+| `GET` | `/api/feedback/export` | `manager/admin` | NDJSON feedback export. |
+| `GET` | `/api/exports/complaints/csv` | `manager/admin` | Streaming complaint CSV. |
+| `GET` | `/api/exports/complaints/pdf` | `manager/admin` | PDF complaint report generated with `reportlab`. |
+| `GET` | `/api/exports/analytics/csv` | `manager/admin` | Streaming analytics CSV. |
+| `GET` | `/api/exports/feedback/csv` | `manager/admin` | Feedback CSV for retraining/review analysis. |
+| `GET` | `/api/sla/summary` | Open | SLA counts and timely-response rate. |
+| `GET` | `/api/sla/by-product` | Open | SLA grouped by product. |
+| `GET` | `/api/sla/by-channel` | Open | SLA grouped by channel. |
+| `GET` | `/api/sla/breach-risk` | Open | High-urgency/timeliness risk queue. |
+| `GET` | `/api/sla/trend` | Open | Weekly or monthly SLA trend. |
+
+Feedback actions are `accepted`, `edited`, `rejected`, and `escalated`.
+Duplicate groups use statuses `detected`, `merged`, and `rejected`. These
+features reuse the same `complaints` records and do not replace the Harsh
+review/audit/RAG pipeline.
+
 ## Realtime Event
 
 The existing `/ws` feed adds:
@@ -129,3 +163,12 @@ docker compose run --rm backend python -m app.db.setup --yes --verify-embedding
 
 The setup fails if the embedding model cannot be downloaded/cached or if it
 does not return exactly 384 dimensions.
+
+Run the full backend verification set with:
+
+```bash
+bash backend/scripts/run_backend_checks.sh
+```
+
+The suite covers Harsh review/RAG/jobs, Yash ML contract compatibility, and
+Atharva analytics/duplicates/feedback/exports/SLA surfaces.

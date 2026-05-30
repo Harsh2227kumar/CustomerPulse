@@ -160,7 +160,7 @@ PROJECT_DIR=$HOME/CustomerPulse BRANCH=dev bash infra/aws/deploy.sh
 For backend-only redeploys:
 
 ```bash
-PROJECT_DIR=$HOME/CustomerPulse BRANCH=dev bash infra/aws/deploy-backend.sh
+PROJECT_DIR=$HOME/CustomerPulse BRANCH=feature/cfpb-s3-import-api bash infra/aws/deploy-backend.sh
 ```
 
 Both commands build the backend image, run schema setup, download/cache

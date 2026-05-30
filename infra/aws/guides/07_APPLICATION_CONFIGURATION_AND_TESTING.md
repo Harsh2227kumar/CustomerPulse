@@ -146,7 +146,7 @@ number, for example `1` or `5`.
 The success screen should report saved complaints and show an operation log.
 Verify the imported rows in the dashboard before selecting a larger amount.
 
-### 7. Verify Review, RAG, And Jobs
+### 7. Verify Review, RAG, Jobs, And Reporting
 
 1. Call protected import/process/job actions with a bearer key configured as
    `manager` or `agent` according to `backend/API_CONTRACT_PHASE2.md`.
@@ -162,6 +162,11 @@ Verify the imported rows in the dashboard before selecting a larger amount.
 6. Before a hosted demonstration, cache the MiniLM model on the backend host
    and set `EMBEDDING_VERIFY_ON_STARTUP=true` so an absent model fails startup
    rather than the first user action.
+7. Verify open reporting routes: `/api/analytics/product-summary` and
+   `/api/sla/summary`.
+8. Verify manager-protected reporting/actions with a bearer key:
+   `/api/exports/complaints/csv`, `/api/exports/complaints/pdf`,
+   `/api/feedback`, and `/api/duplicates/detect`.
 
 Backend setup command:
 
@@ -171,6 +176,14 @@ python -m app.db.setup --yes --verify-embedding
 ```
 
 This downloads/caches `all-MiniLM-L6-v2` and validates 384-dimensional output.
+It also installs the current Python requirements, including `reportlab` for PDF
+exports when run through `backend/scripts/setup_backend.*`.
+
+Backend verification command:
+
+```powershell
+backend\scripts\run_backend_checks.ps1
+```
 
 ## Routine Full-File Update Process
 
@@ -195,5 +208,7 @@ When you later receive a fresh complete CSV:
 - Preview before import.
 - Begin with one to five records after infrastructure changes.
 - Run a single backend instance for WebSocket delivery and the in-process job worker; do not add Redis.
+- Rerun backend schema setup after pulling Atharva reporting changes so
+  `agent_feedback`, `duplicate_groups`, and `duplicate_members` exist.
 - Complete the hosted-service upgrade checklist in
   `09_BACKEND_RAG_REVIEW_PRODUCTION_UPGRADE.md` before a deployment review.

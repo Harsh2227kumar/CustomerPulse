@@ -1,9 +1,8 @@
 # Backend RAG And Review Deployment Upgrade
 
-This guide is the infrastructure checklist for deploying the Harsh-owned
-backend capabilities: human review, audit history, local MiniLM embeddings,
-RDS pgvector retrieval, full-text search, background jobs, and API-key role
-protection.
+This guide is the infrastructure checklist for deploying the combined backend
+capabilities: Harsh review/RAG/jobs/search/auth, Yash ML contract integration,
+and Atharva analytics, duplicates, feedback, exports, and SLA reporting.
 
 ## Architecture And Ownership
 
@@ -11,7 +10,7 @@ The current project uses three AWS accounts:
 
 | Account | Owned Services | Backend Requirement |
 | --- | --- | --- |
-| Account 1 | Amazon RDS for PostgreSQL | Store complaints, audit runs, jobs, embeddings, and indexes. |
+| Account 1 | Amazon RDS for PostgreSQL | Store complaints, audit runs, jobs, embeddings, feedback, duplicate groups, and indexes. |
 | Account 2 | Amazon Bedrock | Generate enrichment output and grounded draft actions. |
 | Account 3 | S3, Glue, Athena, EC2 backend | Query source complaints and run the application. |
 
@@ -56,6 +55,8 @@ The backend setup flow creates or reconciles:
 - Review metadata columns on `complaints`.
 - `complaint_processing_runs`.
 - `processing_jobs` and `processing_job_items`.
+- `agent_feedback`.
+- `duplicate_groups` and `duplicate_members`.
 - `embedding vector(384)` and embedding provenance fields.
 - Generated full-text `search_vector`.
 - GIN full-text index.
@@ -84,6 +85,9 @@ WHERE tablename = 'complaints'
   );
 
 SELECT to_regclass('public.complaint_processing_runs'),
+       to_regclass('public.agent_feedback'),
+       to_regclass('public.duplicate_groups'),
+       to_regclass('public.duplicate_members'),
        to_regclass('public.processing_jobs'),
        to_regclass('public.processing_job_items');
 ```
@@ -113,8 +117,9 @@ The backend calculates embeddings locally with:
 all-MiniLM-L6-v2 -> exactly 384 float dimensions
 ```
 
-The Python package is not sufficient on its own; the model weights must also be
-available on the host. Choose one deployment approach:
+The Python packages are not sufficient on their own; the model weights must
+also be available on the host, and `reportlab` must be installed for PDF
+exports. Choose one deployment approach:
 
 1. Build the model cache into the backend container image in CI.
 2. Download the model once during EC2 setup while controlled outbound internet
@@ -331,6 +336,9 @@ EMBEDDING_BACKFILL_LIMIT=100
 JOB_WORKER_POLL_SECONDS=1
 ```
 
+PDF exports are generated in-process with `reportlab`. Keep demo report filters
+bounded and monitor backend memory/CPU if exporting many rows.
+
 ## 9. Monitoring And Audit Verification
 
 Create alarms or operational checks for:
@@ -341,6 +349,7 @@ Create alarms or operational checks for:
 - Bedrock call errors/timeouts.
 - Repeated failed processing job items.
 - Growing `human_review` queue without manager resolution.
+- Failed CSV/PDF exports or unexpectedly large export requests.
 
 The application audit evidence to demonstrate is:
 
@@ -352,6 +361,14 @@ LIMIT 20;
 
 SELECT status, count(*)
 FROM processing_job_items
+GROUP BY status;
+
+SELECT feedback_action, count(*)
+FROM agent_feedback
+GROUP BY feedback_action;
+
+SELECT status, count(*)
+FROM duplicate_groups
 GROUP BY status;
 ```
 
@@ -373,9 +390,14 @@ Perform these checks in order:
    evidence.
 10. Force or submit a review-triggering case and approve it with the manager
     credential.
-11. Restart the backend while a test job is marked running and confirm the
+11. Verify analytics and SLA read routes:
+    `/api/analytics/product-summary` and `/api/sla/summary`.
+12. Verify protected manager routes with a bearer key:
+    complaint CSV export, complaint PDF export, feedback list/export, and
+    duplicate detection.
+13. Restart the backend while a test job is marked running and confirm the
     item is exposed as retryable rather than silently lost.
-12. Rotate temporary credentials after the hosted demonstration.
+14. Rotate temporary credentials after the hosted demonstration.
 
 ## Official AWS References
 

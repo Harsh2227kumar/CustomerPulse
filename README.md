@@ -5,7 +5,7 @@ Integration branch for testing the CustomerPulse frontend, FastAPI backend, AWS 
 ## Integrated Services
 
 - `frontend/`: React/Vite dashboard and controlled CFPB S3 import UI.
-- `backend/`: FastAPI service with PostgreSQL storage, Bedrock enrichment, pgvector RAG, human-review routing, and persisted batch jobs.
+- `backend/`: FastAPI service with PostgreSQL storage, Bedrock enrichment, pgvector RAG, human-review routing, persisted batch jobs, analytics, duplicates, feedback, exports, and SLA reporting.
 - `infra/`: Nginx routing and AWS/S3 deployment material.
 - `shared/schema/`: shared complaint response contract.
 
@@ -42,12 +42,26 @@ Open the application through Nginx at `http://localhost`. Nginx serves the front
 
 Backend Phase 2 writes require bearer credentials configured through
 `AUTH_PRINCIPALS_JSON`. See `backend/API_CONTRACT_PHASE2.md` for the frozen
-review, RAG, search, and batch-job contract supplied to the frontend owner.
+review, RAG, search, batch-job, analytics, duplicate, feedback, export, and
+SLA contract supplied to the frontend owner.
 
-The backend uses `sentence-transformers` plus `all-MiniLM-L6-v2`. The setup
-scripts deliberately download/cache that model and verify it returns
-384-dimensional embeddings before deployment. Docker deployments keep the cache
-in the `sentence-transformer-cache` volume.
+The backend uses `sentence-transformers` plus `all-MiniLM-L6-v2` for local
+embeddings and `reportlab` for PDF exports. The setup scripts deliberately
+install those requirements, download/cache the MiniLM model, and verify it
+returns 384-dimensional embeddings before deployment. Docker deployments keep
+the cache in the `sentence-transformer-cache` volume.
+
+Run the backend verification suite before pushing or deploying:
+
+```powershell
+backend\scripts\run_backend_checks.ps1
+```
+
+or:
+
+```bash
+bash backend/scripts/run_backend_checks.sh
+```
 
 ## Branch Flow
 
