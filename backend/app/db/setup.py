@@ -228,6 +228,7 @@ async def create_schema(settings: Settings) -> None:
             await conn.run_sync(Base.metadata.create_all)
             await _reconcile_existing_complaints_table(conn)
             await _reconcile_existing_processing_tables(conn)
+            await _reconcile_existing_reporting_tables(conn)
 
         # create_all skips indexes when a pre-existing table was created manually.
         async with engine.begin() as conn:
@@ -374,6 +375,115 @@ async def _reconcile_existing_processing_tables(conn) -> None:
             text(
                 "ALTER TABLE complaint_processing_runs "
                 "ADD COLUMN IF NOT EXISTS initiated_by VARCHAR(128)"
+            )
+        )
+
+
+async def _reconcile_existing_reporting_tables(conn) -> None:
+    """Bring Atharva-owned reporting tables forward when an older table exists.
+
+    SQLAlchemy ``create_all`` intentionally does not mutate existing tables.
+    That is good for safety, but it means a table created by an earlier branch
+    can be missing columns needed by later indexes. Reconcile those columns
+    before the explicit index pass below.
+    """
+
+    await _add_columns_if_table_exists(
+        conn,
+        "duplicate_groups",
+        {
+            "detection_type": "VARCHAR(32)",
+            "status": "VARCHAR(32)",
+            "exact_hash": "VARCHAR(32)",
+            "similarity_threshold": "DOUBLE PRECISION",
+            "canonical_complaint_pk": "VARCHAR(64)",
+            "merged_at": "TIMESTAMP WITH TIME ZONE",
+            "rejected_at": "TIMESTAMP WITH TIME ZONE",
+            "notes": "TEXT",
+            "created_at": "TIMESTAMP WITH TIME ZONE",
+            "updated_at": "TIMESTAMP WITH TIME ZONE",
+        },
+    )
+    duplicate_groups_exists = (
+        await conn.execute(text("SELECT to_regclass('public.duplicate_groups')"))
+    ).scalar_one_or_none()
+    if duplicate_groups_exists is not None:
+        await conn.execute(
+            text("UPDATE duplicate_groups SET detection_type = 'exact' WHERE detection_type IS NULL")
+        )
+        await conn.execute(
+            text("UPDATE duplicate_groups SET status = 'detected' WHERE status IS NULL")
+        )
+        await conn.execute(
+            text("UPDATE duplicate_groups SET created_at = now() WHERE created_at IS NULL")
+        )
+        await conn.execute(
+            text("UPDATE duplicate_groups SET updated_at = now() WHERE updated_at IS NULL")
+        )
+        await conn.execute(text("ALTER TABLE duplicate_groups ALTER COLUMN detection_type SET NOT NULL"))
+        await conn.execute(text("ALTER TABLE duplicate_groups ALTER COLUMN status SET NOT NULL"))
+        await conn.execute(text("ALTER TABLE duplicate_groups ALTER COLUMN created_at SET NOT NULL"))
+        await conn.execute(text("ALTER TABLE duplicate_groups ALTER COLUMN updated_at SET NOT NULL"))
+
+    await _add_columns_if_table_exists(
+        conn,
+        "duplicate_members",
+        {
+            "group_id": "VARCHAR(64)",
+            "complaint_pk": "VARCHAR(64)",
+            "similarity_score": "DOUBLE PRECISION",
+            "is_primary": "BOOLEAN",
+            "created_at": "TIMESTAMP WITH TIME ZONE",
+        },
+    )
+    duplicate_members_exists = (
+        await conn.execute(text("SELECT to_regclass('public.duplicate_members')"))
+    ).scalar_one_or_none()
+    if duplicate_members_exists is not None:
+        await conn.execute(text("UPDATE duplicate_members SET is_primary = false WHERE is_primary IS NULL"))
+        await conn.execute(text("UPDATE duplicate_members SET created_at = now() WHERE created_at IS NULL"))
+
+    await _add_columns_if_table_exists(
+        conn,
+        "agent_feedback",
+        {
+            "complaint_pk": "VARCHAR(64)",
+            "agent_id": "VARCHAR(255)",
+            "feedback_action": "VARCHAR(32)",
+            "final_response": "TEXT",
+            "action_used": "BOOLEAN",
+            "human_review_outcome": "VARCHAR(32)",
+            "similar_cases_useful": "BOOLEAN",
+            "notes": "TEXT",
+            "revision_count": "INTEGER",
+            "submitted_at": "TIMESTAMP WITH TIME ZONE",
+            "updated_at": "TIMESTAMP WITH TIME ZONE",
+        },
+    )
+    feedback_exists = (
+        await conn.execute(text("SELECT to_regclass('public.agent_feedback')"))
+    ).scalar_one_or_none()
+    if feedback_exists is not None:
+        await conn.execute(text("UPDATE agent_feedback SET revision_count = 0 WHERE revision_count IS NULL"))
+        await conn.execute(text("UPDATE agent_feedback SET submitted_at = now() WHERE submitted_at IS NULL"))
+        await conn.execute(text("UPDATE agent_feedback SET updated_at = now() WHERE updated_at IS NULL"))
+
+
+async def _add_columns_if_table_exists(
+    conn,
+    table_name: str,
+    columns: dict[str, str],
+) -> None:
+    table_exists = (
+        await conn.execute(text(f"SELECT to_regclass('public.{table_name}')"))
+    ).scalar_one_or_none()
+    if table_exists is None:
+        return
+    for column_name, column_type in columns.items():
+        await conn.execute(
+            text(
+                f"ALTER TABLE {_quote_identifier(table_name)} ADD COLUMN IF NOT EXISTS "
+                f"{_quote_identifier(column_name)} {column_type}"
             )
         )
 
