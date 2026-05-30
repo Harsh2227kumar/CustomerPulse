@@ -2,7 +2,7 @@
 set -euo pipefail
 
 PROJECT_DIR="${PROJECT_DIR:-$HOME/CustomerPulse}"
-BRANCH="${BRANCH:-feature/cfpb-s3-import-api}"
+BRANCH="${BRANCH:-main}"
 
 if [ ! -d "$PROJECT_DIR/.git" ]; then
   echo "PROJECT_DIR must point to a cloned CustomerPulse repository: $PROJECT_DIR" >&2

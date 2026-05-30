@@ -64,20 +64,6 @@ intentionally update backend model support.
 3. Use the application Process action on one imported complaint.
 4. Confirm the result is stored and appears in the frontend.
 
-For backend readiness on a new machine, run the setup script before starting
-the app so Python requirements, database schema, Bedrock connectivity, and the
-MiniLM embedding model cache are checked together:
-
-```bash
-VERIFY_EMBEDDING=true bash backend/scripts/setup_backend.sh
-```
-
-On Windows:
-
-```powershell
-backend\scripts\setup_backend.ps1 -VerifyEmbedding
-```
-
 ## Key Rotation
 
 When a development API key expires:

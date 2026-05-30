@@ -8,7 +8,7 @@ frontend without loading all complaints into PostgreSQL.
 | Application Part | Feature Branch |
 | --- | --- |
 | Backend filtered S3/Athena import API | `feature/cfpb-s3-import-api` |
-| Frontend S3 Complaint Import page | `feature/frontend-dashboard` |
+| Frontend dashboard, import, and Operations page | integrated from `feature/frontend-dashboard` into `feature/cfpb-s3-import-api` |
 | AWS guides/templates | `feature/s3-cross-account-setup` |
 
 The backend and frontend changes must be present in the application integration
@@ -167,6 +167,14 @@ Verify the imported rows in the dashboard before selecting a larger amount.
 8. Verify manager-protected reporting/actions with a bearer key:
    `/api/exports/complaints/csv`, `/api/exports/complaints/pdf`,
    `/api/feedback`, and `/api/duplicates/detect`.
+9. In the frontend, open **Operations**, save a manager/admin bearer key from
+   `AUTH_PRINCIPALS_JSON`, and verify:
+   - complaint detail loads for a selected imported complaint,
+   - review approve/resolve/rerun buttons call the backend,
+   - process and embedding-backfill jobs create PostgreSQL job records,
+   - analytics/SLA panels load backend responses,
+   - feedback, duplicate detection, and export buttons require and use the
+     saved bearer key.
 
 Backend setup command:
 

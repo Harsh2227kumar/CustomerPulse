@@ -193,7 +193,6 @@ Replace `REPLACE_WITH_ACCOUNT3_ID` before saving.
       "Action": [
         "glue:GetDatabase",
         "glue:GetTable",
-        "glue:GetPartition",
         "glue:GetPartitions"
       ],
       "Resource": [
