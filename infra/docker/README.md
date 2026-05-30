@@ -32,14 +32,16 @@ Backend startup runs Phase 1 checks before serving traffic:
 - Target database.
 - `pgvector`.
 - `complaints` table and indexes.
-- Processing audit/job tables, full-text GIN index, and pgvector HNSW cosine index.
+- Processing audit/job tables, feedback and duplicate tables, full-text GIN index, and pgvector HNSW cosine index.
 - Basic row permissions.
 - AWS Bedrock model access.
 
-The setup command downloads/caches `all-MiniLM-L6-v2` in the
-`sentence-transformer-cache` Docker volume and verifies the model returns
+The setup command installs Python requirements including `sentence-transformers`
+and `reportlab`, downloads/caches `all-MiniLM-L6-v2` in the
+`sentence-transformer-cache` Docker volume, and verifies the model returns
 384-dimensional embeddings. Configure API-key roles with
-`AUTH_PRINCIPALS_JSON`; protected write endpoints require bearer credentials.
+`AUTH_PRINCIPALS_JSON`; protected processing, review, job, feedback-list,
+duplicate-action, and export endpoints require bearer credentials.
 
 When building an image in an environment that can access Hugging Face, the model
 can also be baked into the backend image:
@@ -68,4 +70,10 @@ Direct backend port, if `BACKEND_PORT` is left as default:
 
 ```bash
 http://localhost:8000/api/health
+```
+
+Backend verification:
+
+```bash
+bash backend/scripts/run_backend_checks.sh
 ```

@@ -31,7 +31,7 @@ DATABASE_ADMIN_URL=postgresql+asyncpg://USER:PASSWORD@HOST:5432/postgres
 - If using RDS, allow the developer machine public IP in the RDS security group on port `5432`.
 - The final database segment may be `postgres` or a dedicated application database such as `customerpulse`; the backend creates tables in whichever database `DATABASE_URL` targets.
 - Start the backend or run `python -m app.db.setup --yes --verify-embedding` from the `backend` folder to create/verify the database, `vector` extension, `complaints` table, indexes, permissions, and MiniLM model cache.
-- Phase 2 setup also creates processing audit/job tables, a full-text GIN index, and an HNSW cosine index for `Vector(384)` retrieval.
+- Phase 2 setup also creates processing audit/job tables, feedback tables, duplicate tables, a full-text GIN index, and an HNSW cosine index for `Vector(384)` retrieval.
 
 Bedrock:
 
@@ -122,13 +122,13 @@ VERIFY_EMBEDDING=true bash backend/scripts/setup_backend.sh
 Docker/EC2 deployment:
 
 ```bash
-PROJECT_DIR=$HOME/CustomerPulse BRANCH=dev bash infra/aws/deploy.sh
+PROJECT_DIR=$HOME/CustomerPulse BRANCH=feature/cfpb-s3-import-api bash infra/aws/deploy.sh
 ```
 
 Backend-only Docker deployment:
 
 ```bash
-PROJECT_DIR=$HOME/CustomerPulse BRANCH=dev bash infra/aws/deploy-backend.sh
+PROJECT_DIR=$HOME/CustomerPulse BRANCH=feature/cfpb-s3-import-api bash infra/aws/deploy-backend.sh
 ```
 
 Both deployment scripts run:
@@ -140,11 +140,23 @@ python -m app.db.setup --yes --verify-embedding
 so a new machine installs dependencies, creates/reconciles schema, downloads
 `all-MiniLM-L6-v2`, and fails early if the model does not produce 384 dimensions.
 
+Backend verification after setup:
+
+```bash
+bash backend/scripts/run_backend_checks.sh
+```
+
+The requirements include `reportlab` for PDF exports. If the backend host was
+prepared before export support was merged, rerun the setup script or
+`python -m pip install -r backend/requirements.txt`.
+
 ## Phase 2 Backend Runtime Constraints
 
 - RAG uses processed PostgreSQL complaints only, with 384-dimensional local embeddings and thresholded pgvector retrieval.
 - Human-review routing is a persisted workflow state, not an error fallback.
 - Batch processing and embedding backfill run through PostgreSQL job tables and one in-process worker.
+- Analytics, SLA, feedback, duplicate, and export routes run in the same FastAPI service and read/write the same RDS database.
+- PDF export uses CPU/memory in the backend container; keep report sizes bounded during demos.
 - Keep one backend event-serving instance because WebSocket subscribers are held in process memory.
 - Do not add Redis to this deployment cycle.
 
@@ -156,7 +168,7 @@ acceptance tests, follow
 ## Deploy
 
 ```bash
-PROJECT_DIR=$HOME/CustomerPulse BRANCH=dev bash infra/aws/deploy.sh
+PROJECT_DIR=$HOME/CustomerPulse BRANCH=feature/cfpb-s3-import-api bash infra/aws/deploy.sh
 ```
 
 ## Smoke Checks
@@ -166,3 +178,15 @@ docker compose ps
 curl http://localhost/api/health
 curl http://PUBLIC_EC2_IP/api/health
 ```
+
+Additional protected smoke checks should use a manager bearer key:
+
+- `GET /api/exports/complaints/csv`
+- `GET /api/exports/complaints/pdf`
+- `POST /api/duplicates/detect`
+- `GET /api/feedback`
+
+Additional open read checks:
+
+- `GET /api/analytics/product-summary`
+- `GET /api/sla/summary`
