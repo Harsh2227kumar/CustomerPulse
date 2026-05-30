@@ -8,13 +8,18 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.analytics.router import router as analytics_router
 from app.api import complaints, health, ingestion, jobs, process, review, websocket
 from app.core.config import get_settings
 from app.core.logging import configure_logging
 from app.db.setup import run_startup_checks
 from app.db.session import AsyncSessionLocal
-from app.services.job_service import JobService, ProcessingJobWorker
+from app.duplicates import router as duplicates_router
+from app.exports.api import routes as export_routes
+from app.feedback import router as feedback_router
 from app.services.embedding_service import EmbeddingService
+from app.services.job_service import JobService, ProcessingJobWorker
+from app.sla.api import routes as sla_routes
 
 
 settings = get_settings()
@@ -56,6 +61,11 @@ app.include_router(complaints.router)
 app.include_router(ingestion.router)
 app.include_router(review.router)
 app.include_router(jobs.router)
+app.include_router(feedback_router.router)
+app.include_router(duplicates_router.router)
+app.include_router(analytics_router)
+app.include_router(export_routes.router)
+app.include_router(sla_routes.router)
 app.include_router(websocket.router)
 
 
