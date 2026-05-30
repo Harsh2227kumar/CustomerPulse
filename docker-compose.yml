@@ -3,6 +3,8 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      args:
+        PRELOAD_EMBEDDING_MODEL: ${PRELOAD_EMBEDDING_MODEL:-false}
     container_name: customerpulse-backend
     restart: unless-stopped
     env_file:
@@ -10,6 +12,8 @@ services:
         required: false
     ports:
       - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - sentence-transformer-cache:/root/.cache/huggingface
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
       interval: 30s
@@ -48,3 +52,6 @@ services:
 networks:
   customerpulse:
     driver: bridge
+
+volumes:
+  sentence-transformer-cache:
