@@ -144,6 +144,8 @@ export function S3ImportPage({ onBack }: { onBack: () => void }) {
       <section className="source-band" aria-label="S3 source status">
         <div><CloudDownload size={18} /><span>Source</span><strong>{options?.source.label ?? "Not loaded"}</strong></div>
         <div><FileSearch size={18} /><span>Filter source</span><strong>{options?.query_mode === "athena" ? "Athena / Parquet" : options ? "CSV" : "-"}</strong></div>
+        <div><Database size={18} /><span>Eligible rows</span><strong>{options?.eligible_rows?.toLocaleString() ?? "Unknown"}</strong></div>
+        <div><FileSearch size={18} /><span>Scanned rows</span><strong>{options?.scanned_rows?.toLocaleString() ?? "Unknown"}</strong></div>
         <div><Database size={18} /><span>Import limit</span><strong>{filters.max_records.toLocaleString()}</strong></div>
       </section>
 
@@ -288,7 +290,7 @@ export function S3ImportPage({ onBack }: { onBack: () => void }) {
             <article className="import-alert success">
               <CheckCircle2 size={20} />
               <strong>Import successful</strong>
-              <span>{result.imported_rows.toLocaleString()} complaints saved in PostgreSQL.</span>
+              <span>{result.imported_rows.toLocaleString()} complaints saved in PostgreSQL. {result.skipped_rows.toLocaleString()} skipped.</span>
             </article>
           )}
           {failureLogs.length > 0 && (
@@ -312,8 +314,8 @@ export function S3ImportPage({ onBack }: { onBack: () => void }) {
                 <p>
                   {preview
                     ? preview.result_limited
-                      ? `First ${preview.selected_rows.toLocaleString()} matching complaints ready`
-                      : `${preview.selected_rows.toLocaleString()} matching complaints found`
+                      ? `First ${preview.selected_rows.toLocaleString()} of ${preview.matched_rows.toLocaleString()} matching complaints ready`
+                      : `${preview.selected_rows.toLocaleString()} selected from ${preview.scanned_rows.toLocaleString()} scanned rows`
                     : "Preview a selection before importing"}
                 </p>
               </div>

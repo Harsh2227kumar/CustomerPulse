@@ -88,7 +88,7 @@ describe("S3ImportPage", () => {
         expect.objectContaining({ product: "Credit card", max_records: 50 }),
       );
     });
-    expect(await screen.findByText("1 matching complaints found")).toBeInTheDocument();
+    expect(await screen.findByText("1 selected from 120 scanned rows")).toBeInTheDocument();
     expect(screen.getByText("Unexpected credit card fee.")).toBeInTheDocument();
   });
 });
