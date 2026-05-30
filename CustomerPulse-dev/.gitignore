@@ -15,4 +15,3 @@ build/
 /Lib/
 /scripts/*.exe
 .DS_Store
-backend/
