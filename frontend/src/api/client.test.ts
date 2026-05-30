@@ -13,6 +13,8 @@ const filters: ComplaintFilters = {
   date_received_min: "2026-01-01",
   date_received_max: "",
   timely_response: "false",
+  ai_status: "",
+  human_review_reason: "",
   sort_by: "urgency_score",
   sort_direction: "asc",
 };
@@ -62,6 +64,25 @@ describe("API client", () => {
     const { getS3ImportOptions } = await import("./client");
 
     await expect(getS3ImportOptions()).rejects.toThrow("S3 complaint import is not configured.");
+  });
+
+  it("attaches a saved bearer key to protected requests", async () => {
+    window.localStorage.setItem("customerpulse_api_key", "manager-key");
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ job_id: "job-1", job_type: "embedding_backfill", status: "queued", total_items: 0, counts: {}, created_by: "manager", created_at: new Date().toISOString(), items: [] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const { createEmbeddingBackfillJob } = await import("./client");
+
+    await createEmbeddingBackfillJob();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/jobs/embedding-backfill",
+      { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer manager-key" } },
+    );
   });
 
   it("derives a secure websocket endpoint from an HTTPS API base URL", async () => {
