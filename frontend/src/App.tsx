@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { type CSSProperties, type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { getComplaints, getHealth, processComplaint, websocketUrl } from "./api/client";
+import { OperationsPage } from "./OperationsPage";
 import { S3ImportPage } from "./S3ImportPage";
 import type {
   ChurnRisk,
@@ -47,6 +48,8 @@ const initialFilters: ComplaintFilters = {
   date_received_min: "",
   date_received_max: "",
   timely_response: "",
+  ai_status: "",
+  human_review_reason: "",
   sort_by: "created_at",
   sort_direction: "desc",
 };
@@ -77,6 +80,8 @@ function readInitialFilters(): ComplaintFilters {
     date_received_min: params.get("date_received_min") ?? initialFilters.date_received_min,
     date_received_max: params.get("date_received_max") ?? initialFilters.date_received_max,
     timely_response: (params.get("timely_response") as ComplaintFilters["timely_response"]) ?? initialFilters.timely_response,
+    ai_status: (params.get("ai_status") as ComplaintFilters["ai_status"]) ?? initialFilters.ai_status,
+    human_review_reason: params.get("human_review_reason") ?? initialFilters.human_review_reason,
     sort_by: (params.get("sort_by") as ComplaintFilters["sort_by"]) ?? initialFilters.sort_by,
     sort_direction: (params.get("sort_direction") as ComplaintFilters["sort_direction"]) ?? initialFilters.sort_direction,
   };
@@ -135,19 +140,16 @@ function humanize(value: string): string {
   return value.replace(/_/g, " ");
 }
 
-function similarCaseId(item: string | SimilarCaseDetail, index: number): string {
-  if (typeof item === "string") return item;
-  return item.case_id ?? item.complaint_id ?? `Case ${index + 1}`;
+function similarCaseId(item: SimilarCaseDetail, index: number): string {
+  return item.complaint_id ?? `Case ${index + 1}`;
 }
 
-function similarCaseScore(item: string | SimilarCaseDetail): number | null {
-  if (typeof item === "string") return null;
-  return normalizedScore(item.similarity_score ?? item.score);
+function similarCaseScore(item: SimilarCaseDetail): number | null {
+  return normalizedScore(item.similarity_score);
 }
 
-function similarCaseSummary(item: string | SimilarCaseDetail): string {
-  if (typeof item === "string") return item;
-  return item.evidence_summary ?? item.summary ?? item.title ?? "No evidence summary returned.";
+function similarCaseSummary(item: SimilarCaseDetail): string {
+  return item.approved_response ?? item.next_action ?? "No evidence summary returned.";
 }
 
 function average(values: Array<number | null>): number {
@@ -229,9 +231,10 @@ function EmptyPanel({ title, body }: { title: string; body: string }) {
 }
 
 export function App() {
-  const [activeView, setActiveView] = useState<"dashboard" | "import" | "queue">(() => (
-    new URLSearchParams(window.location.search).get("view") === "queue" ? "queue" : "dashboard"
-  ));
+  const [activeView, setActiveView] = useState<"dashboard" | "import" | "queue" | "ops">(() => {
+    const view = new URLSearchParams(window.location.search).get("view");
+    return view === "queue" || view === "import" || view === "ops" ? view : "dashboard";
+  });
   const [filters, setFilters] = useState<ComplaintFilters>(() => readInitialFilters());
   const [limit, setLimit] = useState(() => readInitialNumber("limit", 50, pageSizes));
   const [offset, setOffset] = useState(() => readInitialNumber("offset", 0));
@@ -312,12 +315,14 @@ export function App() {
     filters.date_received_min,
     filters.date_received_max,
     filters.timely_response,
+    filters.ai_status,
+    filters.human_review_reason,
     offset,
   ]);
 
   useEffect(() => {
     const params = new URLSearchParams();
-    if (activeView === "queue") params.set("view", "queue");
+    if (activeView !== "dashboard") params.set("view", activeView);
     params.set("limit", String(limit));
     if (offset) params.set("offset", String(offset));
     Object.entries(filters).forEach(([key, value]) => {
@@ -356,7 +361,7 @@ export function App() {
     const highRisk = complaints.filter((row) => row.churn_risk === "High").length;
     const completed = complaints.filter((row) => row.ai_status === "completed").length;
     const timely = complaints.filter((row) => row.timely_response === "Yes").length;
-    const review = complaints.filter((row) => row.human_review_required || row.ai_status === "needs_review").length;
+    const review = complaints.filter((row) => row.human_review_required || row.ai_status === "human_review" || row.human_review_reason).length;
     const failed = complaints.filter((row) => row.ai_status === "failed").length;
     return {
       avgUrgency,
@@ -434,6 +439,19 @@ export function App() {
             <option value="true">Yes</option>
             <option value="false">No</option>
           </select>
+          <select value={filters.ai_status} onChange={(event) => setFilters((current) => ({ ...current, ai_status: event.target.value as ComplaintFilters["ai_status"] }))}>
+            <option value="">AI status</option>
+            <option value="completed">Completed</option>
+            <option value="human_review">Human review</option>
+            <option value="failed">Failed</option>
+            <option value="pending">Pending</option>
+            <option value="processing">Processing</option>
+          </select>
+          <input
+            value={filters.human_review_reason}
+            onChange={(event) => setFilters((current) => ({ ...current, human_review_reason: event.target.value }))}
+            placeholder="Review reason"
+          />
           <input
             type="number"
             min={0}
@@ -564,6 +582,16 @@ export function App() {
     return <S3ImportPage onBack={() => setActiveView("dashboard")} />;
   }
 
+  if (activeView === "ops") {
+    return (
+      <OperationsPage
+        selectedComplaintId={selectedComplaint?.complaint_id ?? ""}
+        onBack={() => setActiveView("dashboard")}
+        onRefreshComplaints={() => loadComplaints()}
+      />
+    );
+  }
+
   if (activeView === "queue") {
     return (
       <main className="queue-page">
@@ -617,8 +645,8 @@ export function App() {
                   <span>Company</span>
                   <strong>{selectedComplaint.company ?? "Unknown"}</strong>
                   <span>Review</span>
-                  <strong className={`badge ${selectedComplaint.human_review_required ? "warning" : "success"}`}>
-                    {selectedComplaint.human_review_required ? "Review required" : "No review flag"}
+                  <strong className={`badge ${selectedComplaint.human_review_required || selectedComplaint.ai_status === "human_review" ? "warning" : "success"}`}>
+                    {selectedComplaint.human_review_required || selectedComplaint.ai_status === "human_review" ? "Review required" : "No review flag"}
                   </strong>
                   <span>Next action</span>
                   <p>{selectedComplaint.next_action ?? "No next action returned for this row."}</p>
@@ -649,7 +677,7 @@ export function App() {
           <a href="#intake"><MessageSquareText size={16} />Live Intake</a>
           <a href="#analytics"><BarChart3 size={16} />Analytics</a>
           <a href="#activity"><Activity size={16} />Activity</a>
-          <a href="#settings"><Settings size={16} />Settings</a>
+          <button type="button" onClick={() => setActiveView("ops")}><Settings size={16} />Operations</button>
         </nav>
         <section className="upgrade-card">
           <strong>Real Data Mode</strong>
@@ -691,7 +719,7 @@ export function App() {
                 <p>{selectedComplaint.issue ?? "Issue not provided"}</p>
                 <div className="id-pill">{selectedComplaint.complaint_id}</div>
                 <span className={`status-pill ${selectedComplaint.ai_status}`}>{selectedComplaint.ai_status}</span>
-                {selectedComplaint.human_review_required ? <span className="status-pill review">Review required</span> : null}
+                {selectedComplaint.human_review_required || selectedComplaint.ai_status === "human_review" ? <span className="status-pill review">Review required</span> : null}
                 <div className="info-list">
                   <span>Channel <strong>{selectedComplaint.channel ?? "Unknown"}</strong></span>
                   <span>Company <strong>{selectedComplaint.company ?? "Unknown"}</strong></span>
@@ -700,7 +728,7 @@ export function App() {
                   <span>Processed <strong>{formatDateTime(selectedComplaint.processed_at)}</strong></span>
                   <span>Timely response <strong>{selectedComplaint.timely_response ?? "Unknown"}</strong></span>
                   <span>Retries <strong>{selectedComplaint.retry_count ?? 0}</strong></span>
-                  <span>Review reason <strong>{selectedComplaint.review_reason ?? "None"}</strong></span>
+                  <span>Review reason <strong>{selectedComplaint.human_review_reason ?? selectedComplaint.review_reason ?? "None"}</strong></span>
                 </div>
               </>
             ) : (
@@ -748,6 +776,9 @@ export function App() {
                     <option value="urgency_score">Urgency</option>
                     <option value="sentiment">Sentiment</option>
                     <option value="churn_risk">Churn risk</option>
+                    <option value="ai_confidence">AI confidence</option>
+                    <option value="ai_status">AI status</option>
+                    <option value="relevance" disabled={!filters.search.trim()}>Relevance</option>
                   </select>
                   <select
                     value={filters.sort_direction}
@@ -838,7 +869,7 @@ export function App() {
                               <strong>{similarCaseId(item, index)}</strong>
                               <small>{similarCaseScore(item) === null ? "Score not returned" : `${Math.round(Number(similarCaseScore(item)))}% match`}</small>
                               <span>{similarCaseSummary(item)}</span>
-                              {typeof item !== "string" && item.category ? <em>{item.category}</em> : null}
+                              {item.category ? <em>{item.category}</em> : null}
                             </button>
                           ))}
                         </div>
@@ -863,8 +894,8 @@ export function App() {
                         <span>Processing history</span>
                         <div className="history-list">
                           {selectedComplaint.processing_history.map((item, index) => (
-                            <p key={`${item.event}-${index}`}>
-                              <strong>{humanize(item.event)}</strong> {item.reason ?? item.status ?? ""} {item.timestamp ? formatDateTime(item.timestamp) : ""}
+                            <p key={`${item.id ?? item.attempt_number}-${index}`}>
+                              <strong>Attempt {item.attempt_number}</strong> {item.status_outcome} via {item.trigger_reason ?? "unknown"} {item.created_at ? formatDateTime(item.created_at) : ""}
                             </p>
                           ))}
                         </div>
