@@ -13,7 +13,15 @@ from app.ai.bedrock.client import BedrockClient
 from app.core.config import Settings, get_settings
 from app.core.constants import EMBEDDING_DIMENSIONS
 from app.db.base import Base
-from app.models import Complaint, ComplaintProcessingRun, ProcessingJob, ProcessingJobItem  # noqa: F401
+from app.models import (  # noqa: F401
+    AgentFeedback,
+    Complaint,
+    ComplaintProcessingRun,
+    DuplicateGroup,
+    DuplicateMember,
+    ProcessingJob,
+    ProcessingJobItem,
+)
 from app.services.embedding_service import EmbeddingService
 
 logger = logging.getLogger(__name__)
@@ -109,7 +117,14 @@ EXPECTED_COMPLAINT_COLUMNS: dict[str, str] = {
     "created_at": "TIMESTAMP WITH TIME ZONE",
     "updated_at": "TIMESTAMP WITH TIME ZONE",
 }
-REQUIRED_TABLES = ("complaint_processing_runs", "processing_jobs", "processing_job_items")
+REQUIRED_TABLES = (
+    "complaint_processing_runs",
+    "agent_feedback",
+    "duplicate_groups",
+    "duplicate_members",
+    "processing_jobs",
+    "processing_job_items",
+)
 
 
 async def _prompt_yes_no(question: str) -> bool:
@@ -216,8 +231,9 @@ async def create_schema(settings: Settings) -> None:
 
         # create_all skips indexes when a pre-existing table was created manually.
         async with engine.begin() as conn:
-            for index in Complaint.__table__.indexes:
-                await conn.run_sync(index.create, checkfirst=True)
+            for table in Base.metadata.sorted_tables:
+                for index in table.indexes:
+                    await conn.run_sync(index.create, checkfirst=True)
     finally:
         await engine.dispose()
 
