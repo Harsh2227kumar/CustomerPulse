@@ -758,6 +758,50 @@ button {
   white-space: nowrap;
 }
 
+.queue-process-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid #d8e4e0;
+  border-radius: 8px;
+  color: #5b706b;
+  background: #f8fbfa;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.queue-process-control input {
+  width: 58px;
+  border: 0;
+  background: transparent;
+  color: #12332e;
+  font: inherit;
+  text-align: center;
+  outline: none;
+}
+
+.queue-job-banner {
+  display: flex;
+  align-items: center;
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.queue-job-banner.success {
+  color: #1f7a5f;
+  background: #dff8ea;
+}
+
+.queue-job-banner.failure {
+  color: #9c2d2d;
+  background: #ffe4e4;
+}
+
 .queue-panel-expanded {
   min-height: calc(100vh - 96px);
   padding: 22px;
