@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://customerpulse.local/schema/complaint.schema.json",
+  "title": "CustomerPulse Complaint API Contract",
+  "type": "object",
+  "additionalProperties": false,
+  "$defs": {
+    "similarCaseEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "complaint_id": { "type": "string", "minLength": 1 },
+        "similarity_score": { "type": "number", "minimum": 0, "maximum": 1 },
+        "category": { "type": ["string", "null"] },
+        "next_action": { "type": ["string", "null"] },
+        "approved_response": { "type": ["string", "null"] },
+        "ai_status": { "type": "string" }
+      },
+      "required": ["complaint_id", "similarity_score", "category", "next_action", "approved_response", "ai_status"]
+    }
+  },
+  "properties": {
+    "complaint_id": { "type": "string", "minLength": 1 },
+    "narrative": { "type": "string", "minLength": 1 },
+    "channel": { "type": ["string", "null"] },
+    "product": { "type": ["string", "null"] },
+    "issue": { "type": ["string", "null"] },
+    "date_received": { "type": ["string", "null"], "format": "date-time" },
+    "timely_response": { "type": ["string", "null"], "enum": ["Yes", "No", null] },
+    "sentiment": { "type": ["string", "null"], "enum": ["Positive", "Neutral", "Negative", null] },
+    "category": { "type": ["string", "null"] },
+    "urgency_score": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 },
+    "churn_risk": { "type": ["string", "null"], "enum": ["Low", "Medium", "High", null] },
+    "draft_response": { "type": ["string", "null"] },
+    "next_action": { "type": ["string", "null"] },
+    "similar_cases": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/similarCaseEvidence" }
+    },
+    "confidence_scores": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "sentiment": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "category": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "urgency": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "churn_risk": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 },
+        "draft_response": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 }
+      },
+      "required": ["sentiment", "category", "urgency"]
+    },
+    "ai_status": { "type": "string", "enum": ["pending", "processing", "completed", "human_review", "failed"] },
+    "human_review_reason": {
+      "type": ["string", "null"],
+      "enum": [
+        "low_confidence",
+        "weak_draft_response",
+        "vague_next_action",
+        "bedrock_unavailable_after_retries",
+        "high_risk_high_urgency",
+        "invalid_ai_output",
+        null
+      ]
+    },
+    "human_review_created_at": { "type": ["string", "null"], "format": "date-time" },
+    "reviewed_at": { "type": ["string", "null"], "format": "date-time" },
+    "reviewer": { "type": ["string", "null"] },
+    "review_resolution": { "type": ["string", "null"] },
+    "approved_response": { "type": ["string", "null"] },
+    "review_notes": { "type": ["string", "null"] },
+    "ai_confidence": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+    "ai_reasoning": { "type": ["string", "null"] },
+    "processed_at": { "type": ["string", "null"], "format": "date-time" },
+    "embedding_model": { "type": ["string", "null"] },
+    "embedded_at": { "type": ["string", "null"], "format": "date-time" }
+  },
+  "required": [
+    "complaint_id",
+    "narrative",
+    "channel",
+    "sentiment",
+    "category",
+    "urgency_score",
+    "churn_risk",
+    "confidence_scores",
+    "ai_status",
+    "human_review_reason",
+    "similar_cases"
+  ]
+}
