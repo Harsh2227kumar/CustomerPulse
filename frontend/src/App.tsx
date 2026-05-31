@@ -23,7 +23,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { type CSSProperties, type FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { getComplaints, getHealth, processComplaint, websocketUrl } from "./api/client";
+import { getApiKey, getComplaints, getHealth, processComplaint, websocketUrl } from "./api/client";
 import { OperationsPage } from "./OperationsPage";
 import { S3ImportPage } from "./S3ImportPage";
 import type {
@@ -249,6 +249,7 @@ export function App() {
   const [processing, setProcessing] = useState(false);
   const [processResult, setProcessResult] = useState<ProcessedComplaintResponse | null>(null);
   const [processError, setProcessError] = useState<string | null>(null);
+  const hasApiKey = Boolean(getApiKey());
   const filterRef = useRef(filters);
   const limitRef = useRef(limit);
   const offsetRef = useRef(offset);
@@ -556,6 +557,10 @@ export function App() {
 
   async function submitComplaint(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!hasApiKey) {
+      setProcessError("Save an agent, manager, or admin API key in Operations before using Live Intake.");
+      return;
+    }
     setProcessing(true);
     setProcessError(null);
     setProcessResult(null);
@@ -945,6 +950,12 @@ export function App() {
                 <h2>Live Intake</h2>
                 <Send size={17} />
               </div>
+              {!hasApiKey && (
+                <div className="warning-note neutral">
+                  Live Intake uses protected AI processing. Save an API key in Operations first.
+                  <button type="button" className="inline-action" onClick={() => setActiveView("ops")}>Open Operations</button>
+                </div>
+              )}
               <form className="intake-form" onSubmit={submitComplaint}>
                 <textarea
                   required
@@ -957,7 +968,7 @@ export function App() {
                 <input value={form.product} onChange={(event) => setForm((current) => ({ ...current, product: event.target.value }))} placeholder="Product" />
                 <input value={form.issue} onChange={(event) => setForm((current) => ({ ...current, issue: event.target.value }))} placeholder="Issue" />
                 <input value={form.company} onChange={(event) => setForm((current) => ({ ...current, company: event.target.value }))} placeholder="Company" />
-                <button type="submit" disabled={processing}>
+                <button type="submit" disabled={processing || !hasApiKey}>
                   {processing ? <Loader2 className="spin" size={16} /> : <Send size={16} />}
                   Process complaint
                 </button>
