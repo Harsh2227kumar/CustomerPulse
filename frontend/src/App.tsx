@@ -23,7 +23,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { type CSSProperties, type FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { getApiKey, getComplaints, getHealth, processComplaint, websocketUrl } from "./api/client";
+import { createProcessingJob, getApiKey, getComplaints, getHealth, getJob, processComplaint, websocketUrl } from "./api/client";
 import { OperationsPage } from "./OperationsPage";
 import { S3ImportPage } from "./S3ImportPage";
 import type {
@@ -32,6 +32,7 @@ import type {
   ComplaintListItem,
   HealthResponse,
   ProcessedComplaintResponse,
+  ProcessingJobResponse,
   Sentiment,
   SimilarCaseDetail,
   WebSocketMessage,
@@ -247,6 +248,10 @@ export function App() {
   const [wsStatus, setWsStatus] = useState<"connecting" | "live" | "offline">("connecting");
   const [events, setEvents] = useState<WebSocketMessage[]>([]);
   const [processing, setProcessing] = useState(false);
+  const [queueProcessing, setQueueProcessing] = useState(false);
+  const [queueProcessLimit, setQueueProcessLimit] = useState(50);
+  const [queueProcessJob, setQueueProcessJob] = useState<ProcessingJobResponse | null>(null);
+  const [queueProcessError, setQueueProcessError] = useState<string | null>(null);
   const [processResult, setProcessResult] = useState<ProcessedComplaintResponse | null>(null);
   const [processError, setProcessError] = useState<string | null>(null);
   const hasApiKey = Boolean(getApiKey());
@@ -382,11 +387,48 @@ export function App() {
   const pageCount = Math.max(1, Math.ceil(totalCount / limit));
   const canPageBack = offset > 0;
   const canPageForward = offset + limit < totalCount;
+  const unprocessedComplaints = useMemo(
+    () => complaints.filter((complaint) => !complaint.processed_at && complaint.ai_status !== "completed" && complaint.ai_status !== "human_review"),
+    [complaints],
+  );
+  const queueProcessComplete = queueProcessJob
+    ? queueProcessJob.counts.completed + queueProcessJob.counts.human_review + queueProcessJob.counts.failed
+    : 0;
 
   function openQueueInNewTab() {
     const params = new URLSearchParams(window.location.search);
     params.set("view", "queue");
     window.open(`${window.location.origin}${window.location.pathname}?${params.toString()}`, "_blank", "noopener,noreferrer");
+  }
+
+  async function processQueuedComplaints() {
+    if (!hasApiKey) {
+      setQueueProcessError("Save a manager or admin API key in Operations before processing queue complaints.");
+      return;
+    }
+    const selectedIds = unprocessedComplaints.slice(0, queueProcessLimit).map((complaint) => complaint.complaint_id);
+    if (!selectedIds.length) {
+      setQueueProcessError("No unprocessed complaints are available in the current queue page.");
+      return;
+    }
+
+    setQueueProcessing(true);
+    setQueueProcessError(null);
+    setQueueProcessJob(null);
+    try {
+      let job = await createProcessingJob(selectedIds);
+      setQueueProcessJob(job);
+      while (!job.finished_at && ["queued", "running"].includes(job.status)) {
+        await new Promise((resolve) => window.setTimeout(resolve, 1500));
+        job = await getJob(job.job_id);
+        setQueueProcessJob(job);
+      }
+      await loadComplaints();
+    } catch (err) {
+      setQueueProcessError(err instanceof Error ? err.message : "Queue processing failed.");
+    } finally {
+      setQueueProcessing(false);
+    }
   }
 
   const queuePanel = (mode: "dashboard" | "page" = "dashboard") => (
@@ -405,12 +447,45 @@ export function App() {
               <ExternalLink size={15} /> Open full queue
             </button>
           ) : (
-            <button className="secondary-action compact-action" type="button" onClick={() => setActiveView("dashboard")}>
-              <ChevronLeft size={15} /> Dashboard
-            </button>
+            <>
+              <label className="queue-process-control">
+                <span>Process</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={50}
+                  value={queueProcessLimit}
+                  onChange={(event) => setQueueProcessLimit(Math.min(50, Math.max(1, Number(event.target.value) || 1)))}
+                  aria-label="Number of unprocessed complaints to process"
+                />
+              </label>
+              <button
+                className="primary-action compact-action"
+                type="button"
+                onClick={processQueuedComplaints}
+                disabled={queueProcessing || loading || !unprocessedComplaints.length}
+              >
+                {queueProcessing ? <Loader2 className="spin" size={15} /> : <Sparkles size={15} />}
+                Process AI
+              </button>
+              <button className="secondary-action compact-action" type="button" onClick={() => setActiveView("dashboard")}>
+                <ChevronLeft size={15} /> Dashboard
+              </button>
+            </>
           )}
         </div>
       </div>
+      {mode === "page" && (queueProcessError || queueProcessJob) ? (
+        <div className={`queue-job-banner ${queueProcessError ? "failure" : "success"}`}>
+          {queueProcessError ? (
+            <span>{queueProcessError}</span>
+          ) : queueProcessJob ? (
+            <span>
+              AI job {queueProcessJob.status.replace(/_/g, " ")}: {queueProcessComplete.toLocaleString()} of {queueProcessJob.total_items.toLocaleString()} handled, {queueProcessJob.counts.failed.toLocaleString()} failed.
+            </span>
+          ) : null}
+        </div>
+      ) : null}
       {mode === "page" ? (
         <div className="filter-row queue-filter-row">
           <input
