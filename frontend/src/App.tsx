@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { type CSSProperties, type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { createProcessingJob, getApiKey, getComplaints, getHealth, getJob, processComplaint, websocketUrl } from "./api/client";
+import { AnalyticsPage } from "./AnalyticsPage";
 import { OperationsPage } from "./OperationsPage";
 import { S3ImportPage } from "./S3ImportPage";
 import type {
@@ -232,9 +233,9 @@ function EmptyPanel({ title, body }: { title: string; body: string }) {
 }
 
 export function App() {
-  const [activeView, setActiveView] = useState<"dashboard" | "import" | "queue" | "ops">(() => {
+  const [activeView, setActiveView] = useState<"dashboard" | "import" | "queue" | "ops" | "analytics">(() => {
     const view = new URLSearchParams(window.location.search).get("view");
-    return view === "queue" || view === "import" || view === "ops" ? view : "dashboard";
+    return view === "queue" || view === "import" || view === "ops" || view === "analytics" ? view : "dashboard";
   });
   const [filters, setFilters] = useState<ComplaintFilters>(() => readInitialFilters());
   const [limit, setLimit] = useState(() => readInitialNumber("limit", 50, pageSizes));
@@ -380,9 +381,6 @@ export function App() {
     };
   }, [complaints]);
 
-  const sparkline = useMemo(() => buildSparkline(complaints), [complaints]);
-  const bars = useMemo(() => weeklyBars(complaints), [complaints]);
-  const maxBar = Math.max(...bars, 1);
   const currentPage = Math.floor(offset / limit) + 1;
   const pageCount = Math.max(1, Math.ceil(totalCount / limit));
   const canPageBack = offset > 0;
@@ -672,6 +670,10 @@ export function App() {
     );
   }
 
+  if (activeView === "analytics") {
+    return <AnalyticsPage onBack={() => setActiveView("dashboard")} />;
+  }
+
   if (activeView === "queue") {
     return (
       <main className="queue-page">
@@ -755,7 +757,7 @@ export function App() {
           <a href="#complaints"><Inbox size={16} />Complaints</a>
           <button type="button" onClick={() => setActiveView("import")}><Database size={16} />S3 Import</button>
           <a href="#intake"><MessageSquareText size={16} />Live Intake</a>
-          <a href="#analytics"><BarChart3 size={16} />Analytics</a>
+          <button type="button" onClick={() => setActiveView("analytics")}><BarChart3 size={16} />Analytics</button>
           <a href="#activity"><Activity size={16} />Activity</a>
           <button type="button" onClick={() => setActiveView("ops")}><Settings size={16} />Operations</button>
         </nav>
@@ -840,69 +842,9 @@ export function App() {
               </article>
             </div>
 
-            <article className="panel chart-panel" id="analytics">
-              <div className="panel-heading">
-                <div>
-                  <h2>Complaint Trend</h2>
-                  <p>{metrics.products} product groups in the current backend result window</p>
-                </div>
-                <div className="sort-controls">
-                  <select
-                    value={filters.sort_by}
-                    onChange={(event) => setFilters((current) => ({ ...current, sort_by: event.target.value as ComplaintFilters["sort_by"] }))}
-                  >
-                    <option value="created_at">Created</option>
-                    <option value="processed_at">Processed</option>
-                    <option value="urgency_score">Urgency</option>
-                    <option value="sentiment">Sentiment</option>
-                    <option value="churn_risk">Churn risk</option>
-                    <option value="ai_confidence">AI confidence</option>
-                    <option value="ai_status">AI status</option>
-                    <option value="relevance" disabled={!filters.search.trim()}>Relevance</option>
-                  </select>
-                  <select
-                    value={filters.sort_direction}
-                    onChange={(event) => setFilters((current) => ({ ...current, sort_direction: event.target.value as ComplaintFilters["sort_direction"] }))}
-                  >
-                    <option value="desc">Desc</option>
-                    <option value="asc">Asc</option>
-                  </select>
-                </div>
-              </div>
-              {sparkline ? (
-                <svg viewBox="0 0 200 96" role="img" aria-label="Complaint volume trend">
-                  <defs>
-                    <linearGradient id="trendFill" x1="0" x2="0" y1="0" y2="1">
-                      <stop offset="0%" stopColor="#2ec6a6" stopOpacity="0.32" />
-                      <stop offset="100%" stopColor="#2ec6a6" stopOpacity="0" />
-                    </linearGradient>
-                  </defs>
-                  <polyline points={sparkline} fill="none" stroke="#164f47" strokeWidth="3" strokeLinecap="round" />
-                  <polyline points={`8,88 ${sparkline} 192,88`} fill="url(#trendFill)" stroke="none" />
-                </svg>
-              ) : (
-                <EmptyPanel title="No dated records" body="Trend appears after real complaints include date fields." />
-              )}
-            </article>
-
             {queuePanel()}
 
             <section className="lower-grid">
-              <article className="panel bars-panel">
-                <div className="panel-heading">
-                  <h2>Weekly Activity</h2>
-                  <span>This result window</span>
-                </div>
-                <div className="bars">
-                  {bars.map((value, index) => (
-                    <div key={index} className="bar-wrap">
-                      <span style={{ height: `${Math.max(8, (value / maxBar) * 100)}%` }} />
-                      <small>{["S", "M", "T", "W", "T", "F", "S"][index]}</small>
-                    </div>
-                  ))}
-                </div>
-              </article>
-
               <article className="panel detail-panel">
                 <div className="panel-heading">
                   <h2>AI Detail</h2>
