@@ -23,7 +23,8 @@ import {
   UserRound,
 } from "lucide-react";
 import { type CSSProperties, type FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { getComplaints, getHealth, processComplaint, websocketUrl } from "./api/client";
+import { createProcessingJob, getApiKey, getComplaints, getHealth, getJob, processComplaint, websocketUrl } from "./api/client";
+import { AnalyticsPage } from "./AnalyticsPage";
 import { OperationsPage } from "./OperationsPage";
 import { S3ImportPage } from "./S3ImportPage";
 import type {
@@ -32,6 +33,7 @@ import type {
   ComplaintListItem,
   HealthResponse,
   ProcessedComplaintResponse,
+  ProcessingJobResponse,
   Sentiment,
   SimilarCaseDetail,
   WebSocketMessage,
@@ -231,9 +233,9 @@ function EmptyPanel({ title, body }: { title: string; body: string }) {
 }
 
 export function App() {
-  const [activeView, setActiveView] = useState<"dashboard" | "import" | "queue" | "ops">(() => {
+  const [activeView, setActiveView] = useState<"dashboard" | "import" | "queue" | "ops" | "analytics">(() => {
     const view = new URLSearchParams(window.location.search).get("view");
-    return view === "queue" || view === "import" || view === "ops" ? view : "dashboard";
+    return view === "queue" || view === "import" || view === "ops" || view === "analytics" ? view : "dashboard";
   });
   const [filters, setFilters] = useState<ComplaintFilters>(() => readInitialFilters());
   const [limit, setLimit] = useState(() => readInitialNumber("limit", 50, pageSizes));
@@ -247,8 +249,13 @@ export function App() {
   const [wsStatus, setWsStatus] = useState<"connecting" | "live" | "offline">("connecting");
   const [events, setEvents] = useState<WebSocketMessage[]>([]);
   const [processing, setProcessing] = useState(false);
+  const [queueProcessing, setQueueProcessing] = useState(false);
+  const [queueProcessLimit, setQueueProcessLimit] = useState(50);
+  const [queueProcessJob, setQueueProcessJob] = useState<ProcessingJobResponse | null>(null);
+  const [queueProcessError, setQueueProcessError] = useState<string | null>(null);
   const [processResult, setProcessResult] = useState<ProcessedComplaintResponse | null>(null);
   const [processError, setProcessError] = useState<string | null>(null);
+  const hasApiKey = Boolean(getApiKey());
   const filterRef = useRef(filters);
   const limitRef = useRef(limit);
   const offsetRef = useRef(offset);
@@ -374,18 +381,52 @@ export function App() {
     };
   }, [complaints]);
 
-  const sparkline = useMemo(() => buildSparkline(complaints), [complaints]);
-  const bars = useMemo(() => weeklyBars(complaints), [complaints]);
-  const maxBar = Math.max(...bars, 1);
   const currentPage = Math.floor(offset / limit) + 1;
   const pageCount = Math.max(1, Math.ceil(totalCount / limit));
   const canPageBack = offset > 0;
   const canPageForward = offset + limit < totalCount;
+  const unprocessedComplaints = useMemo(
+    () => complaints.filter((complaint) => !complaint.processed_at && complaint.ai_status !== "completed" && complaint.ai_status !== "human_review"),
+    [complaints],
+  );
+  const queueProcessComplete = queueProcessJob
+    ? queueProcessJob.counts.completed + queueProcessJob.counts.human_review + queueProcessJob.counts.failed
+    : 0;
 
   function openQueueInNewTab() {
     const params = new URLSearchParams(window.location.search);
     params.set("view", "queue");
     window.open(`${window.location.origin}${window.location.pathname}?${params.toString()}`, "_blank", "noopener,noreferrer");
+  }
+
+  async function processQueuedComplaints() {
+    if (!hasApiKey) {
+      setQueueProcessError("Save a manager or admin API key in Operations before processing queue complaints.");
+      return;
+    }
+    const selectedIds = unprocessedComplaints.slice(0, queueProcessLimit).map((complaint) => complaint.complaint_id);
+    if (!selectedIds.length) {
+      setQueueProcessError("No unprocessed complaints are available in the current queue page.");
+      return;
+    }
+
+    setQueueProcessing(true);
+    setQueueProcessError(null);
+    setQueueProcessJob(null);
+    try {
+      let job = await createProcessingJob(selectedIds);
+      setQueueProcessJob(job);
+      while (!job.finished_at && ["queued", "running"].includes(job.status)) {
+        await new Promise((resolve) => window.setTimeout(resolve, 1500));
+        job = await getJob(job.job_id);
+        setQueueProcessJob(job);
+      }
+      await loadComplaints();
+    } catch (err) {
+      setQueueProcessError(err instanceof Error ? err.message : "Queue processing failed.");
+    } finally {
+      setQueueProcessing(false);
+    }
   }
 
   const queuePanel = (mode: "dashboard" | "page" = "dashboard") => (
@@ -404,12 +445,45 @@ export function App() {
               <ExternalLink size={15} /> Open full queue
             </button>
           ) : (
-            <button className="secondary-action compact-action" type="button" onClick={() => setActiveView("dashboard")}>
-              <ChevronLeft size={15} /> Dashboard
-            </button>
+            <>
+              <label className="queue-process-control">
+                <span>Process</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={50}
+                  value={queueProcessLimit}
+                  onChange={(event) => setQueueProcessLimit(Math.min(50, Math.max(1, Number(event.target.value) || 1)))}
+                  aria-label="Number of unprocessed complaints to process"
+                />
+              </label>
+              <button
+                className="primary-action compact-action"
+                type="button"
+                onClick={processQueuedComplaints}
+                disabled={queueProcessing || loading || !unprocessedComplaints.length}
+              >
+                {queueProcessing ? <Loader2 className="spin" size={15} /> : <Sparkles size={15} />}
+                Process AI
+              </button>
+              <button className="secondary-action compact-action" type="button" onClick={() => setActiveView("dashboard")}>
+                <ChevronLeft size={15} /> Dashboard
+              </button>
+            </>
           )}
         </div>
       </div>
+      {mode === "page" && (queueProcessError || queueProcessJob) ? (
+        <div className={`queue-job-banner ${queueProcessError ? "failure" : "success"}`}>
+          {queueProcessError ? (
+            <span>{queueProcessError}</span>
+          ) : queueProcessJob ? (
+            <span>
+              AI job {queueProcessJob.status.replace(/_/g, " ")}: {queueProcessComplete.toLocaleString()} of {queueProcessJob.total_items.toLocaleString()} handled, {queueProcessJob.counts.failed.toLocaleString()} failed.
+            </span>
+          ) : null}
+        </div>
+      ) : null}
       {mode === "page" ? (
         <div className="filter-row queue-filter-row">
           <input
@@ -556,6 +630,10 @@ export function App() {
 
   async function submitComplaint(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!hasApiKey) {
+      setProcessError("Save an agent, manager, or admin API key in Operations before using Live Intake.");
+      return;
+    }
     setProcessing(true);
     setProcessError(null);
     setProcessResult(null);
@@ -590,6 +668,10 @@ export function App() {
         onRefreshComplaints={() => loadComplaints()}
       />
     );
+  }
+
+  if (activeView === "analytics") {
+    return <AnalyticsPage onBack={() => setActiveView("dashboard")} />;
   }
 
   if (activeView === "queue") {
@@ -675,7 +757,7 @@ export function App() {
           <a href="#complaints"><Inbox size={16} />Complaints</a>
           <button type="button" onClick={() => setActiveView("import")}><Database size={16} />S3 Import</button>
           <a href="#intake"><MessageSquareText size={16} />Live Intake</a>
-          <a href="#analytics"><BarChart3 size={16} />Analytics</a>
+          <button type="button" onClick={() => setActiveView("analytics")}><BarChart3 size={16} />Analytics</button>
           <a href="#activity"><Activity size={16} />Activity</a>
           <button type="button" onClick={() => setActiveView("ops")}><Settings size={16} />Operations</button>
         </nav>
@@ -760,69 +842,9 @@ export function App() {
               </article>
             </div>
 
-            <article className="panel chart-panel" id="analytics">
-              <div className="panel-heading">
-                <div>
-                  <h2>Complaint Trend</h2>
-                  <p>{metrics.products} product groups in the current backend result window</p>
-                </div>
-                <div className="sort-controls">
-                  <select
-                    value={filters.sort_by}
-                    onChange={(event) => setFilters((current) => ({ ...current, sort_by: event.target.value as ComplaintFilters["sort_by"] }))}
-                  >
-                    <option value="created_at">Created</option>
-                    <option value="processed_at">Processed</option>
-                    <option value="urgency_score">Urgency</option>
-                    <option value="sentiment">Sentiment</option>
-                    <option value="churn_risk">Churn risk</option>
-                    <option value="ai_confidence">AI confidence</option>
-                    <option value="ai_status">AI status</option>
-                    <option value="relevance" disabled={!filters.search.trim()}>Relevance</option>
-                  </select>
-                  <select
-                    value={filters.sort_direction}
-                    onChange={(event) => setFilters((current) => ({ ...current, sort_direction: event.target.value as ComplaintFilters["sort_direction"] }))}
-                  >
-                    <option value="desc">Desc</option>
-                    <option value="asc">Asc</option>
-                  </select>
-                </div>
-              </div>
-              {sparkline ? (
-                <svg viewBox="0 0 200 96" role="img" aria-label="Complaint volume trend">
-                  <defs>
-                    <linearGradient id="trendFill" x1="0" x2="0" y1="0" y2="1">
-                      <stop offset="0%" stopColor="#2ec6a6" stopOpacity="0.32" />
-                      <stop offset="100%" stopColor="#2ec6a6" stopOpacity="0" />
-                    </linearGradient>
-                  </defs>
-                  <polyline points={sparkline} fill="none" stroke="#164f47" strokeWidth="3" strokeLinecap="round" />
-                  <polyline points={`8,88 ${sparkline} 192,88`} fill="url(#trendFill)" stroke="none" />
-                </svg>
-              ) : (
-                <EmptyPanel title="No dated records" body="Trend appears after real complaints include date fields." />
-              )}
-            </article>
-
             {queuePanel()}
 
             <section className="lower-grid">
-              <article className="panel bars-panel">
-                <div className="panel-heading">
-                  <h2>Weekly Activity</h2>
-                  <span>This result window</span>
-                </div>
-                <div className="bars">
-                  {bars.map((value, index) => (
-                    <div key={index} className="bar-wrap">
-                      <span style={{ height: `${Math.max(8, (value / maxBar) * 100)}%` }} />
-                      <small>{["S", "M", "T", "W", "T", "F", "S"][index]}</small>
-                    </div>
-                  ))}
-                </div>
-              </article>
-
               <article className="panel detail-panel">
                 <div className="panel-heading">
                   <h2>AI Detail</h2>
@@ -945,6 +967,12 @@ export function App() {
                 <h2>Live Intake</h2>
                 <Send size={17} />
               </div>
+              {!hasApiKey && (
+                <div className="warning-note neutral">
+                  Live Intake uses protected AI processing. Save an API key in Operations first.
+                  <button type="button" className="inline-action" onClick={() => setActiveView("ops")}>Open Operations</button>
+                </div>
+              )}
               <form className="intake-form" onSubmit={submitComplaint}>
                 <textarea
                   required
@@ -957,7 +985,7 @@ export function App() {
                 <input value={form.product} onChange={(event) => setForm((current) => ({ ...current, product: event.target.value }))} placeholder="Product" />
                 <input value={form.issue} onChange={(event) => setForm((current) => ({ ...current, issue: event.target.value }))} placeholder="Issue" />
                 <input value={form.company} onChange={(event) => setForm((current) => ({ ...current, company: event.target.value }))} placeholder="Company" />
-                <button type="submit" disabled={processing}>
+                <button type="submit" disabled={processing || !hasApiKey}>
                   {processing ? <Loader2 className="spin" size={16} /> : <Send size={16} />}
                   Process complaint
                 </button>

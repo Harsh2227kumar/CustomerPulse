@@ -7,11 +7,20 @@ import {
   FileSearch,
   Loader2,
   RefreshCcw,
+  Sparkles,
 } from "lucide-react";
 import { type FormEvent, useEffect, useState } from "react";
-import { getS3ImportOptions, importS3Complaints, previewS3Import, processImportedComplaint } from "./api/client";
+import {
+  createProcessingJob,
+  getJob,
+  getS3ImportOptions,
+  importS3Complaints,
+  previewS3Import,
+  processImportedComplaint,
+} from "./api/client";
 import type {
   ProcessedComplaintResponse,
+  ProcessingJobResponse,
   S3ImportFilters,
   S3ImportLog,
   S3ImportOptionsResponse,
@@ -50,6 +59,8 @@ export function S3ImportPage({ onBack }: { onBack: () => void }) {
   const [result, setResult] = useState<S3ImportResponse | null>(null);
   const [failureLogs, setFailureLogs] = useState<S3ImportLog[]>([]);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [processingAll, setProcessingAll] = useState(false);
+  const [processingJob, setProcessingJob] = useState<ProcessingJobResponse | null>(null);
   const [processedRows, setProcessedRows] = useState<Record<string, ProcessedComplaintResponse>>({});
   const [processingError, setProcessingError] = useState<string | null>(null);
 
@@ -75,6 +86,7 @@ export function S3ImportPage({ onBack }: { onBack: () => void }) {
     setResult(null);
     setFailureLogs([]);
     setProcessedRows({});
+    setProcessingJob(null);
     setProcessingError(null);
   }, [filters]);
 
@@ -124,6 +136,34 @@ export function S3ImportPage({ onBack }: { onBack: () => void }) {
       setProcessingId(null);
     }
   }
+
+  async function runProcessAll() {
+    const complaintIds = preview?.items.map((item) => item.complaint_id) ?? [];
+    if (!complaintIds.length) return;
+
+    setProcessingAll(true);
+    setProcessingError(null);
+    setProcessingJob(null);
+    try {
+      let job = await createProcessingJob(complaintIds);
+      setProcessingJob(job);
+
+      while (!job.finished_at && ["queued", "running"].includes(job.status)) {
+        await new Promise((resolve) => window.setTimeout(resolve, 1500));
+        job = await getJob(job.job_id);
+        setProcessingJob(job);
+      }
+    } catch (error) {
+      setProcessingError(error instanceof Error ? error.message : "Batch processing failed.");
+    } finally {
+      setProcessingAll(false);
+    }
+  }
+
+  const processAllTotal = processingJob?.total_items ?? preview?.items.length ?? 0;
+  const processAllComplete = processingJob
+    ? processingJob.counts.completed + processingJob.counts.human_review + processingJob.counts.failed
+    : 0;
 
   return (
     <main className="import-page">
@@ -282,6 +322,15 @@ export function S3ImportPage({ onBack }: { onBack: () => void }) {
               {importing ? <Loader2 className="spin" size={16} /> : <Database size={16} />}
               Import to PostgreSQL
             </button>
+            <button
+              className="primary-action"
+              type="button"
+              onClick={runProcessAll}
+              disabled={!result || !preview?.items.length || processingAll || processingId !== null}
+            >
+              {processingAll ? <Loader2 className="spin" size={16} /> : <Sparkles size={16} />}
+              Process All
+            </button>
           </div>
         </form>
 
@@ -305,6 +354,16 @@ export function S3ImportPage({ onBack }: { onBack: () => void }) {
               <AlertCircle size={20} />
               <strong>Processing failed</strong>
               <span>{processingError}</span>
+            </article>
+          )}
+          {processingJob && (
+            <article className="import-alert success">
+              <Sparkles size={20} />
+              <strong>Batch processing {processingJob.status.replace(/_/g, " ")}</strong>
+              <span>
+                {processAllComplete.toLocaleString()} of {processAllTotal.toLocaleString()} complaints handled.
+                {" "}{processingJob.counts.failed.toLocaleString()} failed.
+              </span>
             </article>
           )}
           <article className="panel preview-panel">
@@ -339,7 +398,7 @@ export function S3ImportPage({ onBack }: { onBack: () => void }) {
                               className="secondary-action"
                               type="button"
                               onClick={() => runProcessing(item.complaint_id)}
-                              disabled={!result || processingId !== null}
+                              disabled={!result || processingId !== null || processingAll}
                             >
                               {processingId === item.complaint_id ? <Loader2 className="spin" size={16} /> : null}
                               {result ? "Process" : "Import first"}
