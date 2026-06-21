@@ -66,6 +66,27 @@ describe("API client", () => {
     await expect(getS3ImportOptions()).rejects.toThrow("S3 complaint import is not configured.");
   });
 
+  it("preserves structured S3 import failure codes", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ detail: { code: "athena_timeout", message: "Athena query timed out." } }), {
+          status: 502,
+          headers: { "Content-Type": "application/json" },
+        }),
+      ),
+    );
+    const { ApiError, getS3ImportOptions } = await import("./client");
+
+    await expect(getS3ImportOptions()).rejects.toMatchObject({
+      name: "ApiError",
+      status: 502,
+      code: "athena_timeout",
+      message: "Athena query timed out.",
+    });
+    expect(ApiError).toBeDefined();
+  });
+
   it("attaches a saved bearer key to protected requests", async () => {
     window.localStorage.setItem("customerpulse_api_key", "manager-key");
     const fetchMock = vi.fn().mockResolvedValue(

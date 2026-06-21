@@ -169,6 +169,19 @@ export interface S3ImportFilters {
   max_records: number;
 }
 
+export type S3ImportIssueCode =
+  | "credentials_missing"
+  | "athena_timeout"
+  | "table_missing"
+  | "large_csv_requires_athena"
+  | "source_unavailable"
+  | "no_matching_rows";
+
+export interface ApiErrorDetail {
+  code?: S3ImportIssueCode | string;
+  message: string;
+}
+
 export interface S3SourceSummary {
   label: string;
 }

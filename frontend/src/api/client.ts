@@ -1,5 +1,6 @@
 import type {
   AgentFeedbackUpsertRequest,
+  ApiErrorDetail,
   ApproveReviewRequest,
   ChannelComparisonResponse,
   ComplaintFilters,
@@ -33,6 +34,18 @@ const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") 
 const authStorageKey = "customerpulse_api_key";
 
 export const apiBaseUrl = configuredBaseUrl;
+
+export class ApiError extends Error {
+  status: number;
+  code?: string;
+
+  constructor(message: string, status: number, code?: string) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.code = code;
+  }
+}
 
 export function getApiKey(): string {
   return window.localStorage.getItem(authStorageKey) ?? import.meta.env.VITE_API_KEY ?? "";
@@ -76,14 +89,22 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const body = await response.text();
-    let detail: string | undefined;
+    let detail: ApiErrorDetail | undefined;
     try {
-      const parsed = JSON.parse(body) as { detail?: string };
-      detail = parsed.detail;
+      const parsed = JSON.parse(body) as { detail?: string | ApiErrorDetail };
+      if (typeof parsed.detail === "string") {
+        detail = { message: parsed.detail };
+      } else {
+        detail = parsed.detail;
+      }
     } catch {
       detail = undefined;
     }
-    throw new Error(detail || body || `Request failed with ${response.status}`);
+    throw new ApiError(
+      detail?.message || body || `Request failed with ${response.status}`,
+      response.status,
+      detail?.code,
+    );
   }
 
   return response.json() as Promise<T>;
