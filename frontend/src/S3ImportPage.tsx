@@ -7,22 +7,15 @@ import {
   FileSearch,
   Loader2,
   RefreshCcw,
-  Sparkles,
 } from "lucide-react";
 import { type FormEvent, useEffect, useState } from "react";
-import {
-  createProcessingJob,
-  getJob,
-  getS3ImportOptions,
-  importS3Complaints,
-  previewS3Import,
-  processImportedComplaint,
-} from "./api/client";
+import { ApiError, getS3ImportOptions, importS3Complaints, previewS3Import, processImportedComplaint } from "./api/client";
 import type {
+  ApiErrorDetail,
   ProcessedComplaintResponse,
-  ProcessingJobResponse,
   S3ImportFilters,
   S3ImportLog,
+  S3ImportIssueCode,
   S3ImportOptionsResponse,
   S3ImportPreviewResponse,
   S3ImportResponse,
@@ -37,8 +30,46 @@ const initialFilters: S3ImportFilters = {
   timely_response: null,
   date_received_min: null,
   date_received_max: null,
-  max_records: 50,
+  max_records: 5,
 };
+
+const issueLabels: Record<string, { title: string; nextStep: string }> = {
+  credentials_missing: {
+    title: "Credentials or source configuration missing",
+    nextStep: "Check AWS credentials plus S3_BUCKET_NAME, CFPB_S3_KEY, and Athena settings on the backend host.",
+  },
+  athena_timeout: {
+    title: "Athena query timed out",
+    nextStep: "Narrow the filters or raise ATHENA_QUERY_TIMEOUT_SECONDS for the backend.",
+  },
+  table_missing: {
+    title: "Athena table missing",
+    nextStep: "Confirm ATHENA_DATABASE and ATHENA_TABLE match the Glue/Athena catalog and repair partitions if needed.",
+  },
+  large_csv_requires_athena: {
+    title: "Athena mode required",
+    nextStep: "Set CFPB_INGESTION_MODE=athena for large CFPB CSV filter discovery.",
+  },
+  source_unavailable: {
+    title: "S3/Athena source unavailable",
+    nextStep: "Review the backend logs and AWS source configuration.",
+  },
+  no_matching_rows: {
+    title: "No matching rows",
+    nextStep: "Relax one or more filters and preview again.",
+  },
+};
+
+function issueFromError(error: unknown, fallback: string): ApiErrorDetail {
+  if (error instanceof ApiError) {
+    return { code: error.code, message: error.message };
+  }
+  return { message: error instanceof Error ? error.message : fallback };
+}
+
+function issueCode(issue: ApiErrorDetail | null): string | null {
+  return issue?.code ?? null;
+}
 
 function valueOrNull(value: string): string | null {
   return value.trim() || null;
@@ -52,26 +83,25 @@ export function S3ImportPage({ onBack }: { onBack: () => void }) {
   const [options, setOptions] = useState<S3ImportOptionsResponse | null>(null);
   const [filters, setFilters] = useState<S3ImportFilters>(initialFilters);
   const [loadingOptions, setLoadingOptions] = useState(true);
-  const [optionsError, setOptionsError] = useState<string | null>(null);
+  const [optionsIssue, setOptionsIssue] = useState<ApiErrorDetail | null>(null);
   const [preview, setPreview] = useState<S3ImportPreviewResponse | null>(null);
   const [previewing, setPreviewing] = useState(false);
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<S3ImportResponse | null>(null);
   const [failureLogs, setFailureLogs] = useState<S3ImportLog[]>([]);
+  const [operationIssue, setOperationIssue] = useState<ApiErrorDetail | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
-  const [processingAll, setProcessingAll] = useState(false);
-  const [processingJob, setProcessingJob] = useState<ProcessingJobResponse | null>(null);
   const [processedRows, setProcessedRows] = useState<Record<string, ProcessedComplaintResponse>>({});
   const [processingError, setProcessingError] = useState<string | null>(null);
 
   async function loadOptions() {
     setLoadingOptions(true);
-    setOptionsError(null);
+    setOptionsIssue(null);
     setOptions(null);
     try {
       setOptions(await getS3ImportOptions());
     } catch (error) {
-      setOptionsError(error instanceof Error ? error.message : "Unable to read S3 import source");
+      setOptionsIssue(issueFromError(error, "Unable to read S3 import source"));
     } finally {
       setLoadingOptions(false);
     }
@@ -85,8 +115,8 @@ export function S3ImportPage({ onBack }: { onBack: () => void }) {
     setPreview(null);
     setResult(null);
     setFailureLogs([]);
+    setOperationIssue(null);
     setProcessedRows({});
-    setProcessingJob(null);
     setProcessingError(null);
   }, [filters]);
 
@@ -95,10 +125,13 @@ export function S3ImportPage({ onBack }: { onBack: () => void }) {
     setPreviewing(true);
     setResult(null);
     setFailureLogs([]);
+    setOperationIssue(null);
     try {
       setPreview(await previewS3Import(filters));
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unable to preview import";
+      const issue = issueFromError(error, "Unable to preview import");
+      setOperationIssue(issue);
+      const message = issue.message;
       setFailureLogs([{ level: "error", message }]);
     } finally {
       setPreviewing(false);
@@ -109,12 +142,15 @@ export function S3ImportPage({ onBack }: { onBack: () => void }) {
     setImporting(true);
     setResult(null);
     setFailureLogs([]);
+    setOperationIssue(null);
     try {
       const response = await importS3Complaints(filters);
       setResult(response);
       setPreview(await previewS3Import(filters));
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Import failed";
+      const issue = issueFromError(error, "Import failed");
+      setOperationIssue(issue);
+      const message = issue.message;
       setFailureLogs([
         { level: "error", message: "No successful PostgreSQL import was confirmed." },
         { level: "error", message },
@@ -137,33 +173,14 @@ export function S3ImportPage({ onBack }: { onBack: () => void }) {
     }
   }
 
-  async function runProcessAll() {
-    const complaintIds = preview?.items.map((item) => item.complaint_id) ?? [];
-    if (!complaintIds.length) return;
-
-    setProcessingAll(true);
-    setProcessingError(null);
-    setProcessingJob(null);
-    try {
-      let job = await createProcessingJob(complaintIds);
-      setProcessingJob(job);
-
-      while (!job.finished_at && ["queued", "running"].includes(job.status)) {
-        await new Promise((resolve) => window.setTimeout(resolve, 1500));
-        job = await getJob(job.job_id);
-        setProcessingJob(job);
-      }
-    } catch (error) {
-      setProcessingError(error instanceof Error ? error.message : "Batch processing failed.");
-    } finally {
-      setProcessingAll(false);
-    }
-  }
-
-  const processAllTotal = processingJob?.total_items ?? preview?.items.length ?? 0;
-  const processAllComplete = processingJob
-    ? processingJob.counts.completed + processingJob.counts.human_review + processingJob.counts.failed
-    : 0;
+  const activeIssue =
+    optionsIssue ??
+    operationIssue ??
+    (preview && preview.items.length === 0
+      ? { code: "no_matching_rows" as S3ImportIssueCode, message: "The current filters returned no importable CFPB complaints." }
+      : null);
+  const activeIssueCode = issueCode(activeIssue);
+  const activeIssueCopy = activeIssueCode ? issueLabels[activeIssueCode] : null;
 
   return (
     <main className="import-page">
@@ -189,11 +206,22 @@ export function S3ImportPage({ onBack }: { onBack: () => void }) {
         <div><Database size={18} /><span>Import limit</span><strong>{filters.max_records.toLocaleString()}</strong></div>
       </section>
 
-      {optionsError && (
-        <section className="import-alert failure">
-          <AlertCircle size={18} />
-          <strong>Source unavailable</strong>
-          <span>{optionsError}</span>
+      {activeIssue && (
+        <section className="panel import-status-panel" aria-label="S3 Athena status">
+          <div className="panel-heading">
+            <h2>S3/Athena Status</h2>
+            <span>{activeIssueCopy?.title ?? "Source check failed"}</span>
+          </div>
+          <div className="status-check-grid">
+            {(["credentials_missing", "athena_timeout", "table_missing", "no_matching_rows"] as const).map((code) => (
+              <div className={activeIssueCode === code ? "active" : ""} key={code}>
+                {activeIssueCode === code ? <AlertCircle size={16} /> : <CheckCircle2 size={16} />}
+                <span>{issueLabels[code].title}</span>
+              </div>
+            ))}
+          </div>
+          <p>{activeIssue.message}</p>
+          <strong>{activeIssueCopy?.nextStep ?? "Review the backend logs and retry once the source is healthy."}</strong>
         </section>
       )}
 
@@ -305,11 +333,11 @@ export function S3ImportPage({ onBack }: { onBack: () => void }) {
               type="number"
               disabled={!options || loadingOptions}
               min={1}
-              max={5000}
+              max={50}
               value={filters.max_records}
               onChange={(event) => setFilters((current) => ({
                 ...current,
-                max_records: Math.min(5000, Math.max(1, Number(event.target.value) || 1)),
+                max_records: Math.min(50, Math.max(1, Number(event.target.value) || 1)),
               }))}
             />
           </label>
@@ -318,18 +346,9 @@ export function S3ImportPage({ onBack }: { onBack: () => void }) {
               {previewing ? <Loader2 className="spin" size={16} /> : <FileSearch size={16} />}
               Preview
             </button>
-            <button className="primary-action" type="button" onClick={runImport} disabled={!preview || importing}>
+            <button className="primary-action" type="button" onClick={runImport} disabled={!preview?.items.length || importing}>
               {importing ? <Loader2 className="spin" size={16} /> : <Database size={16} />}
               Import to PostgreSQL
-            </button>
-            <button
-              className="primary-action"
-              type="button"
-              onClick={runProcessAll}
-              disabled={!result || !preview?.items.length || processingAll || processingId !== null}
-            >
-              {processingAll ? <Loader2 className="spin" size={16} /> : <Sparkles size={16} />}
-              Process All
             </button>
           </div>
         </form>
@@ -354,16 +373,6 @@ export function S3ImportPage({ onBack }: { onBack: () => void }) {
               <AlertCircle size={20} />
               <strong>Processing failed</strong>
               <span>{processingError}</span>
-            </article>
-          )}
-          {processingJob && (
-            <article className="import-alert success">
-              <Sparkles size={20} />
-              <strong>Batch processing {processingJob.status.replace(/_/g, " ")}</strong>
-              <span>
-                {processAllComplete.toLocaleString()} of {processAllTotal.toLocaleString()} complaints handled.
-                {" "}{processingJob.counts.failed.toLocaleString()} failed.
-              </span>
             </article>
           )}
           <article className="panel preview-panel">
@@ -398,7 +407,7 @@ export function S3ImportPage({ onBack }: { onBack: () => void }) {
                               className="secondary-action"
                               type="button"
                               onClick={() => runProcessing(item.complaint_id)}
-                              disabled={!result || processingId !== null || processingAll}
+                              disabled={!result || processingId !== null}
                             >
                               {processingId === item.complaint_id ? <Loader2 className="spin" size={16} /> : null}
                               {result ? "Process" : "Import first"}
