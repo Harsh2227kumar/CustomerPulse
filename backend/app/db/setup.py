@@ -527,8 +527,14 @@ async def verify_permissions(settings: Settings) -> None:
             await conn.execute(
                 text(
                     """
-                    INSERT INTO complaints (id, source_complaint_id, narrative, ai_status)
-                    VALUES (:id, :source_complaint_id, :narrative, 'pending')
+                    INSERT INTO complaints (
+                        id,
+                        source_complaint_id,
+                        narrative,
+                        ai_status,
+                        retry_count
+                    )
+                    VALUES (:id, :source_complaint_id, :narrative, 'pending', 0)
                     """
                 ),
                 {
@@ -614,7 +620,10 @@ async def run_startup_checks(
 
 
 async def verify_embedding_ready(settings: Settings) -> None:
-    await EmbeddingService(settings.embedding_model).ensure_ready()
+    await EmbeddingService(
+        settings.embedding_model,
+        local_files_only=settings.embedding_local_files_only,
+    ).ensure_ready()
     logger.info("Embedding model startup check passed: %s", settings.embedding_model)
 
 

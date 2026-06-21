@@ -25,12 +25,16 @@ router = APIRouter(prefix="/api/ingestion/s3", tags=["ingestion"])
 logger = logging.getLogger(__name__)
 
 
+def _error_detail(exc: S3IngestionError) -> dict[str, str]:
+    return {"code": exc.code, "message": str(exc)}
+
+
 def _service(settings: Settings) -> CfpbS3IngestionService:
     try:
         return CfpbS3IngestionService(settings)
     except S3IngestionError as exc:
         logger.warning("S3 ingestion is not configured: %s", exc)
-        raise HTTPException(status_code=503, detail="S3 complaint import is not configured.") from exc
+        raise HTTPException(status_code=503, detail=_error_detail(exc)) from exc
 
 
 @router.get("/options", response_model=S3ImportOptionsResponse)
@@ -42,11 +46,11 @@ async def get_import_options(
     except S3QueryModeRequiredError as exc:
         raise HTTPException(
             status_code=409,
-            detail="This large CSV requires Athena setup before filter values can be loaded.",
+            detail=_error_detail(exc),
         ) from exc
     except S3IngestionError as exc:
         logger.exception("Unable to load S3 complaint import options.")
-        raise HTTPException(status_code=502, detail="Unable to read the configured complaint source.") from exc
+        raise HTTPException(status_code=502, detail=_error_detail(exc)) from exc
 
 
 @router.post("/preview", response_model=S3ImportPreviewResponse)
@@ -58,7 +62,7 @@ async def preview_import(
         return await asyncio.to_thread(_service(settings).preview, filters)
     except S3IngestionError as exc:
         logger.exception("Unable to preview S3 complaint import.")
-        raise HTTPException(status_code=502, detail="Unable to read the configured complaint source.") from exc
+        raise HTTPException(status_code=502, detail=_error_detail(exc)) from exc
 
 
 @router.post("/import", response_model=S3ImportResponse)
@@ -74,7 +78,7 @@ async def import_complaints(
         return await service.import_rows(db, filters, selected)
     except S3IngestionError as exc:
         logger.exception("Unable to select S3 complaint rows for import.")
-        raise HTTPException(status_code=502, detail="Unable to read the configured complaint source.") from exc
+        raise HTTPException(status_code=502, detail=_error_detail(exc)) from exc
     except Exception as exc:
         await db.rollback()
         logger.exception("Complaint import failed.")

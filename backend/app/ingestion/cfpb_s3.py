@@ -12,7 +12,7 @@ from io import TextIOWrapper
 from typing import Any, TextIO
 
 import boto3
-from botocore.exceptions import BotoCoreError, ClientError
+from botocore.exceptions import BotoCoreError, ClientError, NoCredentialsError, PartialCredentialsError
 from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -32,11 +32,16 @@ from app.schemas.ingestion import (
 
 
 class S3IngestionError(RuntimeError):
-    pass
+    code = "source_unavailable"
+
+    def __init__(self, message: str, code: str | None = None) -> None:
+        super().__init__(message)
+        if code is not None:
+            self.code = code
 
 
 class S3QueryModeRequiredError(S3IngestionError):
-    pass
+    code = "large_csv_requires_athena"
 
 
 def _value(row: dict[str, Any], *keys: str) -> Any:
@@ -144,14 +149,20 @@ def _matches(row: dict[str, Any], filters: S3ComplaintImportFilters) -> bool:
 class CfpbS3IngestionService:
     def __init__(self, settings: Settings):
         if not settings.s3_bucket_name or not settings.cfpb_s3_key:
-            raise S3IngestionError("S3_BUCKET_NAME and CFPB_S3_KEY must be configured.")
+            raise S3IngestionError(
+                "S3_BUCKET_NAME and CFPB_S3_KEY must be configured before importing complaints.",
+                "credentials_missing",
+            )
         self.bucket = settings.s3_bucket_name
         self.key = settings.cfpb_s3_key
         self.mode = settings.cfpb_ingestion_mode
         self.client = boto3.client("s3", region_name=settings.aws_region)
         if self.mode == "athena":
             if not settings.athena_database or not settings.athena_table or not settings.athena_output_location:
-                raise S3IngestionError("Athena ingestion settings are incomplete.")
+                raise S3IngestionError(
+                    "ATHENA_DATABASE, ATHENA_TABLE, and ATHENA_OUTPUT_LOCATION are required for Athena imports.",
+                    "credentials_missing",
+                )
             self.athena_database = self._identifier(settings.athena_database)
             self.athena_table = self._identifier(settings.athena_table)
             self.athena_output_location = settings.athena_output_location
@@ -196,6 +207,8 @@ class CfpbS3IngestionService:
                     yield text
                 return
             raise S3IngestionError("CFPB_S3_KEY must reference a .csv or .zip object.")
+        except (NoCredentialsError, PartialCredentialsError) as exc:
+            raise S3IngestionError("AWS credentials are missing or incomplete.", "credentials_missing") from exc
         except (BotoCoreError, ClientError, OSError, zipfile.BadZipFile) as exc:
             raise S3IngestionError(f"Unable to read the CFPB object from S3: {exc}") from exc
 
@@ -256,10 +269,13 @@ class CfpbS3IngestionService:
                     break
                 if state in {"FAILED", "CANCELLED"}:
                     reason = status.get("StateChangeReason", state)
-                    raise S3IngestionError(f"Athena query did not complete: {reason}")
+                    raise S3IngestionError(
+                        f"Athena query did not complete: {reason}",
+                        self._athena_failure_code(reason),
+                    )
                 if time.monotonic() >= deadline:
                     self.athena.stop_query_execution(QueryExecutionId=execution_id)
-                    raise S3IngestionError("Athena query timed out.")
+                    raise S3IngestionError("Athena query timed out.", "athena_timeout")
                 time.sleep(0.2)
 
             output: list[dict[str, str | None]] = []
@@ -280,8 +296,31 @@ class CfpbS3IngestionService:
                 token = result.get("NextToken")
                 if not token:
                     return output
-        except (BotoCoreError, ClientError, KeyError) as exc:
+        except (NoCredentialsError, PartialCredentialsError) as exc:
+            raise S3IngestionError("AWS credentials are missing or incomplete.", "credentials_missing") from exc
+        except ClientError as exc:
+            message = str(exc)
+            raise S3IngestionError(
+                f"Unable to query the CFPB data through Athena: {message}",
+                self._athena_failure_code(message),
+            ) from exc
+        except (BotoCoreError, KeyError) as exc:
             raise S3IngestionError(f"Unable to query the CFPB data through Athena: {exc}") from exc
+
+    @staticmethod
+    def _athena_failure_code(reason: str) -> str:
+        normalized = reason.lower()
+        if "timed out" in normalized or "timeout" in normalized:
+            return "athena_timeout"
+        if "table" in normalized and ("not found" in normalized or "does not exist" in normalized):
+            return "table_missing"
+        if "database" in normalized and ("not found" in normalized or "does not exist" in normalized):
+            return "table_missing"
+        if "unable to verify/create output bucket" in normalized or "output location" in normalized:
+            return "credentials_missing"
+        if "access denied" in normalized or "not authorized" in normalized or "credentials" in normalized:
+            return "credentials_missing"
+        return "source_unavailable"
 
     def _athena_option_values(self, column: str) -> list[str]:
         rows = self._run_athena(
@@ -391,16 +430,29 @@ class CfpbS3IngestionService:
         )
         return [mapped for row in rows if (mapped := map_cfpb_csv_row(row)) is not None]
 
+    def _athena_match_count(self, filters: S3ComplaintImportFilters) -> int:
+        rows = self._run_athena(
+            f"SELECT count(*) AS matched_rows FROM {self._athena_source} "
+            f"WHERE {self._athena_where(filters)}"
+        )
+        if not rows:
+            return 0
+        try:
+            return int(rows[0].get("matched_rows") or 0)
+        except (TypeError, ValueError):
+            return 0
+
     def preview(self, filters: S3ComplaintImportFilters) -> S3ImportPreviewResponse:
         if self.query_mode == "athena":
+            matched = self._athena_match_count(filters)
             rows = self._athena_selected_rows(filters)
             return S3ImportPreviewResponse(
                 source=self.source,
                 query_mode="athena",
                 scanned_rows=0,
-                matched_rows=len(rows),
+                matched_rows=matched,
                 selected_rows=len(rows),
-                result_limited=len(rows) >= filters.max_records,
+                result_limited=matched > len(rows),
                 items=[
                     S3ComplaintPreviewItem(
                         complaint_id=row["source_complaint_id"],
@@ -454,8 +506,9 @@ class CfpbS3IngestionService:
         self, filters: S3ComplaintImportFilters
     ) -> tuple[int, int, int, list[dict[str, Any]]]:
         if self.query_mode == "athena":
+            matched = self._athena_match_count(filters)
             rows = self._athena_selected_rows(filters)
-            return 0, len(rows), 0, rows
+            return 0, matched, 0, rows
         scanned = 0
         matched = 0
         skipped = 0
