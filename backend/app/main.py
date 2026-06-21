@@ -31,7 +31,10 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     await run_startup_checks(settings, prompt=True, verify_bedrock=True)
     if settings.embedding_verify_on_startup:
-        await EmbeddingService(settings.embedding_model).ensure_ready()
+        await EmbeddingService(
+            settings.embedding_model,
+            local_files_only=settings.embedding_local_files_only,
+        ).ensure_ready()
     async with AsyncSessionLocal() as db:
         await JobService(settings).recover_abandoned_jobs(db)
     worker = ProcessingJobWorker(settings)
