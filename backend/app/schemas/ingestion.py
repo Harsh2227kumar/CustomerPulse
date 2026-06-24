@@ -41,6 +41,8 @@ class S3SourceSummary(BaseModel):
 class S3ImportOptionsResponse(BaseModel):
     source: S3SourceSummary
     query_mode: Literal["csv", "athena"]
+    available: bool = True
+    unavailable_reason: str | None = None
     scanned_rows: int | None = None
     eligible_rows: int | None = None
     products: list[str]

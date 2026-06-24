@@ -1,6 +1,10 @@
 import unittest
 
-from app.ingestion.cfpb_s3 import CfpbS3IngestionService, map_cfpb_csv_row
+from app.ingestion.cfpb_s3 import (
+    CfpbS3IngestionService,
+    S3SourceUnavailableError,
+    map_cfpb_csv_row,
+)
 from app.schemas.ingestion import S3ComplaintImportFilters
 
 
@@ -82,6 +86,11 @@ class AthenaFixtureService(CfpbS3IngestionService):
         ]
 
 
+class UnavailableAthenaFixtureService(AthenaFixtureService):
+    def _run_athena(self, query: str):
+        raise S3SourceUnavailableError("AWS credentials cannot run Athena queries.")
+
+
 class CfpbS3IngestionTests(unittest.TestCase):
     def test_maps_real_cfpb_csv_fields_and_pending_state(self) -> None:
         mapped = map_cfpb_csv_row(ROWS[0])
@@ -138,6 +147,14 @@ class CfpbS3IngestionTests(unittest.TestCase):
         self.assertEqual(options.timely_responses, [False, True])
         self.assertEqual(preview.items[0].complaint_id, "101")
         self.assertTrue(any("product_partition" in query for query in service.queries))
+
+    def test_athena_permission_failure_returns_unavailable_options(self) -> None:
+        options = UnavailableAthenaFixtureService().load_options()
+
+        self.assertFalse(options.available)
+        self.assertEqual(options.query_mode, "athena")
+        self.assertEqual(options.products, [])
+        self.assertEqual(options.unavailable_reason, "AWS credentials cannot run Athena queries.")
 
 
 if __name__ == "__main__":

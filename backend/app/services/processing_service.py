@@ -106,6 +106,14 @@ class ProcessingService:
                 preset_reason = ReviewReason.INVALID_AI_OUTPUT
                 enrichment = self._fallback_enrichment(local, evidence)
 
+            if enrichment.source_metadata is None:
+                enrichment = self.pipeline.enrich_with_local_intelligence(
+                    complaint_request,
+                    enrichment,
+                    local=local,
+                    similar_cases=evidence,
+                )
+
             await self._emit_event(WebSocketEvent.VALIDATING, complaint_request.complaint_id)
             reason = preset_reason or review_reason_for(enrichment)
             now = datetime.now(UTC)
@@ -338,8 +346,14 @@ class ProcessingService:
             "sentiment_confidence": local.sentiment_confidence,
             "category": local.category,
             "category_confidence": local.category_confidence,
+            "category_reason_codes": local.category_reason_codes,
+            "category_conflict": local.category_conflict,
             "urgency_score": local.urgency_score,
             "urgency_confidence": local.urgency_confidence,
+            "urgency_reason_codes": local.urgency_reason_codes,
+            "urgency_level": local.urgency_level,
+            "urgency_reason": local.urgency_reason,
+            "sentiment_reason_codes": local.sentiment_reason_codes,
             "combined_confidence": local.combined_confidence,
         }
 
