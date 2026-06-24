@@ -12,6 +12,7 @@ from app.ingestion.cfpb_s3 import (
     CfpbS3IngestionService,
     S3IngestionError,
     S3QueryModeRequiredError,
+    S3SourceUnavailableError,
 )
 from app.schemas.ingestion import (
     S3ComplaintImportFilters,
@@ -56,6 +57,9 @@ async def preview_import(
 ) -> S3ImportPreviewResponse:
     try:
         return await asyncio.to_thread(_service(settings).preview, filters)
+    except S3SourceUnavailableError as exc:
+        logger.warning("S3 complaint import source is unavailable: %s", exc)
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
     except S3IngestionError as exc:
         logger.exception("Unable to preview S3 complaint import.")
         raise HTTPException(status_code=502, detail="Unable to read the configured complaint source.") from exc
@@ -72,6 +76,9 @@ async def import_complaints(
     try:
         selected = await asyncio.to_thread(service.select_rows_for_import, filters)
         return await service.import_rows(db, filters, selected)
+    except S3SourceUnavailableError as exc:
+        logger.warning("S3 complaint import source is unavailable: %s", exc)
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
     except S3IngestionError as exc:
         logger.exception("Unable to select S3 complaint rows for import.")
         raise HTTPException(status_code=502, detail="Unable to read the configured complaint source.") from exc

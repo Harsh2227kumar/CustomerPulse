@@ -10,7 +10,10 @@ STANDARD_CATEGORIES = [
     "Account servicing",
     "Credit reporting",
     "Loan or mortgage issue",
+    "Debt collection issue",
+    "Account issue",
     "Card services",
+    "Payment or transfer issue",
     "Digital banking or transfers",
     "Insurance or investment",
     "Customer service failure",
@@ -138,6 +141,63 @@ CATEGORY_PHRASES = {
         "contactless payment issue",
     },
 
+    "Debt collection issue": {
+        "debt collection",
+        "debt collector",
+        "collect debt",
+        "debt not owed",
+        "written notification about debt",
+        "false statements",
+        "communication tactics",
+        "validation of debt",
+        "fdcpa",
+        "collection notice",
+        "debt validation",
+        "disclosure verification",
+        "threatened to take",
+        "debt collector contacted",
+        "attempts to collect",
+        "owed",
+    },
+
+    "Account issue": {
+        "checking account",
+        "savings account",
+        "bank account",
+        "managing an account",
+        "opening an account",
+        "closing an account",
+        "account opening",
+        "account closing",
+        "deposits and withdrawals",
+        "account hold",
+        "joint account",
+        "checking",
+        "savings",
+        "deposit account",
+        "funds being low",
+        "overdraft",
+    },
+
+    "Payment or transfer issue": {
+        "money transfer",
+        "virtual currency",
+        "money service",
+        "mobile wallet",
+        "digital wallet",
+        "cash app",
+        "zelle",
+        "wire transfer",
+        "electronic transfer",
+        "unauthorized transactions",
+        "transaction problem",
+        "money was not available",
+        "trouble accessing funds",
+        "payment app",
+        "fund transfer failed",
+        "transfer failed",
+    },
+
     "Digital banking or transfers": {
         "fund transfer failed",
         "money transfer issue",
@@ -197,6 +257,25 @@ CATEGORY_PHRASES = {
 }
 
 
+PRODUCT_CATEGORY_OVERRIDES = (
+    (("debt collection",), "Debt collection issue", "cfpb_product_debt_collection"),
+    (("checking or savings", "bank account or service"), "Account issue", "cfpb_product_account"),
+    (("money transfer", "virtual currency", "money service"), "Payment or transfer issue", "cfpb_product_payment_transfer"),
+    (("mortgage", "student loan", "vehicle loan", "consumer loan", "payday loan", "personal loan"), "Loan or mortgage issue", "cfpb_product_loan_mortgage"),
+    (("credit card", "prepaid card"), "Card services", "cfpb_product_card"),
+    (("credit reporting", "consumer reports", "credit repair"), "Credit reporting", "cfpb_product_credit_reporting"),
+)
+
+ISSUE_CATEGORY_OVERRIDES = (
+    (("attempts to collect", "written notification about debt", "false statements", "communication tactics", "verification of debt", "debt not owed", "threatened to take"), "Debt collection issue", "cfpb_issue_debt_collection"),
+    (("managing an account", "opening an account", "closing an account", "deposits and withdrawals", "funds being low", "charging your account"), "Account issue", "cfpb_issue_account"),
+    (("fraud or scam", "other transaction problem", "unauthorized transactions", "money was not available", "mobile wallet", "money transfer"), "Payment or transfer issue", "cfpb_issue_payment_transfer"),
+    (("trouble during payment process", "struggling to pay mortgage", "loan servicing", "dealing with your lender", "managing the loan", "getting a loan", "repossession"), "Loan or mortgage issue", "cfpb_issue_loan_mortgage"),
+    (("getting a credit card", "problem when making payments", "purchase shown on your statement", "fees or interest", "trouble using your card", "closing your account"), "Card services", "cfpb_issue_card"),
+    (("incorrect information on your report", "improper use of your report", "investigation into an existing problem", "unable to get your credit report", "fraud alerts or security freezes"), "Credit reporting", "cfpb_issue_credit_reporting"),
+)
+
+
 # ---------------------------------------------------
 # Utility functions
 # ---------------------------------------------------
@@ -246,6 +325,37 @@ def _match_category(text: str):
 # ---------------------------------------------------
 # CFPB field mapper
 # ---------------------------------------------------
+
+def _override_match(field_value: str | None, overrides):
+    text = _clean_text(field_value or "")
+    if not text:
+        return None
+    for phrases, category, reason_code in overrides:
+        if any(phrase in text for phrase in phrases):
+            return category, 0.88, reason_code
+    return None
+
+
+def _map_cfpb_context(product: str | None, issue: str | None):
+    issue_match = _override_match(issue, ISSUE_CATEGORY_OVERRIDES)
+    product_match = _override_match(product, PRODUCT_CATEGORY_OVERRIDES)
+    if product_match and issue_match:
+        product_category, _, product_reason = product_match
+        issue_category, _, issue_reason = issue_match
+        if product_category == issue_category:
+            return product_category, 0.92, [product_reason, issue_reason]
+        if product_category in {"Debt collection issue", "Account issue", "Payment or transfer issue", "Loan or mortgage issue"}:
+            return product_category, 0.86, [product_reason, "product_override_prevents_credit_card_drift"]
+        return issue_category, 0.84, [issue_reason]
+    if product_match:
+        category, confidence, reason = product_match
+        return category, confidence, [reason]
+    if issue_match:
+        category, confidence, reason = issue_match
+        return category, confidence, [reason]
+    field_value = issue or product or ""
+    return (*_map_cfpb_field(field_value), ["cfpb_field_mapping"])
+
 
 def _map_cfpb_field(field_value: str):
 
@@ -299,13 +409,9 @@ def classify_category(
     # CFPB issue has higher priority
     # -------------------------------
 
-    if issue:
-        category, confidence = _map_cfpb_field(issue)
-        reason_codes.append("cfpb_issue_mapping")
-
-    elif product:
-        category, confidence = _map_cfpb_field(product)
-        reason_codes.append("cfpb_product_mapping")
+    if issue or product:
+        category, confidence, mapping_reasons = _map_cfpb_context(product, issue)
+        reason_codes.extend(mapping_reasons)
 
     else:
         category, confidence, reasons = (

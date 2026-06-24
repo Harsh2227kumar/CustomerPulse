@@ -39,6 +39,16 @@ class S3QueryModeRequiredError(S3IngestionError):
     pass
 
 
+class S3SourceUnavailableError(S3IngestionError):
+    pass
+
+
+def _is_access_denied(exc: ClientError) -> bool:
+    code = exc.response.get("Error", {}).get("Code", "")
+    message = exc.response.get("Error", {}).get("Message", "")
+    return "accessdenied" in code.lower() or "not authorized" in message.lower()
+
+
 def _value(row: dict[str, Any], *keys: str) -> Any:
     for key in keys:
         value = row.get(key)
@@ -280,8 +290,29 @@ class CfpbS3IngestionService:
                 token = result.get("NextToken")
                 if not token:
                     return output
-        except (BotoCoreError, ClientError, KeyError) as exc:
+        except ClientError as exc:
+            if _is_access_denied(exc):
+                raise S3SourceUnavailableError(
+                    "AWS credentials cannot run Athena queries. Ask an AWS administrator for Athena query "
+                    "permissions and S3 access to the Athena results location."
+                ) from exc
             raise S3IngestionError(f"Unable to query the CFPB data through Athena: {exc}") from exc
+        except (BotoCoreError, KeyError) as exc:
+            raise S3IngestionError(f"Unable to query the CFPB data through Athena: {exc}") from exc
+
+    def _unavailable_options(self, reason: str) -> S3ImportOptionsResponse:
+        return S3ImportOptionsResponse(
+            source=self.source,
+            query_mode=self.query_mode,
+            available=False,
+            unavailable_reason=reason,
+            products=[],
+            sub_products=[],
+            issues=[],
+            companies=[],
+            channels=[],
+            timely_responses=[],
+        )
 
     def _athena_option_values(self, column: str) -> list[str]:
         rows = self._run_athena(
@@ -327,7 +358,10 @@ class CfpbS3IngestionService:
 
     def load_options(self) -> S3ImportOptionsResponse:
         if self.query_mode == "athena":
-            return self._load_athena_options()
+            try:
+                return self._load_athena_options()
+            except S3SourceUnavailableError as exc:
+                return self._unavailable_options(str(exc))
         if hasattr(self, "client"):
             try:
                 content_length = self.client.head_object(Bucket=self.bucket, Key=self.key).get(
