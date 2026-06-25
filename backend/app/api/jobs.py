@@ -23,12 +23,15 @@ async def create_processing_job(
     settings: Settings = Depends(get_settings),
     principal: Principal = Depends(require_roles(Role.MANAGER, Role.ADMIN)),
 ) -> ProcessingJobResponse:
+    service = JobService(settings)
     try:
-        return await JobService(settings).create_processing_job(
+        return await service.create_processing_job(
             db, request.complaint_ids, principal
         )
     except JobRequestError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+    finally:
+        service.close()
 
 
 @router.post(
@@ -41,10 +44,13 @@ async def create_embedding_backfill_job(
     settings: Settings = Depends(get_settings),
     principal: Principal = Depends(require_roles(Role.MANAGER, Role.ADMIN)),
 ) -> ProcessingJobResponse:
+    service = JobService(settings)
     try:
-        return await JobService(settings).create_backfill_job(db, principal)
+        return await service.create_backfill_job(db, principal)
     except JobRequestError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+    finally:
+        service.close()
 
 
 @router.get("/{job_id}", response_model=ProcessingJobResponse)
@@ -53,10 +59,13 @@ async def get_job(
     db: AsyncSession = Depends(get_db_session),
     settings: Settings = Depends(get_settings),
 ) -> ProcessingJobResponse:
+    service = JobService(settings)
     try:
-        return await JobService(settings).get_job(db, job_id)
+        return await service.get_job(db, job_id)
     except JobNotFoundError as exc:
         raise HTTPException(status_code=404, detail="Job not found.") from exc
+    finally:
+        service.close()
 
 
 @router.post(
@@ -70,9 +79,12 @@ async def retry_job(
     settings: Settings = Depends(get_settings),
     principal: Principal = Depends(require_roles(Role.MANAGER, Role.ADMIN)),
 ) -> ProcessingJobResponse:
+    service = JobService(settings)
     try:
-        return await JobService(settings).retry_job(db, job_id, principal)
+        return await service.retry_job(db, job_id, principal)
     except JobNotFoundError as exc:
         raise HTTPException(status_code=404, detail="Job not found.") from exc
     except JobRequestError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+    finally:
+        service.close()

@@ -593,10 +593,13 @@ async def ensure_database_ready(settings: Settings, *, prompt: bool = True) -> D
 
 
 async def verify_bedrock_ready(settings: Settings) -> None:
+    client = BedrockClient(settings)
     try:
-        await BedrockClient(settings).check_connection()
+        await client.check_connection()
     except Exception as exc:
         raise SetupError(f"Bedrock connection check failed: {exc}") from exc
+    finally:
+        client.close()
 
 
 async def run_startup_checks(

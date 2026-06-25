@@ -49,6 +49,10 @@ class ProcessingService:
         self.embeddings = EmbeddingService(settings.embedding_model)
         self.retrieval = SimilarComplaintService()
 
+    def close(self) -> None:
+        self.pipeline.close()
+
+
     async def process_complaint(
         self,
         db: AsyncSession,

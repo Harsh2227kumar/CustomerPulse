@@ -20,12 +20,15 @@ async def process_complaint(
     principal: Principal = Depends(require_roles(Role.AGENT, Role.MANAGER, Role.ADMIN)),
 ) -> ProcessedComplaintResponse:
     service = ProcessingService(settings)
-    return await service.process_complaint(
-        db,
-        complaint,
-        trigger=ProcessingTrigger.API_REQUEST,
-        initiated_by=principal.actor,
-    )
+    try:
+        return await service.process_complaint(
+            db,
+            complaint,
+            trigger=ProcessingTrigger.API_REQUEST,
+            initiated_by=principal.actor,
+        )
+    finally:
+        service.close()
 
 
 @router.post("/process/{complaint_id}", response_model=ProcessedComplaintResponse)
@@ -37,11 +40,14 @@ async def process_imported_complaint(
 ) -> ProcessedComplaintResponse:
     service = ProcessingService(settings)
     try:
-        return await service.process_imported_complaint(
-            db,
-            complaint_id,
-            trigger=ProcessingTrigger.IMPORTED_REQUEST,
-            initiated_by=principal.actor,
-        )
-    except ComplaintNotFoundError as exc:
-        raise HTTPException(status_code=404, detail="Complaint not found.") from exc
+        try:
+            return await service.process_imported_complaint(
+                db,
+                complaint_id,
+                trigger=ProcessingTrigger.IMPORTED_REQUEST,
+                initiated_by=principal.actor,
+            )
+        except ComplaintNotFoundError as exc:
+            raise HTTPException(status_code=404, detail="Complaint not found.") from exc
+    finally:
+        service.close()

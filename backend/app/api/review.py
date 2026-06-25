@@ -53,12 +53,16 @@ async def rerun_review(
     settings: Settings = Depends(get_settings),
     principal: Principal = Depends(require_roles(Role.AGENT, Role.MANAGER, Role.ADMIN)),
 ) -> ProcessedComplaintResponse:
+    service = ProcessingService(settings)
     try:
-        return await ProcessingService(settings).process_imported_complaint(
-            db,
-            complaint_id,
-            trigger=ProcessingTrigger.REVIEW_RERUN,
-            initiated_by=principal.actor,
-        )
-    except ComplaintNotFoundError as exc:
-        raise HTTPException(status_code=404, detail="Complaint not found.") from exc
+        try:
+            return await service.process_imported_complaint(
+                db,
+                complaint_id,
+                trigger=ProcessingTrigger.REVIEW_RERUN,
+                initiated_by=principal.actor,
+            )
+        except ComplaintNotFoundError as exc:
+            raise HTTPException(status_code=404, detail="Complaint not found.") from exc
+    finally:
+        service.close()
