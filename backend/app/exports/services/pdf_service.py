@@ -1,4 +1,5 @@
 import asyncio
+import html
 import io
 import logging
 from datetime import UTC, datetime
@@ -83,6 +84,134 @@ class PDFExportService:
         story.extend(self._build_churn_risk_summary(report_data["churn_risk_summary"]))
         return story
 
+    async def build_regulatory_report_pdf(
+        self,
+        db: AsyncSession,
+        filters: ComplaintPDFExportQuery,
+    ) -> bytes:
+        logger.info("Generating regulatory PDF export.")
+        generated_at = datetime.now(UTC)
+        report_data = {
+            "summary": await self.repository.get_regulatory_summary(db, filters),
+            "sentiment_distribution": await self.repository.get_sentiment_distribution(db, filters),
+            "urgency_distribution": await self.repository.get_urgency_distribution(db, filters),
+            "complaints_list": await self.repository.get_regulatory_complaints_list(db, filters),
+        }
+        return await asyncio.to_thread(self._render_regulatory_pdf, report_data, filters, generated_at)
+
+    def _render_regulatory_pdf(
+        self,
+        report_data: dict[str, Any],
+        filters: ComplaintPDFExportQuery,
+        generated_at: datetime,
+    ) -> bytes:
+        buffer = io.BytesIO()
+        document = SimpleDocTemplate(
+            buffer,
+            pagesize=A4,
+            leftMargin=15 * mm,
+            rightMargin=15 * mm,
+            topMargin=20 * mm,
+            bottomMargin=20 * mm,
+        )
+        story = self._build_regulatory_story(report_data, filters, generated_at)
+        document.build(
+            story,
+            onFirstPage=lambda canvas, doc: self._draw_footer(canvas, doc, generated_at),
+            onLaterPages=lambda canvas, doc: self._draw_footer(canvas, doc, generated_at),
+        )
+        return buffer.getvalue()
+
+    def _build_regulatory_story(
+        self,
+        report_data: dict[str, Any],
+        filters: ComplaintPDFExportQuery,
+        generated_at: datetime,
+    ) -> list[Any]:
+        story: list[Any] = []
+        story.extend(self._build_regulatory_cover_page(filters, generated_at))
+        story.append(PageBreak())
+        story.extend(self._build_regulatory_summary(report_data["summary"]))
+        story.extend(self._build_sentiment_distribution(report_data["sentiment_distribution"]))
+        story.extend(self._build_urgency_distribution(report_data["urgency_distribution"]))
+        story.append(PageBreak())
+        story.extend(self._build_regulatory_log(report_data["complaints_list"]))
+        return story
+
+    def _build_regulatory_cover_page(
+        self,
+        filters: ComplaintPDFExportQuery,
+        generated_at: datetime,
+    ) -> list[Any]:
+        return [
+            Spacer(1, 50),
+            Paragraph("CustomerPulse AI — Banking Compliance Audit Report", self.styles["cover_title"]),
+            Spacer(1, 18),
+            Paragraph(
+                f"Generated: {self._format_datetime(generated_at)}",
+                self.styles["cover_meta"],
+            ),
+            Spacer(1, 8),
+            Paragraph(
+                f"Audit period: {self._format_report_period(filters)}",
+                self.styles["cover_meta"],
+            ),
+            Spacer(1, 8),
+            Paragraph(
+                "Classification: CONFIDENTIAL / FOR REGULATORY AUDIT",
+                self.styles["cover_meta"],
+            ),
+            Spacer(1, 18),
+            Paragraph(
+                "This report aggregates ML annotations, SLA breach risks, human review outcomes, and timeline escalation logs in compliance with regulatory reporting mandates.",
+                self.styles["cover_meta"],
+            ),
+        ]
+
+    def _build_regulatory_summary(self, summary: dict[str, Any]) -> list[Any]:
+        rows = [
+            ["Regulatory Audit Metric", "Value / Volume"],
+            ["Total Complaints Intake", self._format_integer(summary.get("total_complaints"))],
+            ["AI-Processed (Completed) Count", self._format_integer(summary.get("completed_count"))],
+            ["Human Reviewed Count", self._format_integer(summary.get("reviewed_count"))],
+            ["Escalated Count", self._format_integer(summary.get("escalated_count"))],
+            ["Average Urgency Score", self._format_number(summary.get("avg_urgency_score"))],
+            ["Timely Response Rate %", self._format_percent(summary.get("timely_response_pct"))],
+        ]
+        return self._section("Audit Executive Summary", rows, (220, 100))
+
+    def _build_regulatory_log(self, complaints: list[dict[str, Any]]) -> list[Any]:
+        cell_style = ParagraphStyle(
+            "cell_style",
+            parent=self.styles.get("cover_meta"),
+            fontSize=7,
+            leading=9
+        )
+
+        rows = [["ID", "Product", "Timely", "Urgency", "Review Reason", "Reviewer / Notes", "Resolution"]]
+        for item in complaints:
+            comp_id = self._safe_text(item.get("complaint_id"))
+            comp_id_disp = comp_id[:8] + "..." if comp_id else "N/A"
+            prod = Paragraph(self._escape(self._safe_text(item.get("product"))), cell_style)
+            timely = "Yes" if item.get("timely_response") else "No"
+            urgency = self._format_integer(item.get("urgency_score"))
+            reason = Paragraph(self._escape(self._safe_text(item.get("human_review_reason") or "None")), cell_style)
+
+            reviewer = self._safe_text(item.get("reviewer"))
+            notes = self._safe_text(item.get("review_notes"))
+            reviewer_notes = f"{reviewer}: {notes}" if reviewer and notes else (reviewer or notes or "N/A")
+            rev_notes_p = Paragraph(self._escape(reviewer_notes), cell_style)
+
+            resolution = Paragraph(self._escape(self._safe_text(item.get("review_resolution") or "Pending")), cell_style)
+
+            rows.append([comp_id_disp, prod, timely, urgency, reason, rev_notes_p, resolution])
+
+        if len(rows) == 1:
+            rows.append(["No records found", "", "", "", "", "", ""])
+
+        return self._section("Compliance Review & Escalation Log (Top 50)", rows, (50, 80, 40, 40, 80, 150, 60))
+
+
     def _build_cover_page(
         self,
         filters: ComplaintPDFExportQuery,
@@ -136,9 +265,11 @@ class PDFExportService:
     def _build_top_products(self, items: list[dict[str, Any]]) -> list[Any]:
         rows = [["Product", "Count", "Timely rate %", "Avg urgency"]]
         for item in items:
+            product_text = self._escape(self._safe_text(item.get("product")))
+            product_p = Paragraph(product_text, self.styles["table_cell"])
             rows.append(
                 [
-                    self._safe_text(item.get("product")),
+                    product_p,
                     self._format_integer(item.get("count")),
                     self._format_percent(item.get("timely_rate_pct")),
                     self._format_number(item.get("avg_urgency")),
@@ -151,9 +282,11 @@ class PDFExportService:
     def _build_top_channels(self, items: list[dict[str, Any]]) -> list[Any]:
         rows = [["Channel", "Count", "Timely rate %"]]
         for item in items:
+            channel_text = self._escape(self._safe_text(item.get("channel")))
+            channel_p = Paragraph(channel_text, self.styles["table_cell"])
             rows.append(
                 [
-                    self._safe_text(item.get("channel")),
+                    channel_p,
                     self._format_integer(item.get("count")),
                     self._format_percent(item.get("timely_rate_pct")),
                 ]
@@ -263,7 +396,18 @@ class PDFExportService:
                 leading=18,
                 textColor=self.HEADER_COLOR,
             ),
+            "table_cell": ParagraphStyle(
+                "table_cell",
+                parent=base_styles["BodyText"],
+                fontName="Helvetica",
+                fontSize=9,
+                leading=12,
+                textColor=colors.HexColor("#334155"),
+            ),
         }
+
+    def _escape(self, text: str) -> str:
+        return html.escape(text)
 
     def _format_report_period(self, filters: ComplaintPDFExportQuery) -> str:
         start = self._format_datetime(filters.date_from) if filters.date_from else "Beginning"

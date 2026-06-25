@@ -13,7 +13,7 @@ class S3ComplaintImportFilters(BaseModel):
     timely_response: bool | None = None
     date_received_min: date | None = None
     date_received_max: date | None = None
-    max_records: int = Field(default=50, ge=1, le=5000)
+    max_records: int = Field(default=5, ge=1, le=50)
 
     @field_validator("product", "sub_product", "issue", "company", "channel", mode="before")
     @classmethod
@@ -88,3 +88,29 @@ class S3ImportResponse(BaseModel):
     imported_rows: int
     skipped_rows: int
     logs: list[S3ImportLog]
+
+
+from typing import Any
+
+class ImportAuditLogItem(BaseModel):
+    id: str
+    actor: str
+    filters: dict[str, Any]
+    scanned_rows: int
+    matched_rows: int
+    imported_rows: int
+    skipped_rows: int
+    status: str
+    error_code: str | None = None
+    error_message: str | None = None
+    athena_execution_id: str | None = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class ImportAuditLogListResponse(BaseModel):
+    items: list[ImportAuditLogItem]
+    count: int
+

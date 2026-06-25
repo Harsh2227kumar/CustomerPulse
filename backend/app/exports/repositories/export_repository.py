@@ -61,6 +61,53 @@ class ExportRepository:
         async for row in result.mappings():
             yield dict(row)
 
+    async def stream_regulatory_complaints(
+        self,
+        db: AsyncSession,
+        filters: ComplaintCSVExportQuery,
+    ) -> AsyncIterator[dict[str, Any]]:
+        complaint_id = case(
+            (Complaint.source_complaint_id.is_not(None), Complaint.source_complaint_id),
+            else_=Complaint.id,
+        ).label("complaint_id")
+        stmt = (
+            select(
+                complaint_id,
+                Complaint.narrative.label("narrative"),
+                Complaint.channel.label("channel"),
+                Complaint.product.label("product"),
+                Complaint.sub_product.label("sub_product"),
+                Complaint.issue.label("issue"),
+                Complaint.sub_issue.label("sub_issue"),
+                Complaint.company.label("company"),
+                Complaint.company_response.label("company_response"),
+                Complaint.timely_response.label("timely_response"),
+                Complaint.date_received.label("date_received"),
+                Complaint.sentiment.label("sentiment"),
+                Complaint.category.label("category"),
+                Complaint.urgency_score.label("urgency_score"),
+                Complaint.churn_risk.label("churn_risk"),
+                Complaint.draft_response.label("draft_response"),
+                Complaint.next_action.label("next_action"),
+                Complaint.ai_confidence.label("ai_confidence"),
+                Complaint.ai_status.label("ai_status"),
+                Complaint.human_review_reason.label("human_review_reason"),
+                Complaint.reviewer.label("reviewer"),
+                Complaint.review_resolution.label("review_resolution"),
+                Complaint.review_notes.label("review_notes"),
+                Complaint.reviewed_at.label("reviewed_at"),
+                Complaint.processed_at.label("processed_at"),
+                Complaint.created_at.label("created_at"),
+            )
+            .order_by(Complaint.created_at.asc(), Complaint.id.asc())
+            .limit(min(filters.limit, self.COMPLAINT_EXPORT_LIMIT))
+        )
+        stmt = self._apply_complaint_filters(stmt, filters)
+        result = await db.stream(stmt)
+        async for row in result.mappings():
+            yield dict(row)
+
+
     async def stream_feedback(
         self,
         db: AsyncSession,
@@ -380,4 +427,60 @@ class ExportRepository:
         if channel:
             stmt = stmt.where(Complaint.channel == channel)
         return stmt
+
+
+    async def get_regulatory_summary(
+        self,
+        db: AsyncSession,
+        filters: ComplaintPDFExportQuery,
+    ) -> dict[str, Any]:
+        stmt = select(
+            func.count(Complaint.id).label("total_complaints"),
+            func.sum(
+                case((Complaint.ai_status == ProcessingStatus.COMPLETED.value, 1), else_=0)
+            ).label("completed_count"),
+            func.sum(
+                case((Complaint.reviewed_at.is_not(None), 1), else_=0)
+            ).label("reviewed_count"),
+            func.sum(
+                case((Complaint.human_review_reason.is_not(None), 1), else_=0)
+            ).label("escalated_count"),
+            func.avg(Complaint.urgency_score).label("avg_urgency_score"),
+            func.avg(
+                case(
+                    (Complaint.timely_response.is_(True), 100.0),
+                    (Complaint.timely_response.is_(False), 0.0),
+                    else_=None,
+                )
+            ).label("timely_response_pct")
+        )
+        stmt = self._apply_pdf_filters(stmt, filters.date_from, filters.date_to, filters.product, filters.channel)
+        row = (await db.execute(stmt)).mappings().one()
+        return dict(row)
+
+    async def get_regulatory_complaints_list(
+        self,
+        db: AsyncSession,
+        filters: ComplaintPDFExportQuery,
+        limit: int = 50,
+    ) -> list[dict[str, Any]]:
+        complaint_id = case(
+            (Complaint.source_complaint_id.is_not(None), Complaint.source_complaint_id),
+            else_=Complaint.id,
+        ).label("complaint_id")
+        stmt = select(
+            complaint_id,
+            Complaint.product,
+            Complaint.timely_response,
+            Complaint.urgency_score,
+            Complaint.reviewer,
+            Complaint.review_resolution,
+            Complaint.review_notes,
+            Complaint.reviewed_at,
+            Complaint.human_review_reason
+        ).order_by(Complaint.created_at.desc()).limit(limit)
+        stmt = self._apply_pdf_filters(stmt, filters.date_from, filters.date_to, filters.product, filters.channel)
+        rows = (await db.execute(stmt)).mappings().all()
+        return [dict(row) for row in rows]
+
 

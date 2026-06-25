@@ -16,6 +16,15 @@ class Sentiment(StrEnum):
     NEGATIVE = "Negative"
 
 
+class ComplaintChannel(StrEnum):
+    WEB = "web"
+    PHONE = "phone"
+    EMAIL = "email"
+    CHAT = "chat"
+    MANUAL = "manual"
+
+
+
 class ChurnRisk(StrEnum):
     LOW = "Low"
     MEDIUM = "Medium"
