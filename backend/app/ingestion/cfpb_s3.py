@@ -221,12 +221,20 @@ class CfpbS3IngestionService:
     def _sql_text(value: str) -> str:
         return "'" + value.replace("'", "''") + "'"
 
-    def _athena_where(self, filters: S3ComplaintImportFilters | None = None) -> str:
-        clauses = [
-            "complaint_id IS NOT NULL",
-            "consumer_complaint_narrative IS NOT NULL",
-            "trim(consumer_complaint_narrative) <> ''",
-        ]
+    def _athena_where(
+        self,
+        filters: S3ComplaintImportFilters | None = None,
+        *,
+        require_importable: bool = True,
+    ) -> str:
+        clauses = ["complaint_id IS NOT NULL"]
+        if require_importable:
+            clauses.extend(
+                [
+                    "consumer_complaint_narrative IS NOT NULL",
+                    "trim(consumer_complaint_narrative) <> ''",
+                ]
+            )
         if filters is None:
             return " AND ".join(clauses)
         for field in ("product", "sub_product", "issue", "company", "channel"):
@@ -317,7 +325,7 @@ class CfpbS3IngestionService:
     def _athena_option_values(self, column: str) -> list[str]:
         rows = self._run_athena(
             f"SELECT DISTINCT {column} AS value FROM {self._athena_source} "
-            f"WHERE {self._athena_where()} AND {column} IS NOT NULL AND trim(CAST({column} AS varchar)) <> '' "
+            f"WHERE {self._athena_where(require_importable=False)} AND {column} IS NOT NULL AND trim(CAST({column} AS varchar)) <> '' "
             "ORDER BY value"
         )
         return [value for row in rows if (value := _text(row.get("value"))) is not None]
@@ -325,18 +333,38 @@ class CfpbS3IngestionService:
     def _load_athena_options(self) -> S3ImportOptionsResponse:
         boundaries = self._run_athena(
             f"SELECT min(date_received) AS min_date, max(date_received) AS max_date "
-            f"FROM {self._athena_source} WHERE {self._athena_where()}"
+            f"FROM {self._athena_source} WHERE {self._athena_where(require_importable=False)}"
         )
         boundary = boundaries[0] if boundaries else {}
         timely_values = self._athena_option_values("timely_response")
+        products = self._athena_option_values("product")
+        sub_products = self._athena_option_values("sub_product")
+        issues = self._athena_option_values("issue")
+        companies = self._athena_option_values("company")
+        channels = self._athena_option_values("submitted_via")
+        date_received_min = (
+            parsed.date()
+            if (parsed := _datetime(boundary.get("min_date"))) is not None
+            else None
+        )
+        date_received_max = (
+            parsed.date()
+            if (parsed := _datetime(boundary.get("max_date"))) is not None
+            else None
+        )
+        if not any((products, sub_products, issues, companies, channels, date_received_min, date_received_max)):
+            return self._unavailable_options(
+                "Athena returned no CFPB rows. Run the Glue CSV-to-Parquet job and MSCK REPAIR TABLE, "
+                "or switch CFPB_INGESTION_MODE to csv for local imports."
+            )
         return S3ImportOptionsResponse(
             source=self.source,
             query_mode="athena",
-            products=self._athena_option_values("product"),
-            sub_products=self._athena_option_values("sub_product"),
-            issues=self._athena_option_values("issue"),
-            companies=self._athena_option_values("company"),
-            channels=self._athena_option_values("submitted_via"),
+            products=products,
+            sub_products=sub_products,
+            issues=issues,
+            companies=companies,
+            channels=channels,
             timely_responses=sorted(
                 {
                     parsed
@@ -344,16 +372,8 @@ class CfpbS3IngestionService:
                     if (parsed := _boolean(value)) is not None
                 }
             ),
-            date_received_min=(
-                parsed.date()
-                if (parsed := _datetime(boundary.get("min_date"))) is not None
-                else None
-            ),
-            date_received_max=(
-                parsed.date()
-                if (parsed := _datetime(boundary.get("max_date"))) is not None
-                else None
-            ),
+            date_received_min=date_received_min,
+            date_received_max=date_received_max,
         )
 
     def load_options(self) -> S3ImportOptionsResponse:

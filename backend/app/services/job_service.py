@@ -41,6 +41,9 @@ class JobService:
         self.settings = settings
         self.processing = ProcessingService(settings)
 
+    def close(self) -> None:
+        self.processing.close()
+
     async def create_processing_job(
         self, db: AsyncSession, complaint_ids: list[str], principal: Principal
     ) -> ProcessingJobResponse:
@@ -330,7 +333,11 @@ class ProcessingJobWorker:
         while not self._stopped.is_set():
             try:
                 async with AsyncSessionLocal() as db:
-                    handled = await JobService(self.settings).process_next_queued_job(db)
+                    service = JobService(self.settings)
+                    try:
+                        handled = await service.process_next_queued_job(db)
+                    finally:
+                        service.close()
             except Exception:
                 logger.exception("Background processing job worker failed.")
                 handled = False

@@ -65,6 +65,10 @@ class ComplaintAIPipeline:
         self.resolution_validation_service = ResolutionValidationService(self.evidence_service)
         self.resolution_recommendation_service = ResolutionRecommendationService()
 
+    def close(self) -> None:
+        self.bedrock.close()
+
+
     def run_local_layer(self, complaint: ComplaintProcessRequest) -> LocalSignals:
         cleaned = clean_complaint_text(complaint.narrative)
         prompt_narrative = compress_for_prompt(cleaned.cleaned)

@@ -91,6 +91,14 @@ class UnavailableAthenaFixtureService(AthenaFixtureService):
         raise S3SourceUnavailableError("AWS credentials cannot run Athena queries.")
 
 
+class EmptyAthenaFixtureService(AthenaFixtureService):
+    def _run_athena(self, query: str):
+        self.queries.append(query)
+        if "min(date_received)" in query:
+            return [{"min_date": None, "max_date": None}]
+        return []
+
+
 class CfpbS3IngestionTests(unittest.TestCase):
     def test_maps_real_cfpb_csv_fields_and_pending_state(self) -> None:
         mapped = map_cfpb_csv_row(ROWS[0])
@@ -146,6 +154,10 @@ class CfpbS3IngestionTests(unittest.TestCase):
         self.assertEqual(options.products, ["Credit card or prepaid card"])
         self.assertEqual(options.timely_responses, [False, True])
         self.assertEqual(preview.items[0].complaint_id, "101")
+        product_option_query = next(query for query in service.queries if "DISTINCT product" in query)
+        preview_query = next(query for query in service.queries if "LIMIT 1" in query)
+        self.assertNotIn("consumer_complaint_narrative IS NOT NULL", product_option_query)
+        self.assertIn("consumer_complaint_narrative IS NOT NULL", preview_query)
         self.assertTrue(any("product_partition" in query for query in service.queries))
 
     def test_athena_permission_failure_returns_unavailable_options(self) -> None:
@@ -155,6 +167,13 @@ class CfpbS3IngestionTests(unittest.TestCase):
         self.assertEqual(options.query_mode, "athena")
         self.assertEqual(options.products, [])
         self.assertEqual(options.unavailable_reason, "AWS credentials cannot run Athena queries.")
+
+    def test_empty_athena_table_returns_unavailable_options(self) -> None:
+        options = EmptyAthenaFixtureService().load_options()
+
+        self.assertFalse(options.available)
+        self.assertIn("Athena returned no CFPB rows", options.unavailable_reason or "")
+        self.assertEqual(options.products, [])
 
 
 if __name__ == "__main__":

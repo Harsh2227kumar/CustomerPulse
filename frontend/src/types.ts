@@ -176,6 +176,8 @@ export interface S3SourceSummary {
 export interface S3ImportOptionsResponse {
   source: S3SourceSummary;
   query_mode: "csv" | "athena";
+  available: boolean;
+  unavailable_reason: string | null;
   scanned_rows: number | null;
   eligible_rows: number | null;
   products: string[];

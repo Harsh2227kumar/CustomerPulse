@@ -21,6 +21,8 @@ vi.mock("./api/client", () => ({
 const options: S3ImportOptionsResponse = {
   source: { label: "Private CFPB import source" },
   query_mode: "athena",
+  available: true,
+  unavailable_reason: null,
   scanned_rows: 120,
   eligible_rows: 80,
   products: ["Credit card", "Mortgage"],
@@ -90,5 +92,20 @@ describe("S3ImportPage", () => {
     });
     expect(await screen.findByText("1 selected from 120 scanned rows")).toBeInTheDocument();
     expect(screen.getByText("Unexpected credit card fee.")).toBeInTheDocument();
+  });
+
+  it("shows Athena permission problems without enabling import controls", async () => {
+    vi.mocked(getS3ImportOptions).mockResolvedValue({
+      ...options,
+      available: false,
+      unavailable_reason: "AWS credentials cannot run Athena queries.",
+      products: [],
+    });
+
+    render(<S3ImportPage onBack={vi.fn()} />);
+
+    expect(await screen.findByText("Athena access required")).toBeInTheDocument();
+    expect(screen.getByText("AWS credentials cannot run Athena queries.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Preview" })).toBeDisabled();
   });
 });
