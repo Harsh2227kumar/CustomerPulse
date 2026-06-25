@@ -19,6 +19,7 @@ from app.models import (  # noqa: F401
     ComplaintProcessingRun,
     DuplicateGroup,
     DuplicateMember,
+    ImportAuditLog,
     ProcessingJob,
     ProcessingJobItem,
 )
@@ -124,6 +125,7 @@ REQUIRED_TABLES = (
     "duplicate_members",
     "processing_jobs",
     "processing_job_items",
+    "import_audit_logs",
 )
 
 
