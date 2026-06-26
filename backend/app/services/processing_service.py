@@ -4,6 +4,9 @@ import logging
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.communications.repository import CommunicationRepository
+from app.escalations.service import EscalationService
+
 from app.ai.pipelines.complaint_pipeline import (
     BedrockUnavailableError,
     ComplaintAIPipeline,
@@ -68,10 +71,16 @@ class ProcessingService:
             complaint.error_message = None
             await db.flush()
             run = await self._start_processing_run(db, complaint, trigger, initiated_by)
+            await self._log_to_timeline(db, complaint.id, "processing_started", "Processing started")
 
             await self._emit_event(WebSocketEvent.PREPROCESSING, complaint_request.complaint_id)
             local = self.pipeline.run_local_layer(complaint_request)
             run.local_signals = self._local_signals_payload(local)
+            await self._log_to_timeline(
+                db, complaint.id, "local_ml",
+                f"Local ML signals computed: category={local.category}, urgency_score={local.urgency_score}",
+                {"category": local.category, "urgency_score": local.urgency_score},
+            )
             await self._emit_event(
                 WebSocketEvent.LOCAL_ML,
                 complaint_request.complaint_id,
@@ -105,6 +114,12 @@ class ProcessingService:
             except InvalidAIOutputError:
                 preset_reason = ReviewReason.INVALID_AI_OUTPUT
                 enrichment = self._fallback_enrichment(local, evidence)
+            bedrock_outcome = "fallback" if preset_reason else "bedrock"
+            await self._log_to_timeline(
+                db, complaint.id, "enrichment_resolved",
+                f"Enrichment resolved via {bedrock_outcome}",
+                {"method": bedrock_outcome, "reason": preset_reason.value if preset_reason else None},
+            )
 
             await self._emit_event(WebSocketEvent.VALIDATING, complaint_request.complaint_id)
             reason = preset_reason or review_reason_for(enrichment)
@@ -123,8 +138,20 @@ class ProcessingService:
             run.ai_payload = enrichment.model_dump(mode="json")
             run.error_category = reason.value if reason else None
             run.finished_at = now
+            await self._log_to_timeline(
+                db, complaint.id, "status_finalized",
+                f"Processing finalized: ai_status={complaint.ai_status}"
+                + (f", human_review_reason={reason.value}" if reason else ""),
+                {"ai_status": complaint.ai_status, "human_review_reason": reason.value if reason else None},
+            )
             await db.commit()
             await db.refresh(complaint)
+
+            try:
+                await EscalationService().evaluate_auto_escalation(db, complaint)
+            except Exception:
+                logger.exception("Auto-escalation evaluation failed for %s.", complaint_request.complaint_id)
+
             response = self._response(complaint, enrichment)
 
             if reason:
@@ -173,6 +200,11 @@ class ProcessingService:
                 run.status_outcome = ProcessingStatus.FAILED.value
                 run.error_category = "unexpected_processing_failure"
                 run.finished_at = datetime.now(UTC)
+                await self._log_to_timeline(
+                    db, complaint.id, "processing_failed",
+                    "Complaint processing failed",
+                    {"ai_status": ProcessingStatus.FAILED.value},
+                )
                 await db.commit()
             except Exception:
                 await db.rollback()
@@ -360,6 +392,31 @@ class ProcessingService:
             ),
             **enrichment.model_dump(),
         )
+
+    async def _log_to_timeline(
+        self,
+        db: AsyncSession,
+        complaint_pk: str,
+        event: str,
+        message: str,
+        context: dict | None = None,
+    ) -> None:
+        try:
+            await CommunicationRepository().create_entry(
+                db,
+                complaint_pk=complaint_pk,
+                entry_type="system",
+                event_code=event,
+                message=message,
+                actor="system",
+                context=context,
+            )
+        except Exception:
+            logger.exception(
+                "Timeline logging failed for event %s on complaint %s.",
+                event,
+                complaint_pk,
+            )
 
     async def _emit_event(
         self,

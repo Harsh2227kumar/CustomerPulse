@@ -209,3 +209,8 @@ class SLAService:
         if value is None:
             return None
         return round(float(value), 2)
+
+    async def is_breach_risk(self, db: AsyncSession, complaint_pk: str) -> bool:
+        return await self.repository.is_breach_risk_for_complaint(
+            db, complaint_pk, urgency_threshold=HIGH_URGENCY_THRESHOLD
+        )
