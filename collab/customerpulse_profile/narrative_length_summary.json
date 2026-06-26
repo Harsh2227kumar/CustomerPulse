@@ -1,0 +1,46 @@
+{
+  "stats": {
+    "min_length": 4,
+    "avg_length": 1016.685050325292,
+    "median_length": 664.0,
+    "p90_length": 2109.0,
+    "p95_length": 2989.0,
+    "max_length": 35984
+  },
+  "buckets": [
+    {
+      "length_bucket": "<100",
+      "count": 112496
+    },
+    {
+      "length_bucket": "100-249",
+      "count": 466003
+    },
+    {
+      "length_bucket": "250-499",
+      "count": 829993
+    },
+    {
+      "length_bucket": "500-999",
+      "count": 1159680
+    },
+    {
+      "length_bucket": "1000-2499",
+      "count": 939847
+    },
+    {
+      "length_bucket": "2500-4999",
+      "count": 216988
+    },
+    {
+      "length_bucket": "5000-9999",
+      "count": 45476
+    },
+    {
+      "length_bucket": "10000+",
+      "count": 10121
+    }
+  ],
+  "short_example_count": 100,
+  "long_example_count": 100
+}

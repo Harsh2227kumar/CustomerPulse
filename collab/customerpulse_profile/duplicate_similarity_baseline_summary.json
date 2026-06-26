@@ -1,0 +1,1968 @@
+{
+  "exact_duplicate_summary": {
+    "duplicate_groups": 244681,
+    "rows_in_duplicate_groups": 1496109.0,
+    "exact_duplicate_extra_rows": 1251428.0,
+    "largest_duplicate_group_size": 27503
+  },
+  "top_same_product_issue_repeated_themes": [
+    {
+      "product": "Credit reporting or other personal consumer reports",
+      "issue": "Incorrect information on your report",
+      "total_complaints": 829814,
+      "distinct_companies": 1436,
+      "distinct_sub_issues": 9,
+      "distinct_narratives": 373866
+    },
+    {
+      "product": "Credit reporting or other personal consumer reports",
+      "issue": "Improper use of your report",
+      "total_complaints": 475811,
+      "distinct_companies": 1315,
+      "distinct_sub_issues": 4,
+      "distinct_narratives": 219518
+    },
+    {
+      "product": "Credit reporting, credit repair services, or other personal consumer reports",
+      "issue": "Incorrect information on your report",
+      "total_complaints": 353664,
+      "distinct_companies": 1879,
+      "distinct_sub_issues": 9,
+      "distinct_narratives": 264048
+    },
+    {
+      "product": "Credit reporting or other personal consumer reports",
+      "issue": "Problem with a company's investigation into an existing problem",
+      "total_complaints": 337471,
+      "distinct_companies": 998,
+      "distinct_sub_issues": 5,
+      "distinct_narratives": 147237
+    },
+    {
+      "product": "Credit reporting, credit repair services, or other personal consumer reports",
+      "issue": "Problem with a credit reporting company's investigation into an existing problem",
+      "total_complaints": 241926,
+      "distinct_companies": 1372,
+      "distinct_sub_issues": 5,
+      "distinct_narratives": 168465
+    },
+    {
+      "product": "Credit reporting, credit repair services, or other personal consumer reports",
+      "issue": "Improper use of your report",
+      "total_complaints": 183346,
+      "distinct_companies": 1299,
+      "distinct_sub_issues": 4,
+      "distinct_narratives": 128606
+    },
+    {
+      "product": "Debt collection",
+      "issue": "Attempts to collect debt not owed",
+      "total_complaints": 180337,
+      "distinct_companies": 2896,
+      "distinct_sub_issues": 4,
+      "distinct_narratives": 148998
+    },
+    {
+      "product": "Checking or savings account",
+      "issue": "Managing an account",
+      "total_complaints": 96156,
+      "distinct_companies": 440,
+      "distinct_sub_issues": 11,
+      "distinct_narratives": 95234
+    },
+    {
+      "product": "Debt collection",
+      "issue": "Written notification about debt",
+      "total_complaints": 85380,
+      "distinct_companies": 2225,
+      "distinct_sub_issues": 3,
+      "distinct_narratives": 59480
+    },
+    {
+      "product": "Mortgage",
+      "issue": "Trouble during payment process",
+      "total_complaints": 54479,
+      "distinct_companies": 778,
+      "distinct_sub_issues": 9,
+      "distinct_narratives": 54437
+    },
+    {
+      "product": "Money transfer, virtual currency, or money service",
+      "issue": "Other transaction problem",
+      "total_complaints": 54043,
+      "distinct_companies": 367,
+      "distinct_sub_issues": 0,
+      "distinct_narratives": 29718
+    },
+    {
+      "product": "Debt collection",
+      "issue": "False statements or representation",
+      "total_complaints": 46514,
+      "distinct_companies": 2553,
+      "distinct_sub_issues": 7,
+      "distinct_narratives": 44777
+    },
+    {
+      "product": "Debt collection",
+      "issue": "Took or threatened to take negative or legal action",
+      "total_complaints": 35682,
+      "distinct_companies": 2544,
+      "distinct_sub_issues": 8,
+      "distinct_narratives": 34108
+    },
+    {
+      "product": "Student loan",
+      "issue": "Dealing with your lender or servicer",
+      "total_complaints": 33776,
+      "distinct_companies": 328,
+      "distinct_sub_issues": 7,
+      "distinct_narratives": 33727
+    },
+    {
+      "product": "Debt collection",
+      "issue": "Communication tactics",
+      "total_complaints": 33184,
+      "distinct_companies": 2226,
+      "distinct_sub_issues": 9,
+      "distinct_narratives": 32658
+    },
+    {
+      "product": "Mortgage",
+      "issue": "Struggling to pay mortgage",
+      "total_complaints": 26168,
+      "distinct_companies": 587,
+      "distinct_sub_issues": 4,
+      "distinct_narratives": 26158
+    },
+    {
+      "product": "Credit card or prepaid card",
+      "issue": "Problem with a purchase shown on your statement",
+      "total_complaints": 26159,
+      "distinct_companies": 268,
+      "distinct_sub_issues": 3,
+      "distinct_narratives": 26119
+    },
+    {
+      "product": "Credit card",
+      "issue": "Problem with a purchase shown on your statement",
+      "total_complaints": 24955,
+      "distinct_companies": 268,
+      "distinct_sub_issues": 3,
+      "distinct_narratives": 24936
+    },
+    {
+      "product": "Money transfer, virtual currency, or money service",
+      "issue": "Fraud or scam",
+      "total_complaints": 24821,
+      "distinct_companies": 563,
+      "distinct_sub_issues": 0,
+      "distinct_narratives": 24751
+    },
+    {
+      "product": "Checking or savings account",
+      "issue": "Closing an account",
+      "total_complaints": 24533,
+      "distinct_companies": 315,
+      "distinct_sub_issues": 4,
+      "distinct_narratives": 24496
+    },
+    {
+      "product": "Checking or savings account",
+      "issue": "Problem with a lender or other company charging your account",
+      "total_complaints": 21609,
+      "distinct_companies": 441,
+      "distinct_sub_issues": 3,
+      "distinct_narratives": 21603
+    },
+    {
+      "product": "Credit reporting",
+      "issue": "Incorrect information on credit report",
+      "total_complaints": 21216,
+      "distinct_companies": 284,
+      "distinct_sub_issues": 6,
+      "distinct_narratives": 20152
+    },
+    {
+      "product": "Checking or savings account",
+      "issue": "Problem caused by your funds being low",
+      "total_complaints": 18045,
+      "distinct_companies": 248,
+      "distinct_sub_issues": 4,
+      "distinct_narratives": 14716
+    },
+    {
+      "product": "Debt collection",
+      "issue": "Cont'd attempts collect debt not owed",
+      "total_complaints": 17406,
+      "distinct_companies": 1517,
+      "distinct_sub_issues": 4,
+      "distinct_narratives": 16797
+    },
+    {
+      "product": "Vehicle loan or lease",
+      "issue": "Managing the loan or lease",
+      "total_complaints": 16407,
+      "distinct_companies": 497,
+      "distinct_sub_issues": 5,
+      "distinct_narratives": 16393
+    },
+    {
+      "product": "Checking or savings account",
+      "issue": "Opening an account",
+      "total_complaints": 15667,
+      "distinct_companies": 272,
+      "distinct_sub_issues": 5,
+      "distinct_narratives": 15581
+    },
+    {
+      "product": "Mortgage",
+      "issue": "Loan servicing, payments, escrow account",
+      "total_complaints": 14720,
+      "distinct_companies": 358,
+      "distinct_sub_issues": 0,
+      "distinct_narratives": 14715
+    },
+    {
+      "product": "Mortgage",
+      "issue": "Applying for a mortgage or refinancing an existing mortgage",
+      "total_complaints": 14594,
+      "distinct_companies": 960,
+      "distinct_sub_issues": 8,
+      "distinct_narratives": 14590
+    },
+    {
+      "product": "Credit card or prepaid card",
+      "issue": "Other features, terms, or problems",
+      "total_complaints": 12755,
+      "distinct_companies": 172,
+      "distinct_sub_issues": 9,
+      "distinct_narratives": 12742
+    },
+    {
+      "product": "Credit card or prepaid card",
+      "issue": "Fees or interest",
+      "total_complaints": 11340,
+      "distinct_companies": 156,
+      "distinct_sub_issues": 3,
+      "distinct_narratives": 11327
+    },
+    {
+      "product": "Credit card",
+      "issue": "Other features, terms, or problems",
+      "total_complaints": 11295,
+      "distinct_companies": 225,
+      "distinct_sub_issues": 9,
+      "distinct_narratives": 11280
+    },
+    {
+      "product": "Credit card",
+      "issue": "Getting a credit card",
+      "total_complaints": 11259,
+      "distinct_companies": 265,
+      "distinct_sub_issues": 5,
+      "distinct_narratives": 10545
+    },
+    {
+      "product": "Credit card",
+      "issue": "Fees or interest",
+      "total_complaints": 10829,
+      "distinct_companies": 154,
+      "distinct_sub_issues": 3,
+      "distinct_narratives": 10808
+    },
+    {
+      "product": "Mortgage",
+      "issue": "Loan modification,collection,foreclosure",
+      "total_complaints": 10788,
+      "distinct_companies": 249,
+      "distinct_sub_issues": 0,
+      "distinct_narratives": 10772
+    },
+    {
+      "product": "Mortgage",
+      "issue": "Closing on a mortgage",
+      "total_complaints": 10532,
+      "distinct_companies": 884,
+      "distinct_sub_issues": 6,
+      "distinct_narratives": 10530
+    },
+    {
+      "product": "Credit card or prepaid card",
+      "issue": "Getting a credit card",
+      "total_complaints": 10482,
+      "distinct_companies": 236,
+      "distinct_sub_issues": 5,
+      "distinct_narratives": 10405
+    },
+    {
+      "product": "Credit reporting, credit repair services, or other personal consumer reports",
+      "issue": "Unable to get your credit report or credit score",
+      "total_complaints": 10301,
+      "distinct_companies": 199,
+      "distinct_sub_issues": 2,
+      "distinct_narratives": 9378
+    },
+    {
+      "product": "Student loan",
+      "issue": "Struggling to repay your loan",
+      "total_complaints": 9691,
+      "distinct_companies": 198,
+      "distinct_sub_issues": 6,
+      "distinct_narratives": 9676
+    },
+    {
+      "product": "Credit card or prepaid card",
+      "issue": "Problem when making payments",
+      "total_complaints": 9257,
+      "distinct_companies": 206,
+      "distinct_sub_issues": 2,
+      "distinct_narratives": 8939
+    },
+    {
+      "product": "Credit card",
+      "issue": "Problem with a company's investigation into an existing problem",
+      "total_complaints": 8852,
+      "distinct_companies": 106,
+      "distinct_sub_issues": 5,
+      "distinct_narratives": 3353
+    },
+    {
+      "product": "Money transfer, virtual currency, or money service",
+      "issue": "Unauthorized transactions or other transaction problem",
+      "total_complaints": 8729,
+      "distinct_companies": 177,
+      "distinct_sub_issues": 0,
+      "distinct_narratives": 8697
+    },
+    {
+      "product": "Vehicle loan or lease",
+      "issue": "Problems at the end of the loan or lease",
+      "total_complaints": 8633,
+      "distinct_companies": 365,
+      "distinct_sub_issues": 8,
+      "distinct_narratives": 8631
+    },
+    {
+      "product": "Credit reporting or other personal consumer reports",
+      "issue": "Unable to get your credit report or credit score",
+      "total_complaints": 8546,
+      "distinct_companies": 164,
+      "distinct_sub_issues": 2,
+      "distinct_narratives": 6263
+    },
+    {
+      "product": "Credit reporting or other personal consumer reports",
+      "issue": "Problem with fraud alerts or security freezes",
+      "total_complaints": 8296,
+      "distinct_companies": 225,
+      "distinct_sub_issues": 0,
+      "distinct_narratives": 4994
+    },
+    {
+      "product": "Student loan",
+      "issue": "Dealing with my lender or servicer",
+      "total_complaints": 7904,
+      "distinct_companies": 208,
+      "distinct_sub_issues": 6,
+      "distinct_narratives": 7892
+    },
+    {
+      "product": "Debt collection",
+      "issue": "Disclosure verification of debt",
+      "total_complaints": 7587,
+      "distinct_companies": 1110,
+      "distinct_sub_issues": 3,
+      "distinct_narratives": 7365
+    },
+    {
+      "product": "Credit card or prepaid card",
+      "issue": "Closing your account",
+      "total_complaints": 7579,
+      "distinct_companies": 148,
+      "distinct_sub_issues": 2,
+      "distinct_narratives": 7561
+    },
+    {
+      "product": "Credit card",
+      "issue": "Closing your account",
+      "total_complaints": 7408,
+      "distinct_companies": 152,
+      "distinct_sub_issues": 2,
+      "distinct_narratives": 7376
+    },
+    {
+      "product": "Credit reporting or other personal consumer reports",
+      "issue": "Credit monitoring or identity theft protection services",
+      "total_complaints": 7207,
+      "distinct_companies": 324,
+      "distinct_sub_issues": 5,
+      "distinct_narratives": 4816
+    },
+    {
+      "product": "Credit reporting, credit repair services, or other personal consumer reports",
+      "issue": "Problem with fraud alerts or security freezes",
+      "total_complaints": 7182,
+      "distinct_companies": 165,
+      "distinct_sub_issues": 0,
+      "distinct_narratives": 6105
+    }
+  ],
+  "top_same_company_repeated_issues": [
+    {
+      "company": "EQUIFAX, INC.",
+      "product": "Credit reporting or other personal consumer reports",
+      "issue": "Incorrect information on your report",
+      "total_complaints": 267147,
+      "distinct_narratives": 143052,
+      "distinct_states": 59
+    },
+    {
+      "company": "TRANSUNION INTERMEDIATE HOLDINGS, INC.",
+      "product": "Credit reporting or other personal consumer reports",
+      "issue": "Incorrect information on your report",
+      "total_complaints": 258507,
+      "distinct_narratives": 143138,
+      "distinct_states": 59
+    },
+    {
+      "company": "Experian Information Solutions Inc.",
+      "product": "Credit reporting or other personal consumer reports",
+      "issue": "Incorrect information on your report",
+      "total_complaints": 244176,
+      "distinct_narratives": 140943,
+      "distinct_states": 59
+    },
+    {
+      "company": "EQUIFAX, INC.",
+      "product": "Credit reporting or other personal consumer reports",
+      "issue": "Improper use of your report",
+      "total_complaints": 152815,
+      "distinct_narratives": 79803,
+      "distinct_states": 59
+    },
+    {
+      "company": "TRANSUNION INTERMEDIATE HOLDINGS, INC.",
+      "product": "Credit reporting or other personal consumer reports",
+      "issue": "Improper use of your report",
+      "total_complaints": 152361,
+      "distinct_narratives": 81895,
+      "distinct_states": 60
+    },
+    {
+      "company": "Experian Information Solutions Inc.",
+      "product": "Credit reporting or other personal consumer reports",
+      "issue": "Improper use of your report",
+      "total_complaints": 131137,
+      "distinct_narratives": 77615,
+      "distinct_states": 60
+    },
+    {
+      "company": "Experian Information Solutions Inc.",
+      "product": "Credit reporting or other personal consumer reports",
+      "issue": "Problem with a company's investigation into an existing problem",
+      "total_complaints": 108209,
+      "distinct_narratives": 59251,
+      "distinct_states": 57
+    },
+    {
+      "company": "EQUIFAX, INC.",
+      "product": "Credit reporting or other personal consumer reports",
+      "issue": "Problem with a company's investigation into an existing problem",
+      "total_complaints": 106774,
+      "distinct_narratives": 55702,
+      "distinct_states": 57
+    },
+    {
+      "company": "EQUIFAX, INC.",
+      "product": "Credit reporting, credit repair services, or other personal consumer reports",
+      "issue": "Incorrect information on your report",
+      "total_complaints": 101572,
+      "distinct_narratives": 86148,
+      "distinct_states": 58
+    },
+    {
+      "company": "TRANSUNION INTERMEDIATE HOLDINGS, INC.",
+      "product": "Credit reporting or other personal consumer reports",
+      "issue": "Problem with a company's investigation into an existing problem",
+      "total_complaints": 98673,
+      "distinct_narratives": 53635,
+      "distinct_states": 57
+    },
+    {
+      "company": "TRANSUNION INTERMEDIATE HOLDINGS, INC.",
+      "product": "Credit reporting, credit repair services, or other personal consumer reports",
+      "issue": "Incorrect information on your report",
+      "total_complaints": 96121,
+      "distinct_narratives": 82616,
+      "distinct_states": 59
+    },
+    {
+      "company": "Experian Information Solutions Inc.",
+      "product": "Credit reporting, credit repair services, or other personal consumer reports",
+      "issue": "Incorrect information on your report",
+      "total_complaints": 92084,
+      "distinct_narratives": 81287,
+      "distinct_states": 59
+    },
+    {
+      "company": "EQUIFAX, INC.",
+      "product": "Credit reporting, credit repair services, or other personal consumer reports",
+      "issue": "Problem with a credit reporting company's investigation into an existing problem",
+      "total_complaints": 76726,
+      "distinct_narratives": 58633,
+      "distinct_states": 57
+    },
+    {
+      "company": "TRANSUNION INTERMEDIATE HOLDINGS, INC.",
+      "product": "Credit reporting, credit repair services, or other personal consumer reports",
+      "issue": "Problem with a credit reporting company's investigation into an existing problem",
+      "total_complaints": 69190,
+      "distinct_narratives": 55598,
+      "distinct_states": 57
+    },
+    {
+      "company": "Experian Information Solutions Inc.",
+      "product": "Credit reporting, credit repair services, or other personal consumer reports",
+      "issue": "Problem with a credit reporting company's investigation into an existing problem",
+      "total_complaints": 64467,
+      "distinct_narratives": 53928,
+      "distinct_states": 57
+    },
+    {
+      "company": "EQUIFAX, INC.",
+      "product": "Credit reporting, credit repair services, or other personal consumer reports",
+      "issue": "Improper use of your report",
+      "total_complaints": 56215,
+      "distinct_narratives": 43341,
+      "distinct_states": 57
+    },
+    {
+      "company": "TRANSUNION INTERMEDIATE HOLDINGS, INC.",
+      "product": "Credit reporting, credit repair services, or other personal consumer reports",
+      "issue": "Improper use of your report",
+      "total_complaints": 50308,
+      "distinct_narratives": 41666,
+      "distinct_states": 57
+    },
+    {
+      "company": "Experian Information Solutions Inc.",
+      "product": "Credit reporting, credit repair services, or other personal consumer reports",
+      "issue": "Improper use of your report",
+      "total_complaints": 47062,
+      "distinct_narratives": 38459,
+      "distinct_states": 57
+    },
+    {
+      "company": "Block, Inc.",
+      "product": "Money transfer, virtual currency, or money service",
+      "issue": "Other transaction problem",
+      "total_complaints": 28471,
+      "distinct_narratives": 12091,
+      "distinct_states": 59
+    },
+    {
+      "company": "Early Warning Services, LLC",
+      "product": "Money transfer, virtual currency, or money service",
+      "issue": "Other transaction problem",
+      "total_complaints": 14541,
+      "distinct_narratives": 6747,
+      "distinct_states": 56
+    },
+    {
+      "company": "JPMORGAN CHASE & CO.",
+      "product": "Checking or savings account",
+      "issue": "Managing an account",
+      "total_complaints": 11571,
+      "distinct_narratives": 11567,
+      "distinct_states": 56
+    },
+    {
+      "company": "WELLS FARGO & COMPANY",
+      "product": "Checking or savings account",
+      "issue": "Managing an account",
+      "total_complaints": 11468,
+      "distinct_narratives": 11459,
+      "distinct_states": 55
+    },
+    {
+      "company": "TRANSUNION INTERMEDIATE HOLDINGS, INC.",
+      "product": "Debt collection",
+      "issue": "Attempts to collect debt not owed",
+      "total_complaints": 10576,
+      "distinct_narratives": 5111,
+      "distinct_states": 52
+    },
+    {
+      "company": "BANK OF AMERICA, NATIONAL ASSOCIATION",
+      "product": "Checking or savings account",
+      "issue": "Managing an account",
+      "total_complaints": 10156,
+      "distinct_narratives": 10155,
+      "distinct_states": 56
+    },
+    {
+      "company": "TRANSUNION INTERMEDIATE HOLDINGS, INC.",
+      "product": "Debt collection",
+      "issue": "Written notification about debt",
+      "total_complaints": 9992,
+      "distinct_narratives": 2447,
+      "distinct_states": 49
+    },
+    {
+      "company": "EQUIFAX, INC.",
+      "product": "Debt collection",
+      "issue": "Attempts to collect debt not owed",
+      "total_complaints": 9980,
+      "distinct_narratives": 4646,
+      "distinct_states": 54
+    },
+    {
+      "company": "EQUIFAX, INC.",
+      "product": "Debt collection",
+      "issue": "Written notification about debt",
+      "total_complaints": 9809,
+      "distinct_narratives": 2327,
+      "distinct_states": 48
+    },
+    {
+      "company": "Experian Information Solutions Inc.",
+      "product": "Debt collection",
+      "issue": "Attempts to collect debt not owed",
+      "total_complaints": 9423,
+      "distinct_narratives": 5101,
+      "distinct_states": 53
+    },
+    {
+      "company": "Experian Information Solutions Inc.",
+      "product": "Debt collection",
+      "issue": "Written notification about debt",
+      "total_complaints": 9007,
+      "distinct_narratives": 2277,
+      "distinct_states": 51
+    },
+    {
+      "company": "MOHELA",
+      "product": "Student loan",
+      "issue": "Dealing with your lender or servicer",
+      "total_complaints": 8496,
+      "distinct_narratives": 8491,
+      "distinct_states": 58
+    },
+    {
+      "company": "CAPITAL ONE FINANCIAL CORPORATION",
+      "product": "Checking or savings account",
+      "issue": "Managing an account",
+      "total_complaints": 7706,
+      "distinct_narratives": 6846,
+      "distinct_states": 55
+    },
+    {
+      "company": "EQUIFAX, INC.",
+      "product": "Credit reporting",
+      "issue": "Incorrect information on credit report",
+      "total_complaints": 7630,
+      "distinct_narratives": 7527,
+      "distinct_states": 56
+    },
+    {
+      "company": "Resurgent Capital Services L.P.",
+      "product": "Debt collection",
+      "issue": "Attempts to collect debt not owed",
+      "total_complaints": 7575,
+      "distinct_narratives": 7122,
+      "distinct_states": 53
+    },
+    {
+      "company": "NAVY FEDERAL CREDIT UNION",
+      "product": "Checking or savings account",
+      "issue": "Problem caused by your funds being low",
+      "total_complaints": 7316,
+      "distinct_narratives": 3996,
+      "distinct_states": 54
+    },
+    {
+      "company": "Navient Solutions, LLC.",
+      "product": "Student loan",
+      "issue": "Dealing with your lender or servicer",
+      "total_complaints": 6905,
+      "distinct_narratives": 6905,
+      "distinct_states": 56
+    },
+    {
+      "company": "Portfolio Recovery Associates, LLC",
+      "product": "Debt collection",
+      "issue": "Attempts to collect debt not owed",
+      "total_complaints": 6523,
+      "distinct_narratives": 5777,
+      "distinct_states": 55
+    },
+    {
+      "company": "TRANSUNION INTERMEDIATE HOLDINGS, INC.",
+      "product": "Credit reporting",
+      "issue": "Incorrect information on credit report",
+      "total_complaints": 6427,
+      "distinct_narratives": 6357,
+      "distinct_states": 55
+    },
+    {
+      "company": "ENCORE CAPITAL GROUP INC.",
+      "product": "Debt collection",
+      "issue": "Attempts to collect debt not owed",
+      "total_complaints": 6049,
+      "distinct_narratives": 5273,
+      "distinct_states": 54
+    },
+    {
+      "company": "Experian Information Solutions Inc.",
+      "product": "Credit reporting",
+      "issue": "Incorrect information on credit report",
+      "total_complaints": 5765,
+      "distinct_narratives": 5682,
+      "distinct_states": 53
+    },
+    {
+      "company": "CL Holdings LLC",
+      "product": "Debt collection",
+      "issue": "Attempts to collect debt not owed",
+      "total_complaints": 5452,
+      "distinct_narratives": 4720,
+      "distinct_states": 54
+    },
+    {
+      "company": "Chime Financial Inc",
+      "product": "Checking or savings account",
+      "issue": "Managing an account",
+      "total_complaints": 5364,
+      "distinct_narratives": 5364,
+      "distinct_states": 52
+    },
+    {
+      "company": "CITIBANK, N.A.",
+      "product": "Checking or savings account",
+      "issue": "Managing an account",
+      "total_complaints": 5205,
+      "distinct_narratives": 5202,
+      "distinct_states": 54
+    },
+    {
+      "company": "Shellpoint Partners, LLC",
+      "product": "Mortgage",
+      "issue": "Trouble during payment process",
+      "total_complaints": 5136,
+      "distinct_narratives": 5134,
+      "distinct_states": 53
+    },
+    {
+      "company": "CAPITAL ONE FINANCIAL CORPORATION",
+      "product": "Credit reporting, credit repair services, or other personal consumer reports",
+      "issue": "Incorrect information on your report",
+      "total_complaints": 4496,
+      "distinct_narratives": 4397,
+      "distinct_states": 52
+    },
+    {
+      "company": "Nelnet, Inc.",
+      "product": "Student loan",
+      "issue": "Dealing with your lender or servicer",
+      "total_complaints": 4480,
+      "distinct_narratives": 4471,
+      "distinct_states": 53
+    },
+    {
+      "company": "Mr. Cooper Group Inc.",
+      "product": "Mortgage",
+      "issue": "Trouble during payment process",
+      "total_complaints": 4411,
+      "distinct_narratives": 4403,
+      "distinct_states": 53
+    },
+    {
+      "company": "CITIBANK, N.A.",
+      "product": "Credit card or prepaid card",
+      "issue": "Problem with a purchase shown on your statement",
+      "total_complaints": 4318,
+      "distinct_narratives": 4314,
+      "distinct_states": 54
+    },
+    {
+      "company": "AES/PHEAA",
+      "product": "Student loan",
+      "issue": "Dealing with your lender or servicer",
+      "total_complaints": 4257,
+      "distinct_narratives": 4257,
+      "distinct_states": 57
+    },
+    {
+      "company": "EQUIFAX, INC.",
+      "product": "Credit reporting, credit repair services, or other personal consumer reports",
+      "issue": "Unable to get your credit report or credit score",
+      "total_complaints": 4247,
+      "distinct_narratives": 4087,
+      "distinct_states": 56
+    },
+    {
+      "company": "Navient Solutions, LLC.",
+      "product": "Student loan",
+      "issue": "Dealing with my lender or servicer",
+      "total_complaints": 3879,
+      "distinct_narratives": 3878,
+      "distinct_states": 58
+    }
+  ],
+  "top_same_issue_across_products": [
+    {
+      "issue": "Incorrect information on your report",
+      "total_complaints": 1202830,
+      "distinct_products": 10,
+      "products": "Credit reporting, credit repair services, or other personal consumer reports | Credit reporting or other personal consumer reports | Credit card | Student loan | Credit card or prepaid card | Payday loan, title loan, personal loan, or advance loan | Checking or savings account | Vehicle loan or lease | Mortgage | Payday loan, title loan, or personal loan"
+    },
+    {
+      "issue": "Improper use of your report",
+      "total_complaints": 663196,
+      "distinct_products": 10,
+      "products": "Credit reporting or other personal consumer reports | Credit reporting, credit repair services, or other personal consumer reports | Credit card | Student loan | Credit card or prepaid card | Payday loan, title loan, personal loan, or advance loan | Checking or savings account | Payday loan, title loan, or personal loan | Mortgage | Vehicle loan or lease"
+    },
+    {
+      "issue": "Unable to get your credit report or credit score",
+      "total_complaints": 19203,
+      "distinct_products": 10,
+      "products": "Vehicle loan or lease | Mortgage | Payday loan, title loan, or personal loan | Credit reporting, credit repair services, or other personal consumer reports | Credit reporting or other personal consumer reports | Credit card | Checking or savings account | Student loan | Credit card or prepaid card | Payday loan, title loan, personal loan, or advance loan"
+    },
+    {
+      "issue": "Problem with fraud alerts or security freezes",
+      "total_complaints": 15959,
+      "distinct_products": 10,
+      "products": "Credit reporting, credit repair services, or other personal consumer reports | Credit reporting or other personal consumer reports | Payday loan, title loan, personal loan, or advance loan | Credit card | Student loan | Checking or savings account | Credit card or prepaid card | Payday loan, title loan, or personal loan | Vehicle loan or lease | Mortgage"
+    },
+    {
+      "issue": "Credit monitoring or identity theft protection services",
+      "total_complaints": 13950,
+      "distinct_products": 10,
+      "products": "Credit reporting or other personal consumer reports | Credit reporting, credit repair services, or other personal consumer reports | Credit card or prepaid card | Checking or savings account | Credit card | Payday loan, title loan, personal loan, or advance loan | Student loan | Vehicle loan or lease | Payday loan, title loan, or personal loan | Mortgage"
+    },
+    {
+      "issue": "Problem with a company's investigation into an existing problem",
+      "total_complaints": 348366,
+      "distinct_products": 7,
+      "products": "Credit reporting or other personal consumer reports | Credit card | Payday loan, title loan, personal loan, or advance loan | Student loan | Checking or savings account | Vehicle loan or lease | Mortgage"
+    },
+    {
+      "issue": "Problem with a credit reporting company's investigation into an existing problem",
+      "total_complaints": 250386,
+      "distinct_products": 7,
+      "products": "Payday loan, title loan, or personal loan | Vehicle loan or lease | Mortgage | Credit reporting, credit repair services, or other personal consumer reports | Credit card or prepaid card | Student loan | Checking or savings account"
+    },
+    {
+      "issue": "Fraud or scam",
+      "total_complaints": 26768,
+      "distinct_products": 6,
+      "products": "Credit reporting, credit repair services, or other personal consumer reports | Prepaid card | Other financial service | Virtual currency | Money transfer, virtual currency, or money service | Money transfers"
+    },
+    {
+      "issue": "Problem when making payments",
+      "total_complaints": 19129,
+      "distinct_products": 5,
+      "products": "Payday loan, title loan, or personal loan | Credit card or prepaid card | Credit card | Payday loan, title loan, personal loan, or advance loan | Credit reporting, credit repair services, or other personal consumer reports"
+    },
+    {
+      "issue": "Other features, terms, or problems",
+      "total_complaints": 24053,
+      "distinct_products": 4,
+      "products": "Credit card | Credit card or prepaid card | Credit reporting, credit repair services, or other personal consumer reports | Credit reporting or other personal consumer reports"
+    },
+    {
+      "issue": "Struggling to pay your loan",
+      "total_complaints": 9966,
+      "distinct_products": 4,
+      "products": "Vehicle loan or lease | Payday loan, title loan, or personal loan | Payday loan, title loan, personal loan, or advance loan | Credit reporting, credit repair services, or other personal consumer reports"
+    },
+    {
+      "issue": "Unexpected or other fees",
+      "total_complaints": 5006,
+      "distinct_products": 4,
+      "products": "Money transfer, virtual currency, or money service | Prepaid card | Credit card or prepaid card | Credit reporting, credit repair services, or other personal consumer reports"
+    },
+    {
+      "issue": "Confusing or missing disclosures",
+      "total_complaints": 3905,
+      "distinct_products": 4,
+      "products": "Credit reporting, credit repair services, or other personal consumer reports | Debt or credit management | Payday loan, title loan, personal loan, or advance loan | Money transfer, virtual currency, or money service"
+    },
+    {
+      "issue": "Problem with customer service",
+      "total_complaints": 2644,
+      "distinct_products": 4,
+      "products": "Money transfer, virtual currency, or money service | Debt or credit management | Credit reporting, credit repair services, or other personal consumer reports | Payday loan, title loan, personal loan, or advance loan"
+    },
+    {
+      "issue": "Confusing or misleading advertising or marketing",
+      "total_complaints": 1851,
+      "distinct_products": 4,
+      "products": "Money transfer, virtual currency, or money service | Debt or credit management | Payday loan, title loan, personal loan, or advance loan | Credit reporting, credit repair services, or other personal consumer reports"
+    },
+    {
+      "issue": "Getting a line of credit",
+      "total_complaints": 1392,
+      "distinct_products": 4,
+      "products": "Payday loan, title loan, or personal loan | Payday loan, title loan, personal loan, or advance loan | Checking or savings account | Credit reporting, credit repair services, or other personal consumer reports"
+    },
+    {
+      "issue": "Problem with a purchase shown on your statement",
+      "total_complaints": 51116,
+      "distinct_products": 3,
+      "products": "Credit card or prepaid card | Credit card | Credit reporting or other personal consumer reports"
+    },
+    {
+      "issue": "Dealing with your lender or servicer",
+      "total_complaints": 33779,
+      "distinct_products": 3,
+      "products": "Student loan | Credit reporting, credit repair services, or other personal consumer reports | Credit reporting or other personal consumer reports"
+    },
+    {
+      "issue": "Getting a credit card",
+      "total_complaints": 21743,
+      "distinct_products": 3,
+      "products": "Credit card or prepaid card | Credit card | Credit reporting, credit repair services, or other personal consumer reports"
+    },
+    {
+      "issue": "Closing your account",
+      "total_complaints": 14988,
+      "distinct_products": 3,
+      "products": "Credit card or prepaid card | Credit card | Credit reporting, credit repair services, or other personal consumer reports"
+    },
+    {
+      "issue": "Advertising and marketing, including promotional offers",
+      "total_complaints": 10851,
+      "distinct_products": 3,
+      "products": "Credit card or prepaid card | Credit card | Credit reporting or other personal consumer reports"
+    },
+    {
+      "issue": "Trouble using your card",
+      "total_complaints": 8707,
+      "distinct_products": 3,
+      "products": "Credit card or prepaid card | Credit card | Credit reporting, credit repair services, or other personal consumer reports"
+    },
+    {
+      "issue": "Money was not available when promised",
+      "total_complaints": 7072,
+      "distinct_products": 3,
+      "products": "Money transfer, virtual currency, or money service | Money transfers | Virtual currency"
+    },
+    {
+      "issue": "Problem with the payoff process at the end of the loan",
+      "total_complaints": 3046,
+      "distinct_products": 3,
+      "products": "Payday loan, title loan, personal loan, or advance loan | Credit reporting, credit repair services, or other personal consumer reports | Payday loan, title loan, or personal loan"
+    },
+    {
+      "issue": "Getting the loan",
+      "total_complaints": 2534,
+      "distinct_products": 3,
+      "products": "Payday loan, title loan, personal loan, or advance loan | Credit reporting, credit repair services, or other personal consumer reports | Payday loan, title loan, or personal loan"
+    },
+    {
+      "issue": "Trouble during payment process",
+      "total_complaints": 54481,
+      "distinct_products": 2,
+      "products": "Mortgage | Credit reporting, credit repair services, or other personal consumer reports"
+    },
+    {
+      "issue": "Struggling to pay mortgage",
+      "total_complaints": 26169,
+      "distinct_products": 2,
+      "products": "Mortgage | Credit reporting, credit repair services, or other personal consumer reports"
+    },
+    {
+      "issue": "Fees or interest",
+      "total_complaints": 22169,
+      "distinct_products": 2,
+      "products": "Credit card or prepaid card | Credit card"
+    },
+    {
+      "issue": "Managing the loan or lease",
+      "total_complaints": 20918,
+      "distinct_products": 2,
+      "products": "Vehicle loan or lease | Consumer Loan"
+    },
+    {
+      "issue": "Closing on a mortgage",
+      "total_complaints": 10534,
+      "distinct_products": 2,
+      "products": "Mortgage | Credit reporting, credit repair services, or other personal consumer reports"
+    },
+    {
+      "issue": "Struggling to repay your loan",
+      "total_complaints": 9692,
+      "distinct_products": 2,
+      "products": "Student loan | Credit reporting or other personal consumer reports"
+    },
+    {
+      "issue": "Problems at the end of the loan or lease",
+      "total_complaints": 8634,
+      "distinct_products": 2,
+      "products": "Vehicle loan or lease | Credit reporting, credit repair services, or other personal consumer reports"
+    },
+    {
+      "issue": "Charged fees or interest you didn't expect",
+      "total_complaints": 8550,
+      "distinct_products": 2,
+      "products": "Payday loan, title loan, personal loan, or advance loan | Payday loan, title loan, or personal loan"
+    },
+    {
+      "issue": "Trouble using the card",
+      "total_complaints": 6917,
+      "distinct_products": 2,
+      "products": "Credit card or prepaid card | Prepaid card"
+    },
+    {
+      "issue": "Getting a loan or lease",
+      "total_complaints": 6906,
+      "distinct_products": 2,
+      "products": "Vehicle loan or lease | Credit reporting, credit repair services, or other personal consumer reports"
+    },
+    {
+      "issue": "Problem with a purchase or transfer",
+      "total_complaints": 5619,
+      "distinct_products": 2,
+      "products": "Credit card or prepaid card | Prepaid card"
+    },
+    {
+      "issue": "Problem with a company's investigation into an existing issue",
+      "total_complaints": 3479,
+      "distinct_products": 2,
+      "products": "Credit reporting, credit repair services, or other personal consumer reports | Credit reporting or other personal consumer reports"
+    },
+    {
+      "issue": "Problem getting a card or closing an account",
+      "total_complaints": 3037,
+      "distinct_products": 2,
+      "products": "Prepaid card | Credit card or prepaid card"
+    },
+    {
+      "issue": "Struggling to pay your bill",
+      "total_complaints": 2895,
+      "distinct_products": 2,
+      "products": "Credit card | Credit card or prepaid card"
+    },
+    {
+      "issue": "Problem with additional add-on products or services",
+      "total_complaints": 1956,
+      "distinct_products": 2,
+      "products": "Payday loan, title loan, personal loan, or advance loan | Payday loan, title loan, or personal loan"
+    },
+    {
+      "issue": "Identity theft protection or other monitoring services",
+      "total_complaints": 1294,
+      "distinct_products": 2,
+      "products": "Credit reporting or other personal consumer reports | Credit reporting, credit repair services, or other personal consumer reports"
+    },
+    {
+      "issue": "Getting a loan",
+      "total_complaints": 1287,
+      "distinct_products": 2,
+      "products": "Student loan | Credit reporting, credit repair services, or other personal consumer reports"
+    },
+    {
+      "issue": "Wrong amount charged or received",
+      "total_complaints": 1064,
+      "distinct_products": 2,
+      "products": "Money transfer, virtual currency, or money service | Money transfers"
+    },
+    {
+      "issue": "Charged fees or interest I didn't expect",
+      "total_complaints": 852,
+      "distinct_products": 2,
+      "products": "Payday loan | Consumer Loan"
+    },
+    {
+      "issue": "Advertising and marketing",
+      "total_complaints": 830,
+      "distinct_products": 2,
+      "products": "Credit card | Other financial service"
+    },
+    {
+      "issue": "Received a loan you didn't apply for",
+      "total_complaints": 818,
+      "distinct_products": 2,
+      "products": "Payday loan, title loan, personal loan, or advance loan | Payday loan, title loan, or personal loan"
+    },
+    {
+      "issue": "Can't contact lender or servicer",
+      "total_complaints": 701,
+      "distinct_products": 2,
+      "products": "Payday loan, title loan, personal loan, or advance loan | Payday loan, title loan, or personal loan"
+    },
+    {
+      "issue": "Can't stop withdrawals from your bank account",
+      "total_complaints": 603,
+      "distinct_products": 2,
+      "products": "Payday loan, title loan, personal loan, or advance loan | Payday loan, title loan, or personal loan"
+    },
+    {
+      "issue": "Loan payment wasn't credited to your account",
+      "total_complaints": 489,
+      "distinct_products": 2,
+      "products": "Payday loan, title loan, or personal loan | Payday loan, title loan, personal loan, or advance loan"
+    },
+    {
+      "issue": "Other transaction issues",
+      "total_complaints": 471,
+      "distinct_products": 2,
+      "products": "Virtual currency | Money transfers"
+    }
+  ],
+  "top_product_issue_company_clusters": [
+    {
+      "product": "Credit reporting or other personal consumer reports",
+      "issue": "Incorrect information on your report",
+      "company": "EQUIFAX, INC.",
+      "total_complaints": 267147,
+      "distinct_narratives": 143052,
+      "distinct_states": 59,
+      "first_seen": "2023-08-25",
+      "last_seen": "2026-03-16"
+    },
+    {
+      "product": "Credit reporting or other personal consumer reports",
+      "issue": "Incorrect information on your report",
+      "company": "TRANSUNION INTERMEDIATE HOLDINGS, INC.",
+      "total_complaints": 258507,
+      "distinct_narratives": 143138,
+      "distinct_states": 59,
+      "first_seen": "2023-08-25",
+      "last_seen": "2026-04-24"
+    },
+    {
+      "product": "Credit reporting or other personal consumer reports",
+      "issue": "Incorrect information on your report",
+      "company": "Experian Information Solutions Inc.",
+      "total_complaints": 244176,
+      "distinct_narratives": 140943,
+      "distinct_states": 59,
+      "first_seen": "2023-08-25",
+      "last_seen": "2026-04-14"
+    },
+    {
+      "product": "Credit reporting or other personal consumer reports",
+      "issue": "Improper use of your report",
+      "company": "EQUIFAX, INC.",
+      "total_complaints": 152815,
+      "distinct_narratives": 79803,
+      "distinct_states": 59,
+      "first_seen": "2023-08-25",
+      "last_seen": "2026-03-15"
+    },
+    {
+      "product": "Credit reporting or other personal consumer reports",
+      "issue": "Improper use of your report",
+      "company": "TRANSUNION INTERMEDIATE HOLDINGS, INC.",
+      "total_complaints": 152361,
+      "distinct_narratives": 81895,
+      "distinct_states": 60,
+      "first_seen": "2023-08-25",
+      "last_seen": "2026-04-24"
+    },
+    {
+      "product": "Credit reporting or other personal consumer reports",
+      "issue": "Improper use of your report",
+      "company": "Experian Information Solutions Inc.",
+      "total_complaints": 131137,
+      "distinct_narratives": 77615,
+      "distinct_states": 60,
+      "first_seen": "2023-08-25",
+      "last_seen": "2026-04-10"
+    },
+    {
+      "product": "Credit reporting or other personal consumer reports",
+      "issue": "Problem with a company's investigation into an existing problem",
+      "company": "Experian Information Solutions Inc.",
+      "total_complaints": 108209,
+      "distinct_narratives": 59251,
+      "distinct_states": 57,
+      "first_seen": "2023-08-25",
+      "last_seen": "2026-04-24"
+    },
+    {
+      "product": "Credit reporting or other personal consumer reports",
+      "issue": "Problem with a company's investigation into an existing problem",
+      "company": "EQUIFAX, INC.",
+      "total_complaints": 106774,
+      "distinct_narratives": 55702,
+      "distinct_states": 57,
+      "first_seen": "2023-08-25",
+      "last_seen": "2026-03-15"
+    },
+    {
+      "product": "Credit reporting, credit repair services, or other personal consumer reports",
+      "issue": "Incorrect information on your report",
+      "company": "EQUIFAX, INC.",
+      "total_complaints": 101572,
+      "distinct_narratives": 86148,
+      "distinct_states": 58,
+      "first_seen": "2017-04-24",
+      "last_seen": "2023-08-25"
+    },
+    {
+      "product": "Credit reporting or other personal consumer reports",
+      "issue": "Problem with a company's investigation into an existing problem",
+      "company": "TRANSUNION INTERMEDIATE HOLDINGS, INC.",
+      "total_complaints": 98673,
+      "distinct_narratives": 53635,
+      "distinct_states": 57,
+      "first_seen": "2023-08-25",
+      "last_seen": "2026-04-13"
+    },
+    {
+      "product": "Credit reporting, credit repair services, or other personal consumer reports",
+      "issue": "Incorrect information on your report",
+      "company": "TRANSUNION INTERMEDIATE HOLDINGS, INC.",
+      "total_complaints": 96121,
+      "distinct_narratives": 82616,
+      "distinct_states": 59,
+      "first_seen": "2017-04-24",
+      "last_seen": "2023-08-25"
+    },
+    {
+      "product": "Credit reporting, credit repair services, or other personal consumer reports",
+      "issue": "Incorrect information on your report",
+      "company": "Experian Information Solutions Inc.",
+      "total_complaints": 92084,
+      "distinct_narratives": 81287,
+      "distinct_states": 59,
+      "first_seen": "2017-04-24",
+      "last_seen": "2023-08-24"
+    },
+    {
+      "product": "Credit reporting, credit repair services, or other personal consumer reports",
+      "issue": "Problem with a credit reporting company's investigation into an existing problem",
+      "company": "EQUIFAX, INC.",
+      "total_complaints": 76726,
+      "distinct_narratives": 58633,
+      "distinct_states": 57,
+      "first_seen": "2017-04-24",
+      "last_seen": "2023-08-24"
+    },
+    {
+      "product": "Credit reporting, credit repair services, or other personal consumer reports",
+      "issue": "Problem with a credit reporting company's investigation into an existing problem",
+      "company": "TRANSUNION INTERMEDIATE HOLDINGS, INC.",
+      "total_complaints": 69190,
+      "distinct_narratives": 55598,
+      "distinct_states": 57,
+      "first_seen": "2017-04-24",
+      "last_seen": "2023-08-24"
+    },
+    {
+      "product": "Credit reporting, credit repair services, or other personal consumer reports",
+      "issue": "Problem with a credit reporting company's investigation into an existing problem",
+      "company": "Experian Information Solutions Inc.",
+      "total_complaints": 64467,
+      "distinct_narratives": 53928,
+      "distinct_states": 57,
+      "first_seen": "2017-04-24",
+      "last_seen": "2023-08-24"
+    },
+    {
+      "product": "Credit reporting, credit repair services, or other personal consumer reports",
+      "issue": "Improper use of your report",
+      "company": "EQUIFAX, INC.",
+      "total_complaints": 56215,
+      "distinct_narratives": 43341,
+      "distinct_states": 57,
+      "first_seen": "2017-04-24",
+      "last_seen": "2023-08-25"
+    },
+    {
+      "product": "Credit reporting, credit repair services, or other personal consumer reports",
+      "issue": "Improper use of your report",
+      "company": "TRANSUNION INTERMEDIATE HOLDINGS, INC.",
+      "total_complaints": 50308,
+      "distinct_narratives": 41666,
+      "distinct_states": 57,
+      "first_seen": "2017-04-24",
+      "last_seen": "2023-08-25"
+    },
+    {
+      "product": "Credit reporting, credit repair services, or other personal consumer reports",
+      "issue": "Improper use of your report",
+      "company": "Experian Information Solutions Inc.",
+      "total_complaints": 47062,
+      "distinct_narratives": 38459,
+      "distinct_states": 57,
+      "first_seen": "2017-04-24",
+      "last_seen": "2023-08-25"
+    },
+    {
+      "product": "Money transfer, virtual currency, or money service",
+      "issue": "Other transaction problem",
+      "company": "Block, Inc.",
+      "total_complaints": 28471,
+      "distinct_narratives": 12091,
+      "distinct_states": 59,
+      "first_seen": "2019-02-27",
+      "last_seen": "2026-03-15"
+    },
+    {
+      "product": "Money transfer, virtual currency, or money service",
+      "issue": "Other transaction problem",
+      "company": "Early Warning Services, LLC",
+      "total_complaints": 14541,
+      "distinct_narratives": 6747,
+      "distinct_states": 56,
+      "first_seen": "2018-02-03",
+      "last_seen": "2026-03-15"
+    },
+    {
+      "product": "Checking or savings account",
+      "issue": "Managing an account",
+      "company": "JPMORGAN CHASE & CO.",
+      "total_complaints": 11571,
+      "distinct_narratives": 11567,
+      "distinct_states": 56,
+      "first_seen": "2017-04-24",
+      "last_seen": "2026-03-16"
+    },
+    {
+      "product": "Checking or savings account",
+      "issue": "Managing an account",
+      "company": "WELLS FARGO & COMPANY",
+      "total_complaints": 11468,
+      "distinct_narratives": 11459,
+      "distinct_states": 55,
+      "first_seen": "2017-04-24",
+      "last_seen": "2026-04-24"
+    },
+    {
+      "product": "Debt collection",
+      "issue": "Attempts to collect debt not owed",
+      "company": "TRANSUNION INTERMEDIATE HOLDINGS, INC.",
+      "total_complaints": 10576,
+      "distinct_narratives": 5111,
+      "distinct_states": 52,
+      "first_seen": "2017-05-02",
+      "last_seen": "2026-04-14"
+    },
+    {
+      "product": "Checking or savings account",
+      "issue": "Managing an account",
+      "company": "BANK OF AMERICA, NATIONAL ASSOCIATION",
+      "total_complaints": 10156,
+      "distinct_narratives": 10155,
+      "distinct_states": 56,
+      "first_seen": "2017-04-24",
+      "last_seen": "2026-04-24"
+    },
+    {
+      "product": "Debt collection",
+      "issue": "Written notification about debt",
+      "company": "TRANSUNION INTERMEDIATE HOLDINGS, INC.",
+      "total_complaints": 9992,
+      "distinct_narratives": 2447,
+      "distinct_states": 49,
+      "first_seen": "2017-05-11",
+      "last_seen": "2026-04-15"
+    },
+    {
+      "product": "Debt collection",
+      "issue": "Attempts to collect debt not owed",
+      "company": "EQUIFAX, INC.",
+      "total_complaints": 9980,
+      "distinct_narratives": 4646,
+      "distinct_states": 54,
+      "first_seen": "2017-04-26",
+      "last_seen": "2026-03-15"
+    },
+    {
+      "product": "Debt collection",
+      "issue": "Written notification about debt",
+      "company": "EQUIFAX, INC.",
+      "total_complaints": 9809,
+      "distinct_narratives": 2327,
+      "distinct_states": 48,
+      "first_seen": "2017-05-27",
+      "last_seen": "2026-03-13"
+    },
+    {
+      "product": "Debt collection",
+      "issue": "Attempts to collect debt not owed",
+      "company": "Experian Information Solutions Inc.",
+      "total_complaints": 9423,
+      "distinct_narratives": 5101,
+      "distinct_states": 53,
+      "first_seen": "2017-05-02",
+      "last_seen": "2026-03-18"
+    },
+    {
+      "product": "Debt collection",
+      "issue": "Written notification about debt",
+      "company": "Experian Information Solutions Inc.",
+      "total_complaints": 9007,
+      "distinct_narratives": 2277,
+      "distinct_states": 51,
+      "first_seen": "2017-05-12",
+      "last_seen": "2026-03-18"
+    },
+    {
+      "product": "Student loan",
+      "issue": "Dealing with your lender or servicer",
+      "company": "MOHELA",
+      "total_complaints": 8496,
+      "distinct_narratives": 8491,
+      "distinct_states": 58,
+      "first_seen": "2017-04-25",
+      "last_seen": "2026-04-21"
+    },
+    {
+      "product": "Checking or savings account",
+      "issue": "Managing an account",
+      "company": "CAPITAL ONE FINANCIAL CORPORATION",
+      "total_complaints": 7706,
+      "distinct_narratives": 6846,
+      "distinct_states": 55,
+      "first_seen": "2017-04-24",
+      "last_seen": "2026-03-13"
+    },
+    {
+      "product": "Credit reporting",
+      "issue": "Incorrect information on credit report",
+      "company": "EQUIFAX, INC.",
+      "total_complaints": 7630,
+      "distinct_narratives": 7527,
+      "distinct_states": 56,
+      "first_seen": "2015-03-19",
+      "last_seen": "2017-04-21"
+    },
+    {
+      "product": "Debt collection",
+      "issue": "Attempts to collect debt not owed",
+      "company": "Resurgent Capital Services L.P.",
+      "total_complaints": 7575,
+      "distinct_narratives": 7122,
+      "distinct_states": 53,
+      "first_seen": "2017-04-24",
+      "last_seen": "2026-03-15"
+    },
+    {
+      "product": "Checking or savings account",
+      "issue": "Problem caused by your funds being low",
+      "company": "NAVY FEDERAL CREDIT UNION",
+      "total_complaints": 7316,
+      "distinct_narratives": 3996,
+      "distinct_states": 54,
+      "first_seen": "2017-07-18",
+      "last_seen": "2026-04-22"
+    },
+    {
+      "product": "Student loan",
+      "issue": "Dealing with your lender or servicer",
+      "company": "Navient Solutions, LLC.",
+      "total_complaints": 6905,
+      "distinct_narratives": 6905,
+      "distinct_states": 56,
+      "first_seen": "2017-04-24",
+      "last_seen": "2026-03-15"
+    },
+    {
+      "product": "Debt collection",
+      "issue": "Attempts to collect debt not owed",
+      "company": "Portfolio Recovery Associates, LLC",
+      "total_complaints": 6523,
+      "distinct_narratives": 5777,
+      "distinct_states": 55,
+      "first_seen": "2017-04-25",
+      "last_seen": "2026-03-15"
+    },
+    {
+      "product": "Credit reporting",
+      "issue": "Incorrect information on credit report",
+      "company": "TRANSUNION INTERMEDIATE HOLDINGS, INC.",
+      "total_complaints": 6427,
+      "distinct_narratives": 6357,
+      "distinct_states": 55,
+      "first_seen": "2015-03-19",
+      "last_seen": "2017-04-21"
+    },
+    {
+      "product": "Debt collection",
+      "issue": "Attempts to collect debt not owed",
+      "company": "ENCORE CAPITAL GROUP INC.",
+      "total_complaints": 6049,
+      "distinct_narratives": 5273,
+      "distinct_states": 54,
+      "first_seen": "2017-04-24",
+      "last_seen": "2026-03-16"
+    },
+    {
+      "product": "Credit reporting",
+      "issue": "Incorrect information on credit report",
+      "company": "Experian Information Solutions Inc.",
+      "total_complaints": 5765,
+      "distinct_narratives": 5682,
+      "distinct_states": 53,
+      "first_seen": "2015-03-19",
+      "last_seen": "2017-04-21"
+    },
+    {
+      "product": "Debt collection",
+      "issue": "Attempts to collect debt not owed",
+      "company": "CL Holdings LLC",
+      "total_complaints": 5452,
+      "distinct_narratives": 4720,
+      "distinct_states": 54,
+      "first_seen": "2017-04-24",
+      "last_seen": "2026-03-16"
+    },
+    {
+      "product": "Checking or savings account",
+      "issue": "Managing an account",
+      "company": "Chime Financial Inc",
+      "total_complaints": 5364,
+      "distinct_narratives": 5364,
+      "distinct_states": 52,
+      "first_seen": "2020-04-29",
+      "last_seen": "2026-03-16"
+    },
+    {
+      "product": "Checking or savings account",
+      "issue": "Managing an account",
+      "company": "CITIBANK, N.A.",
+      "total_complaints": 5205,
+      "distinct_narratives": 5202,
+      "distinct_states": 54,
+      "first_seen": "2017-04-24",
+      "last_seen": "2026-04-24"
+    },
+    {
+      "product": "Mortgage",
+      "issue": "Trouble during payment process",
+      "company": "Shellpoint Partners, LLC",
+      "total_complaints": 5136,
+      "distinct_narratives": 5134,
+      "distinct_states": 53,
+      "first_seen": "2017-04-25",
+      "last_seen": "2026-04-24"
+    },
+    {
+      "product": "Credit reporting, credit repair services, or other personal consumer reports",
+      "issue": "Incorrect information on your report",
+      "company": "CAPITAL ONE FINANCIAL CORPORATION",
+      "total_complaints": 4496,
+      "distinct_narratives": 4397,
+      "distinct_states": 52,
+      "first_seen": "2017-04-24",
+      "last_seen": "2023-08-24"
+    },
+    {
+      "product": "Student loan",
+      "issue": "Dealing with your lender or servicer",
+      "company": "Nelnet, Inc.",
+      "total_complaints": 4480,
+      "distinct_narratives": 4471,
+      "distinct_states": 53,
+      "first_seen": "2017-04-25",
+      "last_seen": "2026-03-15"
+    },
+    {
+      "product": "Mortgage",
+      "issue": "Trouble during payment process",
+      "company": "Mr. Cooper Group Inc.",
+      "total_complaints": 4411,
+      "distinct_narratives": 4403,
+      "distinct_states": 53,
+      "first_seen": "2017-05-01",
+      "last_seen": "2026-03-08"
+    },
+    {
+      "product": "Credit card or prepaid card",
+      "issue": "Problem with a purchase shown on your statement",
+      "company": "CITIBANK, N.A.",
+      "total_complaints": 4318,
+      "distinct_narratives": 4314,
+      "distinct_states": 54,
+      "first_seen": "2017-04-25",
+      "last_seen": "2023-08-24"
+    },
+    {
+      "product": "Student loan",
+      "issue": "Dealing with your lender or servicer",
+      "company": "AES/PHEAA",
+      "total_complaints": 4257,
+      "distinct_narratives": 4257,
+      "distinct_states": 57,
+      "first_seen": "2017-04-24",
+      "last_seen": "2026-03-10"
+    },
+    {
+      "product": "Credit reporting, credit repair services, or other personal consumer reports",
+      "issue": "Unable to get your credit report or credit score",
+      "company": "EQUIFAX, INC.",
+      "total_complaints": 4247,
+      "distinct_narratives": 4087,
+      "distinct_states": 56,
+      "first_seen": "2017-04-25",
+      "last_seen": "2023-08-24"
+    },
+    {
+      "product": "Student loan",
+      "issue": "Dealing with my lender or servicer",
+      "company": "Navient Solutions, LLC.",
+      "total_complaints": 3879,
+      "distinct_narratives": 3878,
+      "distinct_states": 58,
+      "first_seen": "2015-03-19",
+      "last_seen": "2017-04-21"
+    }
+  ],
+  "top_near_duplicate_prefix_groups": [
+    {
+      "narrative_prefix": "in accordance with the fair credit reporting act. the list of accounts below has violated my federally protected consumer rights to privacy and confidentiality under 15 usc 1681. 15 u.s.c 1681 section 602 a. states i have the right to privacy. 15 u.s",
+      "group_size": 33827,
+      "distinct_products": 5,
+      "distinct_issues": 7,
+      "distinct_companies": 20
+    },
+    {
+      "narrative_prefix": "the fair credit reporting act ( 15 u.s. code 1681 ) says ( 1 ) the banking system is dependent upon fair and accurate credit reporting. inaccurate credit reports directly impair the efficiency of the banking system, and unfair credit reporting method",
+      "group_size": 26621,
+      "distinct_products": 4,
+      "distinct_issues": 6,
+      "distinct_companies": 105
+    },
+    {
+      "narrative_prefix": "my credit reports are inaccurate. these inaccuracies are causing creditors to deny me credit. you have the duty to report accurate information about consumers. please investigate these accounts and inquires and update these accounts accordingly to av",
+      "group_size": 24339,
+      "distinct_products": 3,
+      "distinct_issues": 6,
+      "distinct_companies": 7
+    },
+    {
+      "narrative_prefix": "you have reported inaccurate and unauthorized accounts on my credit report, which is a violation of the fair credit reporting act ( 15 u.s. code 1681i ) requiring a proper reinvestigation of disputed items, and 1681e ( b ), which mandates maximum pos",
+      "group_size": 18542,
+      "distinct_products": 1,
+      "distinct_issues": 2,
+      "distinct_companies": 18
+    },
+    {
+      "narrative_prefix": "i am filing a complaint against cash app ( block , inc. ) due to inadequate customer service and unfair practices, which violate the consumer financial protection act ( cfpa ). specifically, cash app failed to take timely and effective measures to pr",
+      "group_size": 16726,
+      "distinct_products": 6,
+      "distinct_issues": 16,
+      "distinct_companies": 5
+    },
+    {
+      "narrative_prefix": "i am writing to have the following information removed from my credit file, the items that i need deleted are going to be attached in a word document. i am a victim of identity theft. i have multiple accounts and inquiries that i did not apply for li",
+      "group_size": 13385,
+      "distinct_products": 3,
+      "distinct_issues": 7,
+      "distinct_companies": 48
+    },
+    {
+      "narrative_prefix": "all reported data must be complete, correct, and proven if challenged. i do not grant your authority to report versus me without adequate compliance of state and federal laws being applicable throughout. as such i demand deletion immediately of your ",
+      "group_size": 9090,
+      "distinct_products": 4,
+      "distinct_issues": 7,
+      "distinct_companies": 43
+    },
+    {
+      "narrative_prefix": "these can be combined on my credit report, you have shown incorrect accounts that should not be there at all. this is not only unjust to me, but it's also concerning, because i've never done or made any of the things you accuse me of. if you don't lo",
+      "group_size": 8230,
+      "distinct_products": 2,
+      "distinct_issues": 2,
+      "distinct_companies": 21
+    },
+    {
+      "narrative_prefix": "could you please take a moment to review and examine the attached documents? i believe your expertise will be invaluable in ensuring their accuracy and completeness. your feedback and insights would be greatly appreciated. thank you for your time and",
+      "group_size": 7945,
+      "distinct_products": 2,
+      "distinct_issues": 4,
+      "distinct_companies": 3
+    },
+    {
+      "narrative_prefix": "i am submitting this without any influence and this is not a third party. the credit bureaus stated my acc was properly investigated but how is that possible if the open date is inaccurate, the date last active is inaccurate, and the date last report",
+      "group_size": 7206,
+      "distinct_products": 2,
+      "distinct_issues": 4,
+      "distinct_companies": 3
+    },
+    {
+      "narrative_prefix": "there are collection accounts on my report that i believe contain inaccurate information. under my rights pursuant to 15 usc 1681e ( b ) and 15 usc 1681i, i am entitled to an accurate credit report. i request a review of these entries, and if they ca",
+      "group_size": 6992,
+      "distinct_products": 2,
+      "distinct_issues": 3,
+      "distinct_companies": 22
+    },
+    {
+      "narrative_prefix": "i am writing to formally express my concerns regarding zelle 's handling of disputes, particularly in light of the recent cfpb lawsuit highlighting significant issues with the platform. despite using zelle numerous times and reporting discrepancies, ",
+      "group_size": 6922,
+      "distinct_products": 3,
+      "distinct_issues": 12,
+      "distinct_companies": 5
+    },
+    {
+      "narrative_prefix": "i am listing accounts below that have been reported inaccurately on my credit report. in compliance with the fair credit reporting act and as a gesture of respect to the federal trade commission committee on accuracy and completeness of credit inform",
+      "group_size": 6772,
+      "distinct_products": 2,
+      "distinct_issues": 4,
+      "distinct_companies": 3
+    },
+    {
+      "narrative_prefix": "in the quiet humdrum of everyday life, a sudden jolt shattered the tranquility : i had become a victim of identity theft. like a thief in the night, unseen hands had stolen my personal information, plunging me into a bewildering maze of uncertainty. ",
+      "group_size": 6682,
+      "distinct_products": 1,
+      "distinct_issues": 4,
+      "distinct_companies": 5
+    },
+    {
+      "narrative_prefix": "i am very concerned about the items that are being shown on my credit report. not only are they inaccurate, they are also unjust, because they should not be reporting on my credit report! i ask that you delete these accounts, or i will be filing a le",
+      "group_size": 6154,
+      "distinct_products": 2,
+      "distinct_issues": 4,
+      "distinct_companies": 3
+    },
+    {
+      "narrative_prefix": "i'm really not sure what happened. i have mailed off letters to the credit bureaus continuously and thus far i have not gotten a response. my name is xxxx xxxx and i am filing this complaint for falsely reporting misleading information. there is no t",
+      "group_size": 5710,
+      "distinct_products": 2,
+      "distinct_issues": 5,
+      "distinct_companies": 3
+    },
+    {
+      "narrative_prefix": "finding unauthorized accounts, credit inquiries, and false personal information made or reported without my knowledge or agreement completely stunned and grieved me. i've tried to get clarification from the creditors, but they have blatantly refused ",
+      "group_size": 5480,
+      "distinct_products": 1,
+      "distinct_issues": 3,
+      "distinct_companies": 5
+    },
+    {
+      "narrative_prefix": "i'm really not sure what happened. i have mailed off letters to the credit bureaus continuously and thus far i have not gotten a response. my name is xxxx xxxx xxxx and i am filing this complaint for falsely reporting misleading information. there is",
+      "group_size": 5447,
+      "distinct_products": 2,
+      "distinct_issues": 6,
+      "distinct_companies": 3
+    },
+    {
+      "narrative_prefix": "in accordance with the fair credit reporting act. the list of accounts below has violated my federally protected consumer rights to privacy and confidentiality under 15 usc 1681. xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx x",
+      "group_size": 5410,
+      "distinct_products": 3,
+      "distinct_issues": 8,
+      "distinct_companies": 20
+    },
+    {
+      "narrative_prefix": "i have a goal of getting a house as soon as possible but the stuff on my credit report will really put me in trouble. ive been trying to understand some instances why the credit bureaus may take some time to respond but this is so unprofessional. my ",
+      "group_size": 5370,
+      "distinct_products": 1,
+      "distinct_issues": 2,
+      "distinct_companies": 3
+    },
+    {
+      "narrative_prefix": "i want to stress that i did not give written permission for these specific transactions to be included in my consumer report. at no point did i authorize these entries, and their presence on my report is unwarranted. consequently, i am formally reque",
+      "group_size": 5320,
+      "distinct_products": 2,
+      "distinct_issues": 4,
+      "distinct_companies": 5
+    },
+    {
+      "narrative_prefix": "this cfpb complaint has been filed to request pursuant to fcra 605b ( 15 u.s.c. 1681c-2 ) that you -- credit reporting agency, block information appearing on my consumer credit report that is the result of identity theft and fraud within 4 business d",
+      "group_size": 5156,
+      "distinct_products": 1,
+      "distinct_issues": 2,
+      "distinct_companies": 4
+    },
+    {
+      "narrative_prefix": "i have already sent a letter addressing the inaccuracies and unknown items on my credit report, but unfortunately, i have not received any response even after 30 days. it feels like i'm being taken advantage of and my disputes are being ignored. acco",
+      "group_size": 4535,
+      "distinct_products": 1,
+      "distinct_issues": 3,
+      "distinct_companies": 3
+    },
+    {
+      "narrative_prefix": "under 15 usc 1681i ( a ) ( 1 ) ( a ) subject to subsection ( f ) and except as provided in subsection ( g ), if the completeness or accuracy of any item of information contained in a consumer 's file at a consumer reporting agency is disputed by the ",
+      "group_size": 4527,
+      "distinct_products": 1,
+      "distinct_issues": 3,
+      "distinct_companies": 32
+    },
+    {
+      "narrative_prefix": "i lodged a complaint with these bureaus a month ago, but unfortunately, the inaccurate information on my report still remains. i haven't received any communication from the bureaus, except for the notification that you sent stating that the company h",
+      "group_size": 4384,
+      "distinct_products": 1,
+      "distinct_issues": 2,
+      "distinct_companies": 3
+    },
+    {
+      "narrative_prefix": "\" the fair credit reporting act ( 15 u.s. code 1681 ) says ( 1 ) the banking system is dependent upon fair and accurate credit reporting. inaccurate credit reports directly impair the efficiency of the banking system, and unfair credit reporting meth",
+      "group_size": 4369,
+      "distinct_products": 1,
+      "distinct_issues": 4,
+      "distinct_companies": 80
+    },
+    {
+      "narrative_prefix": "i filed a dispute for incorrect information on my credit report. i received an email from the credit bureau stating that they are assuming the disputes are coming from a 3rd party. they in fact did not come from a 3rd party. l even called them to ver",
+      "group_size": 4298,
+      "distinct_products": 2,
+      "distinct_issues": 5,
+      "distinct_companies": 5
+    },
+    {
+      "narrative_prefix": "my name is xxxx xxxx xxxx this complaint is not made in error neither is it being made by a third party.i declare under penalty of perjury i am alleging that a person or company- without my authorization- from unauthorized use of my social security n",
+      "group_size": 4176,
+      "distinct_products": 2,
+      "distinct_issues": 3,
+      "distinct_companies": 3
+    },
+    {
+      "narrative_prefix": "when i reviewed my credit report, i discovered that some of the information was erroneous. the 3 credit bureaus must validate these accounts in line with sections 609 ( a ) ( 1 ) ( a ) and 611 ( a ) ( 1 ) ( a ). it is not authorized to fail to valida",
+      "group_size": 4120,
+      "distinct_products": 2,
+      "distinct_issues": 3,
+      "distinct_companies": 12
+    },
+    {
+      "narrative_prefix": "i affirm that the inclusion of incorrectly reported late payment remarks on my accounts is a breach of the 15 usc 1666. every payment linked to these accounts has been promptly made, and any departure from this precise reporting is unjust and unlawfu",
+      "group_size": 3929,
+      "distinct_products": 3,
+      "distinct_issues": 7,
+      "distinct_companies": 3
+    },
+    {
+      "narrative_prefix": "my name is xxxx xxxx this complaint is not made in error neither is it being made by a third party.i declare under penalty of perjury i am alleging that a person or company- without my authorization- from unauthorized use of my social security number",
+      "group_size": 3915,
+      "distinct_products": 2,
+      "distinct_issues": 3,
+      "distinct_companies": 3
+    },
+    {
+      "narrative_prefix": "i am concerned about the validity and accuracy of your recent investigation of these accounts that are reporting on my credit report. last month i requested an investigation because i felt the item was not being reported legally. couple of days ago i",
+      "group_size": 3700,
+      "distinct_products": 2,
+      "distinct_issues": 5,
+      "distinct_companies": 4
+    },
+    {
+      "narrative_prefix": "this letter is a formal notice of dispute under the fair credit reporting act ( fcra ) regarding inaccurately reported late payment dates on the above-referenced account appearing in my credit file. the reported derogatory payment data is factually a",
+      "group_size": 3545,
+      "distinct_products": 1,
+      "distinct_issues": 2,
+      "distinct_companies": 6
+    },
+    {
+      "narrative_prefix": "i have a goal of getting a house as soon as possible but the stuff on my credit report will really put me in trouble. my name and all other information doesnt seem to look exactly the same on my id and other documents. i have attached the letters and",
+      "group_size": 3344,
+      "distinct_products": 1,
+      "distinct_issues": 2,
+      "distinct_companies": 3
+    },
+    {
+      "narrative_prefix": "this is my numerous request that i have been a victim of identity theft and that no one seems to care, that i want to dispute specific records in my credit file that do not belong to me, or that i have signed any agreement. the items i'm challenging ",
+      "group_size": 3286,
+      "distinct_products": 2,
+      "distinct_issues": 3,
+      "distinct_companies": 3
+    },
+    {
+      "narrative_prefix": "experian has failed to fulfill its legal obligation under the fair credit reporting act ( fcra ) to conduct a reasonable reinvestigation of disputed information on my credit report, leaving inaccurate or unverifiable accounts unresolved. the consumer",
+      "group_size": 3256,
+      "distinct_products": 3,
+      "distinct_issues": 10,
+      "distinct_companies": 8
+    },
+    {
+      "narrative_prefix": "please take a look at the attached letters and id docs for verification that it is i xxxx xxxx filing this complaint. the stuff on my credit report is wrong and under 15 u.s. code 1681b permissible purposes of consumer reports i never gave any writte",
+      "group_size": 3250,
+      "distinct_products": 2,
+      "distinct_issues": 3,
+      "distinct_companies": 3
+    },
+    {
+      "narrative_prefix": "i am writing to file a complaint against navy federal credit union regarding multiple overdraft fees i have incurred. despite having sufficient funds when transactions were authorized, i was charged fees due to lagged posting of charges and credits. ",
+      "group_size": 3186,
+      "distinct_products": 3,
+      "distinct_issues": 6,
+      "distinct_companies": 1
+    },
+    {
+      "narrative_prefix": "my accounts was never late! i have had exceptional payment history with xxxx xxxx and all payments were placed on autopay. this late payment that is reporting is a result on a systematic error on their end processing my payment. this was clearly a bi",
+      "group_size": 3137,
+      "distinct_products": 2,
+      "distinct_issues": 2,
+      "distinct_companies": 3
+    },
+    {
+      "narrative_prefix": "i am writing to express my concern regarding the disputed accounts on my credit report. multiple times, i have raised the issue of inaccuracies in these accounts, and have consistently requested that they be thoroughly investigated. despite my effort",
+      "group_size": 3056,
+      "distinct_products": 1,
+      "distinct_issues": 3,
+      "distinct_companies": 26
+    },
+    {
+      "narrative_prefix": "i hope you're doing well. i've run into a bit of a problem. while going through my credit report, i noticed some things that don't seem quite right, and it appears my identity have been stolen online. my nephew, who's studying xxxx xxxx, helped me ou",
+      "group_size": 3046,
+      "distinct_products": 1,
+      "distinct_issues": 4,
+      "distinct_companies": 9
+    },
+    {
+      "narrative_prefix": "i have a goal of getting a house as soon as possible but the stuff on my credit report will really put me in trouble, been waiting for the credit bureaus response and its really making me feel xxxx since it seems that theyre not doing anything to res",
+      "group_size": 2961,
+      "distinct_products": 1,
+      "distinct_issues": 3,
+      "distinct_companies": 3
+    },
+    {
+      "narrative_prefix": "this is a follow-up to my previous written dispute regarding fraudulent accounts and inquiries appearing on my consumer report. per fcra 605b ( 15 u.s.c. 1681c-2 ), you are required to block all information resulting from identity theft within four b",
+      "group_size": 2919,
+      "distinct_products": 1,
+      "distinct_issues": 2,
+      "distinct_companies": 3
+    },
+    {
+      "narrative_prefix": "i was utterly shocked and devastated upon discovering unauthorized accounts, credit inquiries and inaccurate personal information made or reported without my knowledge or consent. despite my efforts to seek clarification from the creditors, they have",
+      "group_size": 2857,
+      "distinct_products": 1,
+      "distinct_issues": 1,
+      "distinct_companies": 3
+    },
+    {
+      "narrative_prefix": "i discovered that some of the information on my credit report was incorrect when i reviewed it. sections 609 ( a ) ( 1 ) ( a ) and 611 ( a ) ( 1 ) require the 3 credit bureaus to validate these accounts ( a ). it is not permissible to fail to validat",
+      "group_size": 2824,
+      "distinct_products": 3,
+      "distinct_issues": 4,
+      "distinct_companies": 9
+    },
+    {
+      "narrative_prefix": "this cfpb complaint has been filed to request pursuant to fcra 605b ( 15. u. s. c. 1681c2 ) that you, the experian credit reporting agencys block the information appearing on my consumer credit report that is the result of identity theft, and fraud w",
+      "group_size": 2820,
+      "distinct_products": 1,
+      "distinct_issues": 2,
+      "distinct_companies": 2
+    },
+    {
+      "narrative_prefix": "i previously submitted a letter addressing the inaccuracies and unfamiliar items on my credit report. however, it has now been over 30 days, and i have not received a response. it appears my disputes are being disregarded, which raises serious concer",
+      "group_size": 2678,
+      "distinct_products": 1,
+      "distinct_issues": 1,
+      "distinct_companies": 3
+    },
+    {
+      "narrative_prefix": "i recently reviewed my consumer report and identified several inaccuracies that must be corrected immediately. these errors have caused me significant distress, and i demand swift resolution to ensure my consumer rights under the fair credit reportin",
+      "group_size": 2626,
+      "distinct_products": 1,
+      "distinct_issues": 3,
+      "distinct_companies": 3
+    },
+    {
+      "narrative_prefix": "this cfpb complaint has been filed to request pursuant to fcra 605b ( 15. u. s. c. 1681c2 ) that you, the transunion credit reporting agencys block the information appearing on my consumer credit report that is the result of identity theft, and fraud",
+      "group_size": 2576,
+      "distinct_products": 1,
+      "distinct_issues": 2,
+      "distinct_companies": 4
+    },
+    {
+      "narrative_prefix": "i am extremely dissatisfied with the failure to comply with section fcra 605b ( 15 u.s.c. 1681c-2 ), which mandates the removal of certain information within four days of receiving notice. therefore, i demand a swift correction of the inaccurate data",
+      "group_size": 2560,
+      "distinct_products": 1,
+      "distinct_issues": 2,
+      "distinct_companies": 3
+    }
+  ]
+}

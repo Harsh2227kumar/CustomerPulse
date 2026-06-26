@@ -1,0 +1,39 @@
+{
+  "demo_candidate_counts": [
+    {
+      "demo_type": "clear_credit_reporting_issue",
+      "count": 500
+    },
+    {
+      "demo_type": "clear_delayed_response",
+      "count": 500
+    },
+    {
+      "demo_type": "clear_fee_dispute",
+      "count": 500
+    },
+    {
+      "demo_type": "clear_fraud_legal_risk",
+      "count": 500
+    },
+    {
+      "demo_type": "clear_mortgage_loan_issue",
+      "count": 500
+    },
+    {
+      "demo_type": "clear_unauthorized_transaction",
+      "count": 500
+    }
+  ],
+  "duplicate_group_candidate_count": 1000,
+  "similar_theme_group_candidate_count": 1000,
+  "recommended_use": {
+    "clear_fee_dispute": "Use for category, evidence snippets, key issue extraction.",
+    "clear_unauthorized_transaction": "Use for fraud/risk signal and escalation input proof.",
+    "clear_delayed_response": "Use for urgency and SLA-style evidence.",
+    "clear_fraud_legal_risk": "Use for high-risk review and compliance handoff proof.",
+    "clear_credit_reporting_issue": "Use for classification quality proof.",
+    "clear_mortgage_loan_issue": "Use for product-specific category proof.",
+    "clear_duplicate_group": "Use for duplicate/similarity demo."
+  }
+}

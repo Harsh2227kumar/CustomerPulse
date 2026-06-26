@@ -1,0 +1,15 @@
+reason_code,count,percentage_of_usable_narratives
+credit_reporting_issue,2148141,56.82
+legal_or_fraud_language,1190715,31.5
+escalation_language,861005,22.77
+financial_harm,709804,18.77
+high_urgency_language,572093,15.13
+fee_dispute,569139,15.05
+delayed_response,495579,13.11
+unauthorized_transaction,489697,12.95
+identity_theft_signal,477779,12.64
+loan_or_mortgage_issue,437489,11.57
+low_confidence_candidate,157842,4.18
+refund_dispute,127345,3.37
+account_access_issue,42151,1.11
+duplicate_charge,4172,0.11

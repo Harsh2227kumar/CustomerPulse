@@ -1,0 +1,5 @@
+signal,count,percentage_of_usable_narratives
+neutral_admin_signal_count,2432167,64.33
+negative_signal_count,2304317,60.95
+positive_or_resolved_signal_count,528370,13.98
+mixed_negative_positive_count,383886,10.15

@@ -1,0 +1,301 @@
+company,product,issue,total_complaints,distinct_narratives,distinct_states
+"EQUIFAX, INC.",Credit reporting or other personal consumer reports,Incorrect information on your report,267147,143052,59
+"TRANSUNION INTERMEDIATE HOLDINGS, INC.",Credit reporting or other personal consumer reports,Incorrect information on your report,258507,143138,59
+Experian Information Solutions Inc.,Credit reporting or other personal consumer reports,Incorrect information on your report,244176,140943,59
+"EQUIFAX, INC.",Credit reporting or other personal consumer reports,Improper use of your report,152815,79803,59
+"TRANSUNION INTERMEDIATE HOLDINGS, INC.",Credit reporting or other personal consumer reports,Improper use of your report,152361,81895,60
+Experian Information Solutions Inc.,Credit reporting or other personal consumer reports,Improper use of your report,131137,77615,60
+Experian Information Solutions Inc.,Credit reporting or other personal consumer reports,Problem with a company's investigation into an existing problem,108209,59251,57
+"EQUIFAX, INC.",Credit reporting or other personal consumer reports,Problem with a company's investigation into an existing problem,106774,55702,57
+"EQUIFAX, INC.","Credit reporting, credit repair services, or other personal consumer reports",Incorrect information on your report,101572,86148,58
+"TRANSUNION INTERMEDIATE HOLDINGS, INC.",Credit reporting or other personal consumer reports,Problem with a company's investigation into an existing problem,98673,53635,57
+"TRANSUNION INTERMEDIATE HOLDINGS, INC.","Credit reporting, credit repair services, or other personal consumer reports",Incorrect information on your report,96121,82616,59
+Experian Information Solutions Inc.,"Credit reporting, credit repair services, or other personal consumer reports",Incorrect information on your report,92084,81287,59
+"EQUIFAX, INC.","Credit reporting, credit repair services, or other personal consumer reports",Problem with a credit reporting company's investigation into an existing problem,76726,58633,57
+"TRANSUNION INTERMEDIATE HOLDINGS, INC.","Credit reporting, credit repair services, or other personal consumer reports",Problem with a credit reporting company's investigation into an existing problem,69190,55598,57
+Experian Information Solutions Inc.,"Credit reporting, credit repair services, or other personal consumer reports",Problem with a credit reporting company's investigation into an existing problem,64467,53928,57
+"EQUIFAX, INC.","Credit reporting, credit repair services, or other personal consumer reports",Improper use of your report,56215,43341,57
+"TRANSUNION INTERMEDIATE HOLDINGS, INC.","Credit reporting, credit repair services, or other personal consumer reports",Improper use of your report,50308,41666,57
+Experian Information Solutions Inc.,"Credit reporting, credit repair services, or other personal consumer reports",Improper use of your report,47062,38459,57
+"Block, Inc.","Money transfer, virtual currency, or money service",Other transaction problem,28471,12091,59
+"Early Warning Services, LLC","Money transfer, virtual currency, or money service",Other transaction problem,14541,6747,56
+JPMORGAN CHASE & CO.,Checking or savings account,Managing an account,11571,11567,56
+WELLS FARGO & COMPANY,Checking or savings account,Managing an account,11468,11459,55
+"TRANSUNION INTERMEDIATE HOLDINGS, INC.",Debt collection,Attempts to collect debt not owed,10576,5111,52
+"BANK OF AMERICA, NATIONAL ASSOCIATION",Checking or savings account,Managing an account,10156,10155,56
+"TRANSUNION INTERMEDIATE HOLDINGS, INC.",Debt collection,Written notification about debt,9992,2447,49
+"EQUIFAX, INC.",Debt collection,Attempts to collect debt not owed,9980,4646,54
+"EQUIFAX, INC.",Debt collection,Written notification about debt,9809,2327,48
+Experian Information Solutions Inc.,Debt collection,Attempts to collect debt not owed,9423,5101,53
+Experian Information Solutions Inc.,Debt collection,Written notification about debt,9007,2277,51
+MOHELA,Student loan,Dealing with your lender or servicer,8496,8491,58
+CAPITAL ONE FINANCIAL CORPORATION,Checking or savings account,Managing an account,7706,6846,55
+"EQUIFAX, INC.",Credit reporting,Incorrect information on credit report,7630,7527,56
+Resurgent Capital Services L.P.,Debt collection,Attempts to collect debt not owed,7575,7122,53
+NAVY FEDERAL CREDIT UNION,Checking or savings account,Problem caused by your funds being low,7316,3996,54
+"Navient Solutions, LLC.",Student loan,Dealing with your lender or servicer,6905,6905,56
+"Portfolio Recovery Associates, LLC",Debt collection,Attempts to collect debt not owed,6523,5777,55
+"TRANSUNION INTERMEDIATE HOLDINGS, INC.",Credit reporting,Incorrect information on credit report,6427,6357,55
+ENCORE CAPITAL GROUP INC.,Debt collection,Attempts to collect debt not owed,6049,5273,54
+Experian Information Solutions Inc.,Credit reporting,Incorrect information on credit report,5765,5682,53
+CL Holdings LLC,Debt collection,Attempts to collect debt not owed,5452,4720,54
+Chime Financial Inc,Checking or savings account,Managing an account,5364,5364,52
+"CITIBANK, N.A.",Checking or savings account,Managing an account,5205,5202,54
+"Shellpoint Partners, LLC",Mortgage,Trouble during payment process,5136,5134,53
+CAPITAL ONE FINANCIAL CORPORATION,"Credit reporting, credit repair services, or other personal consumer reports",Incorrect information on your report,4496,4397,52
+"Nelnet, Inc.",Student loan,Dealing with your lender or servicer,4480,4471,53
+Mr. Cooper Group Inc.,Mortgage,Trouble during payment process,4411,4403,53
+"CITIBANK, N.A.",Credit card or prepaid card,Problem with a purchase shown on your statement,4318,4314,54
+AES/PHEAA,Student loan,Dealing with your lender or servicer,4257,4257,57
+"EQUIFAX, INC.","Credit reporting, credit repair services, or other personal consumer reports",Unable to get your credit report or credit score,4247,4087,56
+"Navient Solutions, LLC.",Student loan,Dealing with my lender or servicer,3879,3878,58
+"CCS Financial Services, Inc.",Debt collection,Attempts to collect debt not owed,3750,3201,52
+"CITIBANK, N.A.",Credit card,Problem with a purchase shown on your statement,3728,3728,56
+LEXISNEXIS,Credit reporting or other personal consumer reports,Incorrect information on your report,3714,2909,50
+"I.C. System, Inc.",Debt collection,Attempts to collect debt not owed,3657,3284,54
+CAPITAL ONE FINANCIAL CORPORATION,Credit reporting or other personal consumer reports,Incorrect information on your report,3586,3541,52
+JPMORGAN CHASE & CO.,Checking or savings account,Closing an account,3562,3559,50
+"Block, Inc.","Money transfer, virtual currency, or money service",Fraud or scam,3559,3555,52
+"EQUIFAX, INC.",Credit reporting or other personal consumer reports,Unable to get your credit report or credit score,3491,2304,55
+JPMORGAN CHASE & CO.,Credit card or prepaid card,Problem with a purchase shown on your statement,3410,3399,56
+"Navient Solutions, LLC.",Student loan,Struggling to repay your loan,3376,3376,52
+CAPITAL ONE FINANCIAL CORPORATION,Credit reporting or other personal consumer reports,Improper use of your report,3354,3248,53
+"Paypal Holdings, Inc","Money transfer, virtual currency, or money service","Managing, opening, or closing your mobile wallet account",3287,3002,57
+CAPITAL ONE FINANCIAL CORPORATION,Credit card or prepaid card,Problem with a purchase shown on your statement,3277,3274,55
+PNC Bank N.A.,Checking or savings account,Managing an account,3157,3156,53
+"Paypal Holdings, Inc","Money transfer, virtual currency, or money service",Fraud or scam,3154,3154,56
+CAPITAL ONE FINANCIAL CORPORATION,"Credit reporting, credit repair services, or other personal consumer reports",Improper use of your report,3132,3008,52
+WELLS FARGO & COMPANY,Checking or savings account,Problem with a lender or other company charging your account,3080,3079,51
+"Block, Inc.","Money transfer, virtual currency, or money service",Unauthorized transactions or other transaction problem,3033,3014,50
+Resurgent Capital Services L.P.,Debt collection,Written notification about debt,3015,2888,52
+WELLS FARGO & COMPANY,Mortgage,Trouble during payment process,3000,2997,54
+CAPITAL ONE FINANCIAL CORPORATION,Debt collection,Attempts to collect debt not owed,2985,2903,51
+JPMORGAN CHASE & CO.,Checking or savings account,Problem with a lender or other company charging your account,2974,2974,51
+TRANSWORLD SYSTEMS INC,Debt collection,Attempts to collect debt not owed,2945,2856,54
+"BANK OF AMERICA, NATIONAL ASSOCIATION",Checking or savings account,Closing an account,2749,2745,52
+"Portfolio Recovery Associates, LLC",Debt collection,Written notification about debt,2747,2561,52
+"CBC Companies, Inc.",Credit reporting or other personal consumer reports,Incorrect information on your report,2742,1662,51
+WELLS FARGO & COMPANY,Checking or savings account,Problem caused by your funds being low,2741,2737,50
+"National Credit Systems,Inc.",Debt collection,Attempts to collect debt not owed,2733,2535,49
+NAVY FEDERAL CREDIT UNION,Checking or savings account,Managing an account,2682,2677,53
+WELLS FARGO & COMPANY,Mortgage,Struggling to pay mortgage,2672,2670,51
+"Paypal Holdings, Inc","Money transfer, virtual currency, or money service",Unauthorized transactions or other transaction problem,2658,2654,53
+"Block, Inc.",Checking or savings account,Managing an account,2610,2605,51
+Experian Information Solutions Inc.,"Credit reporting, credit repair services, or other personal consumer reports",Unable to get your credit report or credit score,2578,2472,54
+CAPITAL ONE FINANCIAL CORPORATION,Credit card,Problem with a purchase shown on your statement,2576,2576,55
+Ocwen Financial Corporation,Mortgage,Trouble during payment process,2573,2573,53
+"Kriya Capital, LLC",Debt collection,Attempts to collect debt not owed,2557,2268,53
+"TRANSUNION INTERMEDIATE HOLDINGS, INC.",Credit card,Problem with a company's investigation into an existing problem,2549,874,42
+"Portfolio Recovery Associates, LLC",Debt collection,Communication tactics,2548,2542,53
+U.S. BANCORP,Checking or savings account,Managing an account,2529,2529,52
+"EQUIFAX, INC.",Credit card,Problem with a company's investigation into an existing problem,2499,860,40
+"BANK OF AMERICA, NATIONAL ASSOCIATION",Checking or savings account,Problem with a lender or other company charging your account,2477,2477,48
+"EQUIFAX, INC.","Credit reporting, credit repair services, or other personal consumer reports",Problem with fraud alerts or security freezes,2476,2359,58
+JPMORGAN CHASE & CO.,"Money transfer, virtual currency, or money service",Fraud or scam,2476,2476,47
+CAPITAL ONE FINANCIAL CORPORATION,"Credit reporting, credit repair services, or other personal consumer reports",Problem with a credit reporting company's investigation into an existing problem,2457,2189,48
+ENCORE CAPITAL GROUP INC.,Debt collection,Written notification about debt,2439,2329,50
+Resurgent Capital Services L.P.,Debt collection,False statements or representation,2438,2396,50
+"CITIBANK, N.A.",Checking or savings account,Closing an account,2429,2429,52
+JPMORGAN CHASE & CO.,Credit card,Problem with a purchase shown on your statement,2421,2418,54
+TRUIST FINANCIAL CORPORATION,Checking or savings account,Managing an account,2398,2398,45
+Freedom Mortgage Company,Mortgage,Trouble during payment process,2388,2388,53
+WELLS FARGO & COMPANY,"Money transfer, virtual currency, or money service",Fraud or scam,2354,2352,50
+Experian Information Solutions Inc.,"Credit reporting, credit repair services, or other personal consumer reports",Problem with fraud alerts or security freezes,2342,2236,54
+"TRANSUNION INTERMEDIATE HOLDINGS, INC.","Credit reporting, credit repair services, or other personal consumer reports",Unable to get your credit report or credit score,2331,2226,52
+Chime Financial Inc,Checking or savings account,Problem with a lender or other company charging your account,2307,2306,50
+"LoanCare, LLC",Mortgage,Trouble during payment process,2305,2305,56
+"EQUIFAX, INC.",Credit reporting or other personal consumer reports,Problem with fraud alerts or security freezes,2276,1437,53
+ENCORE CAPITAL GROUP INC.,Debt collection,Took or threatened to take negative or legal action,2273,2220,52
+Experian Information Solutions Inc.,Credit reporting or other personal consumer reports,Unable to get your credit report or credit score,2269,2048,54
+"Maximus Federal Services, Inc.",Student loan,Dealing with your lender or servicer,2193,2191,55
+Experian Information Solutions Inc.,Credit card,Problem with a company's investigation into an existing problem,2161,787,38
+Ocwen Financial Corporation,Mortgage,Struggling to pay mortgage,2142,2142,48
+"BANK OF AMERICA, NATIONAL ASSOCIATION",Checking or savings account,Opening an account,2128,2128,51
+EdFinancial Services,Student loan,Dealing with your lender or servicer,2117,2114,53
+"BANK OF AMERICA, NATIONAL ASSOCIATION",Credit card or prepaid card,Problem with a purchase shown on your statement,2109,2109,53
+WELLS FARGO & COMPANY,Checking or savings account,Closing an account,2103,2099,53
+"EQUIFAX, INC.",Credit reporting,Credit reporting company's investigation,2102,2015,49
+"BANK OF AMERICA, NATIONAL ASSOCIATION","Money transfer, virtual currency, or money service",Fraud or scam,2088,2084,50
+UNITED SERVICES AUTOMOBILE ASSOCIATION,Checking or savings account,Managing an account,2080,2080,56
+"CITIBANK, N.A.","Credit reporting, credit repair services, or other personal consumer reports",Incorrect information on your report,2077,2025,52
+Experian Information Solutions Inc.,Credit reporting or other personal consumer reports,Credit monitoring or identity theft protection services,2075,1647,52
+AMERICAN EXPRESS COMPANY,Prepaid card,Trouble using the card,2043,2027,53
+SYNCHRONY FINANCIAL,Credit card,Fees or interest,2012,2012,52
+TD BANK US HOLDING COMPANY,Checking or savings account,Managing an account,1952,1952,39
+JPMORGAN CHASE & CO.,"Credit reporting, credit repair services, or other personal consumer reports",Incorrect information on your report,1944,1885,51
+ERC,Debt collection,Attempts to collect debt not owed,1941,1852,52
+SYNCHRONY FINANCIAL,Credit card,Problem with a purchase shown on your statement,1939,1938,52
+ENCORE CAPITAL GROUP INC.,Debt collection,False statements or representation,1929,1904,51
+Experian Information Solutions Inc.,Credit reporting,Credit reporting company's investigation,1919,1721,50
+"Navient Solutions, LLC.",Student loan,Can't repay my loan,1894,1894,52
+SYNCHRONY FINANCIAL,Debt collection,Attempts to collect debt not owed,1889,1827,54
+SYNCHRONY FINANCIAL,Credit card or prepaid card,Problem with a purchase shown on your statement,1888,1888,51
+CL Holdings LLC,Debt collection,Written notification about debt,1877,1829,54
+SYNCHRONY FINANCIAL,"Credit reporting, credit repair services, or other personal consumer reports",Incorrect information on your report,1870,1847,53
+"SELECT PORTFOLIO SERVICING, INC.",Mortgage,Struggling to pay mortgage,1854,1851,48
+"BANK OF AMERICA, NATIONAL ASSOCIATION","Credit reporting, credit repair services, or other personal consumer reports",Incorrect information on your report,1851,1783,50
+"Portfolio Recovery Associates, LLC",Debt collection,False statements or representation,1849,1822,50
+WELLS FARGO & COMPANY,"Credit reporting, credit repair services, or other personal consumer reports",Incorrect information on your report,1848,1802,52
+"Early Warning Services, LLC","Money transfer, virtual currency, or money service",Fraud or scam,1842,1795,49
+"SELECT PORTFOLIO SERVICING, INC.",Mortgage,Trouble during payment process,1798,1797,49
+LEXISNEXIS,"Credit reporting, credit repair services, or other personal consumer reports",Incorrect information on your report,1791,1760,49
+"TRANSUNION INTERMEDIATE HOLDINGS, INC.",Credit reporting or other personal consumer reports,Unable to get your credit report or credit score,1777,1629,52
+"Paypal Holdings, Inc","Money transfer, virtual currency, or money service",Trouble accessing funds in your mobile or digital wallet,1777,1776,50
+"Convergent Resources, Inc.",Debt collection,Attempts to collect debt not owed,1771,1736,52
+"BANK OF AMERICA, NATIONAL ASSOCIATION",Credit card,Problem with a purchase shown on your statement,1767,1767,51
+Resurgent Capital Services L.P.,Credit reporting or other personal consumer reports,Incorrect information on your report,1753,1725,46
+Experian Information Solutions Inc.,Credit reporting or other personal consumer reports,Problem with fraud alerts or security freezes,1752,1603,52
+"CITIBANK, N.A.",Credit card or prepaid card,"Other features, terms, or problems",1748,1748,53
+WELLS FARGO & COMPANY,Checking or savings account,Opening an account,1744,1742,51
+"CBC Companies, Inc.",Credit reporting or other personal consumer reports,Improper use of your report,1739,461,47
+CAPITAL ONE FINANCIAL CORPORATION,Credit card or prepaid card,Fees or interest,1724,1721,53
+"TRANSUNION INTERMEDIATE HOLDINGS, INC.",Credit reporting or other personal consumer reports,Credit monitoring or identity theft protection services,1715,1277,50
+"CITIBANK, N.A.",Credit card or prepaid card,Fees or interest,1676,1671,51
+GOLDMAN SACHS BANK USA,Credit card,Problem with a purchase shown on your statement,1665,1665,53
+"Shellpoint Partners, LLC",Mortgage,Struggling to pay mortgage,1658,1658,49
+CAPITAL ONE FINANCIAL CORPORATION,Credit card or prepaid card,"Other features, terms, or problems",1657,1656,54
+Resurgent Capital Services L.P.,Debt collection,Took or threatened to take negative or legal action,1654,1608,50
+Mr. Cooper Group Inc.,Mortgage,Struggling to pay mortgage,1649,1649,51
+"CITIBANK, N.A.",Debt collection,Attempts to collect debt not owed,1628,1559,51
+WELLS FARGO & COMPANY,Mortgage,"Loan modification,collection,foreclosure",1621,1621,55
+Chime Financial Inc,Checking or savings account,Closing an account,1612,1611,49
+CAPITAL ONE FINANCIAL CORPORATION,Credit card or prepaid card,Problem when making payments,1612,1537,54
+Ocwen Financial Corporation,Mortgage,"Loan servicing, payments, escrow account",1586,1583,52
+CAPITAL ONE FINANCIAL CORPORATION,Credit card,"Other features, terms, or problems",1583,1583,53
+"TRANSUNION INTERMEDIATE HOLDINGS, INC.",Credit reporting or other personal consumer reports,Problem with fraud alerts or security freezes,1565,1244,52
+CAPITAL ONE FINANCIAL CORPORATION,Credit card,Getting a credit card,1551,1550,55
+"Paypal Holdings, Inc","Money transfer, virtual currency, or money service",Other transaction problem,1540,1539,52
+JPMORGAN CHASE & CO.,Credit card or prepaid card,"Other features, terms, or problems",1536,1535,52
+"Bread Financial Holdings, Inc.","Credit reporting, credit repair services, or other personal consumer reports",Incorrect information on your report,1535,1500,50
+"EQUIFAX, INC.",Credit reporting or other personal consumer reports,Credit monitoring or identity theft protection services,1532,1147,51
+"CAINE & WEINER COMPANY, INC.",Debt collection,Attempts to collect debt not owed,1493,1279,48
+ENCORE CAPITAL GROUP INC.,Debt collection,Communication tactics,1488,1484,52
+"SOFI TECHNOLOGIES, INC.",Checking or savings account,Managing an account,1480,1479,50
+AMERICAN EXPRESS COMPANY,Credit card,Problem with a purchase shown on your statement,1479,1478,50
+MOHELA,Student loan,Struggling to repay your loan,1477,1476,55
+"Coinbase, Inc.","Money transfer, virtual currency, or money service",Fraud or scam,1476,1476,54
+Specialized Loan Servicing Holdings LLC,Mortgage,Trouble during payment process,1475,1471,50
+"TRANSUNION INTERMEDIATE HOLDINGS, INC.",Credit reporting,Credit reporting company's investigation,1467,1407,50
+"CITIZENS FINANCIAL GROUP, INC.",Checking or savings account,Managing an account,1466,1466,41
+CL Holdings LLC,Debt collection,False statements or representation,1457,1435,51
+"Bread Financial Holdings, Inc.",Credit card or prepaid card,Fees or interest,1456,1456,51
+JPMORGAN CHASE & CO.,Credit card,"Other features, terms, or problems",1452,1452,52
+NATIONSTAR MORTGAGE LLC,Mortgage,"Loan servicing, payments, escrow account",1452,1452,49
+JPMORGAN CHASE & CO.,Checking or savings account,Opening an account,1448,1446,52
+AMERICAN EXPRESS COMPANY,Credit card or prepaid card,"Other features, terms, or problems",1446,1445,54
+Ditech Financial LLC,Mortgage,"Loan servicing, payments, escrow account",1438,1438,52
+"Bread Financial Holdings, Inc.",Debt collection,Attempts to collect debt not owed,1436,1361,50
+LEXISNEXIS,Credit reporting or other personal consumer reports,Improper use of your report,1433,1061,48
+"Portfolio Recovery Associates, LLC",Debt collection,Took or threatened to take negative or legal action,1423,1379,50
+"TRANSUNION INTERMEDIATE HOLDINGS, INC.","Credit reporting, credit repair services, or other personal consumer reports",Problem with fraud alerts or security freezes,1422,1306,54
+DISCOVER BANK,Credit card or prepaid card,Problem with a purchase shown on your statement,1410,1408,52
+CAPITAL ONE FINANCIAL CORPORATION,Credit reporting or other personal consumer reports,Problem with a company's investigation into an existing problem,1409,1315,46
+ALLY FINANCIAL INC.,Checking or savings account,Managing an account,1401,1401,53
+CAPITAL ONE FINANCIAL CORPORATION,Credit card or prepaid card,Getting a credit card,1398,1393,51
+Experian Information Solutions Inc.,"Credit reporting, credit repair services, or other personal consumer reports",Credit monitoring or identity theft protection services,1397,1392,53
+SYNCHRONY FINANCIAL,"Credit reporting, credit repair services, or other personal consumer reports",Improper use of your report,1395,1360,51
+BARCLAYS BANK DELAWARE,Credit card or prepaid card,Problem with a purchase shown on your statement,1394,1394,51
+"TRANSUNION INTERMEDIATE HOLDINGS, INC.",Credit card or prepaid card,Problem with a credit reporting company's investigation into an existing problem,1391,286,32
+JPMORGAN CHASE & CO.,Credit reporting or other personal consumer reports,Improper use of your report,1384,1305,53
+JPMORGAN CHASE & CO.,Credit reporting or other personal consumer reports,Incorrect information on your report,1383,1359,54
+"CITIBANK, N.A.",Credit card,"Other features, terms, or problems",1379,1377,53
+CAPITAL ONE FINANCIAL CORPORATION,Credit card,Fees or interest,1365,1364,52
+"Paypal Holdings, Inc",Checking or savings account,Managing an account,1349,1347,50
+"Coinbase, Inc.","Money transfer, virtual currency, or money service",Other transaction problem,1346,1346,52
+DISCOVER BANK,"Credit reporting, credit repair services, or other personal consumer reports",Incorrect information on your report,1333,1302,49
+"CITIBANK, N.A.",Credit reporting or other personal consumer reports,Incorrect information on your report,1332,1286,49
+"Bread Financial Holdings, Inc.",Credit card,Fees or interest,1331,1331,51
+DISCOVER BANK,Credit reporting or other personal consumer reports,Incorrect information on your report,1314,1293,51
+"Coinbase, Inc.","Money transfer, virtual currency, or money service",Money was not available when promised,1308,1308,54
+"BANK OF AMERICA, NATIONAL ASSOCIATION",Mortgage,Trouble during payment process,1306,1305,51
+"BANK OF AMERICA, NATIONAL ASSOCIATION",Checking or savings account,Problem caused by your funds being low,1296,1296,45
+AMERICAN EXPRESS COMPANY,Credit card or prepaid card,Problem with a purchase shown on your statement,1291,1291,50
+"CITIBANK, N.A.",Credit card,Fees or interest,1274,1273,52
+SYNCHRONY FINANCIAL,Credit card or prepaid card,Fees or interest,1271,1271,52
+Radius Global Solutions LLC,Debt collection,Attempts to collect debt not owed,1266,1230,45
+"National Credit Adjusters, LLC",Debt collection,Attempts to collect debt not owed,1254,1109,45
+"Rowland Avenue Management, Inc. A/KA Columbia Debt Recovery, LLC d/b/a Genesis",Debt collection,Attempts to collect debt not owed,1250,1228,49
+DISCOVER BANK,Credit card,Problem with a purchase shown on your statement,1246,1245,52
+"EQUIFAX, INC.",Credit card or prepaid card,Problem with a credit reporting company's investigation into an existing problem,1241,276,31
+WELLS FARGO & COMPANY,Mortgage,Applying for a mortgage or refinancing an existing mortgage,1231,1231,50
+JPMORGAN CHASE & CO.,Checking or savings account,Problem caused by your funds being low,1223,1223,41
+"Southwest Credit Systems, L.P.",Debt collection,Attempts to collect debt not owed,1214,1188,49
+"Nelnet, Inc.",Student loan,Struggling to repay your loan,1203,1202,51
+CAPITAL ONE FINANCIAL CORPORATION,Credit card,Closing your account,1199,1199,54
+WELLS FARGO & COMPANY,Mortgage,"Loan servicing, payments, escrow account",1198,1197,49
+AMERICAN EXPRESS COMPANY,Credit card or prepaid card,"Advertising and marketing, including promotional offers",1187,1184,51
+"CCS Financial Services, Inc.",Debt collection,Written notification about debt,1187,1132,48
+CAPITAL ONE FINANCIAL CORPORATION,Checking or savings account,Closing an account,1183,1183,51
+"CITIBANK, N.A.",Checking or savings account,Opening an account,1180,1178,47
+"BANK OF AMERICA, NATIONAL ASSOCIATION",Mortgage,"Loan modification,collection,foreclosure",1175,1175,47
+"HW Holding, Inc",Debt collection,Attempts to collect debt not owed,1175,1121,45
+"EQUIFAX, INC.","Credit reporting, credit repair services, or other personal consumer reports",Credit monitoring or identity theft protection services,1173,1143,51
+"PENNYMAC LOAN SERVICES, LLC.",Mortgage,Trouble during payment process,1167,1167,51
+"TRANSUNION INTERMEDIATE HOLDINGS, INC.","Credit reporting, credit repair services, or other personal consumer reports",Credit monitoring or identity theft protection services,1160,1156,51
+CAPITAL ONE FINANCIAL CORPORATION,Credit card or prepaid card,Closing your account,1160,1156,52
+SYNCHRONY FINANCIAL,Credit reporting or other personal consumer reports,Incorrect information on your report,1156,1124,50
+WELLS FARGO & COMPANY,Credit card,Problem with a purchase shown on your statement,1155,1154,47
+ALLY FINANCIAL INC.,Vehicle loan or lease,Managing the loan or lease,1139,1139,50
+JPMORGAN CHASE & CO.,"Credit reporting, credit repair services, or other personal consumer reports",Improper use of your report,1139,1098,47
+"I.C. System, Inc.",Debt collection,Written notification about debt,1130,1104,48
+"Spring Oaks Capital, LLC",Debt collection,Attempts to collect debt not owed,1127,940,46
+AES/PHEAA,Student loan,Dealing with my lender or servicer,1117,1117,53
+Experian Information Solutions Inc.,Credit card,Incorrect information on your report,1116,672,38
+SYNCHRONY FINANCIAL,Credit reporting or other personal consumer reports,Improper use of your report,1115,1050,47
+"CITIBANK, N.A.","Credit reporting, credit repair services, or other personal consumer reports",Problem with a credit reporting company's investigation into an existing problem,1110,1016,47
+"BANK OF AMERICA, NATIONAL ASSOCIATION",Credit reporting or other personal consumer reports,Incorrect information on your report,1100,1071,46
+"CITIBANK, N.A.",Credit card or prepaid card,Problem when making payments,1100,1094,53
+"EQUIFAX, INC.",Credit card,Incorrect information on your report,1093,655,40
+JPMORGAN CHASE & CO.,Mortgage,Trouble during payment process,1090,1090,48
+GOLDMAN SACHS BANK USA,Checking or savings account,Managing an account,1090,1090,50
+"Bread Financial Holdings, Inc.",Credit card or prepaid card,Problem when making payments,1089,1069,50
+"National Credit Systems,Inc.",Debt collection,False statements or representation,1087,1080,43
+Experian Information Solutions Inc.,Credit card or prepaid card,Problem with a credit reporting company's investigation into an existing problem,1077,252,31
+"Block, Inc.","Money transfer, virtual currency, or money service",Trouble accessing funds in your mobile or digital wallet,1075,1075,50
+"Westlake Services, LLC",Vehicle loan or lease,Managing the loan or lease,1072,1072,46
+SYNCHRONY FINANCIAL,Credit card or prepaid card,Problem when making payments,1070,1053,50
+TRANSWORLD SYSTEMS INC,Debt collection,Written notification about debt,1068,1060,51
+"CITIBANK, N.A.",Bank account or service,"Account opening, closing, or management",1068,1064,48
+SYNCHRONY FINANCIAL,Credit card or prepaid card,Closing your account,1067,1065,52
+"SUNRISE CREDIT SERVICES, INC",Debt collection,Attempts to collect debt not owed,1064,1009,46
+"National Credit Systems,Inc.",Debt collection,Written notification about debt,1060,1051,45
+WELLS FARGO & COMPANY,"Credit reporting, credit repair services, or other personal consumer reports",Problem with a credit reporting company's investigation into an existing problem,1060,951,47
+Ocwen Financial Corporation,Mortgage,"Loan modification,collection,foreclosure",1053,1053,47
+"LAKEVIEW LOAN SERVICING, LLC",Mortgage,Trouble during payment process,1051,1051,50
+Resurgent Capital Services L.P.,Credit reporting or other personal consumer reports,Improper use of your report,1047,1025,43
+"CITIBANK, N.A.",Credit reporting or other personal consumer reports,Improper use of your report,1046,956,46
+"Fidelity National Information Services, Inc. (FNIS)",Credit reporting or other personal consumer reports,Incorrect information on your report,1035,999,42
+SYNCHRONY FINANCIAL,Credit card or prepaid card,"Other features, terms, or problems",1023,1022,52
+CL Holdings LLC,Credit reporting or other personal consumer reports,Incorrect information on your report,1022,1014,44
+BARCLAYS BANK DELAWARE,Credit card,Problem with a purchase shown on your statement,1021,1019,49
+LEXISNEXIS,Credit reporting or other personal consumer reports,Problem with a company's investigation into an existing problem,1018,736,47
+"BANK OF AMERICA, NATIONAL ASSOCIATION",Debt collection,Attempts to collect debt not owed,1015,953,49
+"CARRINGTON MORTGAGE SERVICES, LLC",Mortgage,Trouble during payment process,1014,1011,49
+SYNCHRONY FINANCIAL,Credit card,Closing your account,1013,1013,49
+"Bread Financial Holdings, Inc.",Credit reporting or other personal consumer reports,Incorrect information on your report,1012,986,45
+"Navient Solutions, LLC.","Credit reporting, credit repair services, or other personal consumer reports",Incorrect information on your report,1012,1003,50
+"Portfolio Recovery Associates, LLC","Credit reporting, credit repair services, or other personal consumer reports",Incorrect information on your report,1008,969,48
+"Amsher Collection Services, Inc.",Debt collection,Attempts to collect debt not owed,1005,981,50
+LEXISNEXIS,"Credit reporting, credit repair services, or other personal consumer reports",Problem with a credit reporting company's investigation into an existing problem,997,954,43
+"Nelnet, Inc.",Credit reporting or other personal consumer reports,Incorrect information on your report,996,983,51
+"CITIBANK, N.A.","Credit reporting, credit repair services, or other personal consumer reports",Improper use of your report,994,957,46
+"HUNTINGTON NATIONAL BANK, THE",Checking or savings account,Managing an account,993,993,34
+FIFTH THIRD FINANCIAL CORPORATION,Checking or savings account,Managing an account,993,993,39
+NATIONSTAR MORTGAGE LLC,Mortgage,"Loan modification,collection,foreclosure",989,989,50
+CAPITAL ONE FINANCIAL CORPORATION,Debt collection,Written notification about debt,987,922,47
+ENCORE CAPITAL GROUP INC.,Credit reporting or other personal consumer reports,Incorrect information on your report,986,979,44
+"Bread Financial Holdings, Inc.",Debt collection,Communication tactics,985,981,53
+JPMORGAN CHASE & CO.,Debt collection,Attempts to collect debt not owed,984,940,45
+WELLS FARGO & COMPANY,Debt collection,Attempts to collect debt not owed,983,898,49
+"CITIBANK, N.A.",Credit card,Getting a credit card,982,979,47
+Santander Consumer USA Holdings Inc.,"Credit reporting, credit repair services, or other personal consumer reports",Incorrect information on your report,978,964,45
+JPMORGAN CHASE & CO.,Credit card,Getting a credit card,974,967,52
+WELLS FARGO & COMPANY,Credit reporting or other personal consumer reports,Incorrect information on your report,963,941,41
+"BANK OF AMERICA, NATIONAL ASSOCIATION","Credit reporting, credit repair services, or other personal consumer reports",Problem with a credit reporting company's investigation into an existing problem,957,871,45
+"Rocket Mortgage, LLC",Mortgage,Applying for a mortgage or refinancing an existing mortgage,953,953,50
+U.S. BANCORP,Checking or savings account,Closing an account,950,949,47
+JPMORGAN CHASE & CO.,"Money transfer, virtual currency, or money service",Other transaction problem,950,942,40
+"Sequium Asset Solutions, LLC",Debt collection,Attempts to collect debt not owed,947,930,50
+DISCOVER BANK,Debt collection,Attempts to collect debt not owed,946,913,48
+"CITIBANK, N.A.",Credit card or prepaid card,Closing your account,946,944,48
+"FAIR COLLECTIONS & OUTSOURCING, INC.",Debt collection,Attempts to collect debt not owed,938,908,45

@@ -1,0 +1,625 @@
+{
+  "total_usable_narratives": 3780604,
+  "signal_counts": [
+    {
+      "signal": "fraud_legal_count",
+      "count": 1487552,
+      "percentage_of_usable_narratives": 39.35
+    },
+    {
+      "signal": "financial_harm_count",
+      "count": 888539,
+      "percentage_of_usable_narratives": 23.5
+    },
+    {
+      "signal": "high_urgency_phrase_count",
+      "count": 580595,
+      "percentage_of_usable_narratives": 15.36
+    },
+    {
+      "signal": "delay_count",
+      "count": 495579,
+      "percentage_of_usable_narratives": 13.11
+    },
+    {
+      "signal": "timely_response_no_count",
+      "count": 40358,
+      "percentage_of_usable_narratives": 1.07
+    },
+    {
+      "signal": "timely_no_plus_financial_harm_count",
+      "count": 17103,
+      "percentage_of_usable_narratives": 0.45
+    },
+    {
+      "signal": "timely_no_plus_fraud_legal_count",
+      "count": 11742,
+      "percentage_of_usable_narratives": 0.31
+    },
+    {
+      "signal": "timely_no_plus_delay_count",
+      "count": 9309,
+      "percentage_of_usable_narratives": 0.25
+    },
+    {
+      "signal": "timely_no_plus_high_urgency_phrase_count",
+      "count": 5508,
+      "percentage_of_usable_narratives": 0.15
+    }
+  ],
+  "severity_distribution_sample_size": 100000,
+  "severity_distribution": [
+    {
+      "candidate_severity": "Low",
+      "count": 46182,
+      "percentage": 46.18
+    },
+    {
+      "candidate_severity": "Medium",
+      "count": 40959,
+      "percentage": 40.96
+    },
+    {
+      "candidate_severity": "High",
+      "count": 10985,
+      "percentage": 10.98
+    },
+    {
+      "candidate_severity": "Critical",
+      "count": 1874,
+      "percentage": 1.87
+    }
+  ],
+  "top_high_risk_product_issue_pairs": [
+    {
+      "product": "Credit reporting or other personal consumer reports",
+      "issue": "Incorrect information on your report",
+      "total": 829814,
+      "fraud_legal_count": 384878,
+      "financial_harm_count": 143324,
+      "delay_count": 42722,
+      "high_urgency_phrase_count": 138652,
+      "timely_response_no_count": 1542,
+      "combined_risk_signal_count": 572466
+    },
+    {
+      "product": "Credit reporting or other personal consumer reports",
+      "issue": "Improper use of your report",
+      "total": 475811,
+      "fraud_legal_count": 232499,
+      "financial_harm_count": 56450,
+      "delay_count": 21834,
+      "high_urgency_phrase_count": 71790,
+      "timely_response_no_count": 860,
+      "combined_risk_signal_count": 311643
+    },
+    {
+      "product": "Credit reporting, credit repair services, or other personal consumer reports",
+      "issue": "Incorrect information on your report",
+      "total": 353664,
+      "fraud_legal_count": 163835,
+      "financial_harm_count": 60733,
+      "delay_count": 34359,
+      "high_urgency_phrase_count": 55883,
+      "timely_response_no_count": 2022,
+      "combined_risk_signal_count": 260949
+    },
+    {
+      "product": "Credit reporting or other personal consumer reports",
+      "issue": "Problem with a company's investigation into an existing problem",
+      "total": 337471,
+      "fraud_legal_count": 128097,
+      "financial_harm_count": 48569,
+      "delay_count": 46589,
+      "high_urgency_phrase_count": 70016,
+      "timely_response_no_count": 511,
+      "combined_risk_signal_count": 223766
+    },
+    {
+      "product": "Debt collection",
+      "issue": "Attempts to collect debt not owed",
+      "total": 180337,
+      "fraud_legal_count": 74328,
+      "financial_harm_count": 105298,
+      "delay_count": 19964,
+      "high_urgency_phrase_count": 28303,
+      "timely_response_no_count": 4593,
+      "combined_risk_signal_count": 204183
+    },
+    {
+      "product": "Credit reporting, credit repair services, or other personal consumer reports",
+      "issue": "Problem with a credit reporting company's investigation into an existing problem",
+      "total": 241926,
+      "fraud_legal_count": 66733,
+      "financial_harm_count": 39433,
+      "delay_count": 45077,
+      "high_urgency_phrase_count": 48550,
+      "timely_response_no_count": 985,
+      "combined_risk_signal_count": 152228
+    },
+    {
+      "product": "Checking or savings account",
+      "issue": "Managing an account",
+      "total": 96156,
+      "fraud_legal_count": 36494,
+      "financial_harm_count": 18043,
+      "delay_count": 26926,
+      "high_urgency_phrase_count": 16901,
+      "timely_response_no_count": 969,
+      "combined_risk_signal_count": 82432
+    },
+    {
+      "product": "Money transfer, virtual currency, or money service",
+      "issue": "Other transaction problem",
+      "total": 54043,
+      "fraud_legal_count": 43723,
+      "financial_harm_count": 28871,
+      "delay_count": 3681,
+      "high_urgency_phrase_count": 2261,
+      "timely_response_no_count": 311,
+      "combined_risk_signal_count": 76586
+    },
+    {
+      "product": "Debt collection",
+      "issue": "Written notification about debt",
+      "total": 85380,
+      "fraud_legal_count": 17630,
+      "financial_harm_count": 44200,
+      "delay_count": 8314,
+      "high_urgency_phrase_count": 10579,
+      "timely_response_no_count": 1867,
+      "combined_risk_signal_count": 72011
+    },
+    {
+      "product": "Credit reporting, credit repair services, or other personal consumer reports",
+      "issue": "Improper use of your report",
+      "total": 183346,
+      "fraud_legal_count": 51963,
+      "financial_harm_count": 12734,
+      "delay_count": 6403,
+      "high_urgency_phrase_count": 15335,
+      "timely_response_no_count": 718,
+      "combined_risk_signal_count": 71818
+    },
+    {
+      "product": "Debt collection",
+      "issue": "False statements or representation",
+      "total": 46514,
+      "fraud_legal_count": 15734,
+      "financial_harm_count": 31972,
+      "delay_count": 7367,
+      "high_urgency_phrase_count": 7145,
+      "timely_response_no_count": 1926,
+      "combined_risk_signal_count": 56999
+    },
+    {
+      "product": "Mortgage",
+      "issue": "Trouble during payment process",
+      "total": 54479,
+      "fraud_legal_count": 10101,
+      "financial_harm_count": 18358,
+      "delay_count": 20578,
+      "high_urgency_phrase_count": 7219,
+      "timely_response_no_count": 630,
+      "combined_risk_signal_count": 49667
+    },
+    {
+      "product": "Debt collection",
+      "issue": "Took or threatened to take negative or legal action",
+      "total": 35682,
+      "fraud_legal_count": 14246,
+      "financial_harm_count": 24124,
+      "delay_count": 5597,
+      "high_urgency_phrase_count": 4766,
+      "timely_response_no_count": 1689,
+      "combined_risk_signal_count": 45656
+    },
+    {
+      "product": "Credit card or prepaid card",
+      "issue": "Problem with a purchase shown on your statement",
+      "total": 26159,
+      "fraud_legal_count": 12658,
+      "financial_harm_count": 12486,
+      "delay_count": 8752,
+      "high_urgency_phrase_count": 4852,
+      "timely_response_no_count": 244,
+      "combined_risk_signal_count": 34140
+    },
+    {
+      "product": "Mortgage",
+      "issue": "Struggling to pay mortgage",
+      "total": 26168,
+      "fraud_legal_count": 7580,
+      "financial_harm_count": 13208,
+      "delay_count": 11247,
+      "high_urgency_phrase_count": 3917,
+      "timely_response_no_count": 267,
+      "combined_risk_signal_count": 32302
+    },
+    {
+      "product": "Credit card",
+      "issue": "Problem with a purchase shown on your statement",
+      "total": 24955,
+      "fraud_legal_count": 12137,
+      "financial_harm_count": 12270,
+      "delay_count": 7728,
+      "high_urgency_phrase_count": 5461,
+      "timely_response_no_count": 138,
+      "combined_risk_signal_count": 32273
+    },
+    {
+      "product": "Student loan",
+      "issue": "Dealing with your lender or servicer",
+      "total": 33776,
+      "fraud_legal_count": 5270,
+      "financial_harm_count": 10227,
+      "delay_count": 11988,
+      "high_urgency_phrase_count": 3664,
+      "timely_response_no_count": 3853,
+      "combined_risk_signal_count": 31338
+    },
+    {
+      "product": "Debt collection",
+      "issue": "Communication tactics",
+      "total": 33184,
+      "fraud_legal_count": 5907,
+      "financial_harm_count": 17707,
+      "delay_count": 4522,
+      "high_urgency_phrase_count": 2712,
+      "timely_response_no_count": 1707,
+      "combined_risk_signal_count": 29843
+    },
+    {
+      "product": "Checking or savings account",
+      "issue": "Problem with a lender or other company charging your account",
+      "total": 21609,
+      "fraud_legal_count": 12395,
+      "financial_harm_count": 7868,
+      "delay_count": 5971,
+      "high_urgency_phrase_count": 4480,
+      "timely_response_no_count": 228,
+      "combined_risk_signal_count": 26462
+    },
+    {
+      "product": "Money transfer, virtual currency, or money service",
+      "issue": "Fraud or scam",
+      "total": 24821,
+      "fraud_legal_count": 13106,
+      "financial_harm_count": 5705,
+      "delay_count": 5538,
+      "high_urgency_phrase_count": 4885,
+      "timely_response_no_count": 487,
+      "combined_risk_signal_count": 24836
+    },
+    {
+      "product": "Debt collection",
+      "issue": "Cont'd attempts collect debt not owed",
+      "total": 17406,
+      "fraud_legal_count": 4297,
+      "financial_harm_count": 11015,
+      "delay_count": 2789,
+      "high_urgency_phrase_count": 1387,
+      "timely_response_no_count": 1407,
+      "combined_risk_signal_count": 19508
+    },
+    {
+      "product": "Checking or savings account",
+      "issue": "Closing an account",
+      "total": 24533,
+      "fraud_legal_count": 7898,
+      "financial_harm_count": 3879,
+      "delay_count": 7415,
+      "high_urgency_phrase_count": 3477,
+      "timely_response_no_count": 268,
+      "combined_risk_signal_count": 19460
+    },
+    {
+      "product": "Checking or savings account",
+      "issue": "Problem caused by your funds being low",
+      "total": 18045,
+      "fraud_legal_count": 2616,
+      "financial_harm_count": 11478,
+      "delay_count": 2858,
+      "high_urgency_phrase_count": 1310,
+      "timely_response_no_count": 97,
+      "combined_risk_signal_count": 17049
+    },
+    {
+      "product": "Vehicle loan or lease",
+      "issue": "Managing the loan or lease",
+      "total": 16407,
+      "fraud_legal_count": 3229,
+      "financial_harm_count": 5527,
+      "delay_count": 5470,
+      "high_urgency_phrase_count": 1664,
+      "timely_response_no_count": 318,
+      "combined_risk_signal_count": 14544
+    },
+    {
+      "product": "Mortgage",
+      "issue": "Loan modification,collection,foreclosure",
+      "total": 10788,
+      "fraud_legal_count": 3297,
+      "financial_harm_count": 5665,
+      "delay_count": 4185,
+      "high_urgency_phrase_count": 1161,
+      "timely_response_no_count": 112,
+      "combined_risk_signal_count": 13259
+    },
+    {
+      "product": "Mortgage",
+      "issue": "Loan servicing, payments, escrow account",
+      "total": 14720,
+      "fraud_legal_count": 2772,
+      "financial_harm_count": 4825,
+      "delay_count": 5093,
+      "high_urgency_phrase_count": 1420,
+      "timely_response_no_count": 209,
+      "combined_risk_signal_count": 12899
+    },
+    {
+      "product": "Mortgage",
+      "issue": "Applying for a mortgage or refinancing an existing mortgage",
+      "total": 14594,
+      "fraud_legal_count": 2751,
+      "financial_harm_count": 3658,
+      "delay_count": 5632,
+      "high_urgency_phrase_count": 1875,
+      "timely_response_no_count": 460,
+      "combined_risk_signal_count": 12501
+    },
+    {
+      "product": "Credit reporting",
+      "issue": "Incorrect information on credit report",
+      "total": 21216,
+      "fraud_legal_count": 5030,
+      "financial_harm_count": 4336,
+      "delay_count": 2564,
+      "high_urgency_phrase_count": 2196,
+      "timely_response_no_count": 69,
+      "combined_risk_signal_count": 11999
+    },
+    {
+      "product": "Credit card or prepaid card",
+      "issue": "Fees or interest",
+      "total": 11340,
+      "fraud_legal_count": 1441,
+      "financial_harm_count": 6608,
+      "delay_count": 3472,
+      "high_urgency_phrase_count": 1188,
+      "timely_response_no_count": 100,
+      "combined_risk_signal_count": 11621
+    },
+    {
+      "product": "Credit card",
+      "issue": "Fees or interest",
+      "total": 10829,
+      "fraud_legal_count": 1432,
+      "financial_harm_count": 6243,
+      "delay_count": 2824,
+      "high_urgency_phrase_count": 1429,
+      "timely_response_no_count": 23,
+      "combined_risk_signal_count": 10522
+    },
+    {
+      "product": "Mortgage",
+      "issue": "Closing on a mortgage",
+      "total": 10532,
+      "fraud_legal_count": 2826,
+      "financial_harm_count": 3165,
+      "delay_count": 4051,
+      "high_urgency_phrase_count": 1384,
+      "timely_response_no_count": 360,
+      "combined_risk_signal_count": 10402
+    },
+    {
+      "product": "Credit card or prepaid card",
+      "issue": "Other features, terms, or problems",
+      "total": 12755,
+      "fraud_legal_count": 2578,
+      "financial_harm_count": 3405,
+      "delay_count": 4298,
+      "high_urgency_phrase_count": 1501,
+      "timely_response_no_count": 88,
+      "combined_risk_signal_count": 10369
+    },
+    {
+      "product": "Checking or savings account",
+      "issue": "Opening an account",
+      "total": 15667,
+      "fraud_legal_count": 5332,
+      "financial_harm_count": 1079,
+      "delay_count": 3275,
+      "high_urgency_phrase_count": 1670,
+      "timely_response_no_count": 157,
+      "combined_risk_signal_count": 9843
+    },
+    {
+      "product": "Credit card",
+      "issue": "Other features, terms, or problems",
+      "total": 11295,
+      "fraud_legal_count": 2946,
+      "financial_harm_count": 3157,
+      "delay_count": 3450,
+      "high_urgency_phrase_count": 1643,
+      "timely_response_no_count": 53,
+      "combined_risk_signal_count": 9606
+    },
+    {
+      "product": "Money transfer, virtual currency, or money service",
+      "issue": "Unauthorized transactions or other transaction problem",
+      "total": 8729,
+      "fraud_legal_count": 3658,
+      "financial_harm_count": 2907,
+      "delay_count": 2036,
+      "high_urgency_phrase_count": 1750,
+      "timely_response_no_count": 156,
+      "combined_risk_signal_count": 8757
+    },
+    {
+      "product": "Debt collection",
+      "issue": "Disclosure verification of debt",
+      "total": 7587,
+      "fraud_legal_count": 1368,
+      "financial_harm_count": 5507,
+      "delay_count": 1241,
+      "high_urgency_phrase_count": 627,
+      "timely_response_no_count": 616,
+      "combined_risk_signal_count": 8732
+    },
+    {
+      "product": "Credit card",
+      "issue": "Getting a credit card",
+      "total": 11259,
+      "fraud_legal_count": 5629,
+      "financial_harm_count": 1357,
+      "delay_count": 1252,
+      "high_urgency_phrase_count": 1521,
+      "timely_response_no_count": 44,
+      "combined_risk_signal_count": 8282
+    },
+    {
+      "product": "Student loan",
+      "issue": "Struggling to repay your loan",
+      "total": 9691,
+      "fraud_legal_count": 1536,
+      "financial_harm_count": 2747,
+      "delay_count": 2752,
+      "high_urgency_phrase_count": 862,
+      "timely_response_no_count": 884,
+      "combined_risk_signal_count": 7919
+    },
+    {
+      "product": "Credit card or prepaid card",
+      "issue": "Getting a credit card",
+      "total": 10482,
+      "fraud_legal_count": 4521,
+      "financial_harm_count": 1274,
+      "delay_count": 1623,
+      "high_urgency_phrase_count": 1067,
+      "timely_response_no_count": 101,
+      "combined_risk_signal_count": 7519
+    },
+    {
+      "product": "Vehicle loan or lease",
+      "issue": "Problems at the end of the loan or lease",
+      "total": 8633,
+      "fraud_legal_count": 1473,
+      "financial_harm_count": 2476,
+      "delay_count": 3367,
+      "high_urgency_phrase_count": 999,
+      "timely_response_no_count": 124,
+      "combined_risk_signal_count": 7440
+    },
+    {
+      "product": "Debt collection",
+      "issue": "Threatened to contact someone or share information improperly",
+      "total": 6921,
+      "fraud_legal_count": 1800,
+      "financial_harm_count": 4369,
+      "delay_count": 770,
+      "high_urgency_phrase_count": 682,
+      "timely_response_no_count": 420,
+      "combined_risk_signal_count": 7359
+    },
+    {
+      "product": "Credit card or prepaid card",
+      "issue": "Problem when making payments",
+      "total": 9257,
+      "fraud_legal_count": 1065,
+      "financial_harm_count": 2496,
+      "delay_count": 2374,
+      "high_urgency_phrase_count": 972,
+      "timely_response_no_count": 88,
+      "combined_risk_signal_count": 6023
+    },
+    {
+      "product": "Vehicle loan or lease",
+      "issue": "Getting a loan or lease",
+      "total": 6899,
+      "fraud_legal_count": 2669,
+      "financial_harm_count": 1520,
+      "delay_count": 1526,
+      "high_urgency_phrase_count": 797,
+      "timely_response_no_count": 174,
+      "combined_risk_signal_count": 5889
+    },
+    {
+      "product": "Student loan",
+      "issue": "Dealing with my lender or servicer",
+      "total": 7904,
+      "fraud_legal_count": 1142,
+      "financial_harm_count": 2407,
+      "delay_count": 2190,
+      "high_urgency_phrase_count": 622,
+      "timely_response_no_count": 131,
+      "combined_risk_signal_count": 5870
+    },
+    {
+      "product": "Credit reporting or other personal consumer reports",
+      "issue": "Credit monitoring or identity theft protection services",
+      "total": 7207,
+      "fraud_legal_count": 3107,
+      "financial_harm_count": 1537,
+      "delay_count": 910,
+      "high_urgency_phrase_count": 1186,
+      "timely_response_no_count": 73,
+      "combined_risk_signal_count": 5627
+    },
+    {
+      "product": "Vehicle loan or lease",
+      "issue": "Repossession",
+      "total": 6266,
+      "fraud_legal_count": 1750,
+      "financial_harm_count": 2140,
+      "delay_count": 1570,
+      "high_urgency_phrase_count": 963,
+      "timely_response_no_count": 121,
+      "combined_risk_signal_count": 5581
+    },
+    {
+      "product": "Credit card",
+      "issue": "Closing your account",
+      "total": 7408,
+      "fraud_legal_count": 1990,
+      "financial_harm_count": 1743,
+      "delay_count": 1631,
+      "high_urgency_phrase_count": 1212,
+      "timely_response_no_count": 33,
+      "combined_risk_signal_count": 5397
+    },
+    {
+      "product": "Credit card or prepaid card",
+      "issue": "Closing your account",
+      "total": 7579,
+      "fraud_legal_count": 1732,
+      "financial_harm_count": 1602,
+      "delay_count": 1928,
+      "high_urgency_phrase_count": 885,
+      "timely_response_no_count": 51,
+      "combined_risk_signal_count": 5313
+    },
+    {
+      "product": "Bank account or service",
+      "issue": "Account opening, closing, or management",
+      "total": 6345,
+      "fraud_legal_count": 1539,
+      "financial_harm_count": 1426,
+      "delay_count": 2058,
+      "high_urgency_phrase_count": 606,
+      "timely_response_no_count": 257,
+      "combined_risk_signal_count": 5280
+    },
+    {
+      "product": "Credit reporting or other personal consumer reports",
+      "issue": "Problem with fraud alerts or security freezes",
+      "total": 8296,
+      "fraud_legal_count": 4149,
+      "financial_harm_count": 435,
+      "delay_count": 663,
+      "high_urgency_phrase_count": 2070,
+      "timely_response_no_count": 24,
+      "combined_risk_signal_count": 5271
+    }
+  ]
+}
