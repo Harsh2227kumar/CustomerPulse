@@ -448,3 +448,33 @@ export interface ChannelComparisonItem {
 export interface ChannelComparisonResponse {
   items: ChannelComparisonItem[];
 }
+
+export interface CommunicationEntryRead {
+  id: string;
+  complaint_id: string;
+  entry_type: string;
+  event_code: string | null;
+  message: string;
+  actor: string | null;
+  context: Record<string, any> | null;
+  created_at: string;
+}
+
+export interface TimelineResponse {
+  complaint_id: string;
+  items: CommunicationEntryRead[];
+}
+
+export interface DuplicateGroupSummary360 {
+  group_id: string;
+  status: string;
+  member_count: number;
+}
+
+export interface Complaint360Response {
+  complaint: ComplaintDetail;
+  timeline: TimelineResponse;
+  duplicate_group: DuplicateGroupSummary360 | null;
+  escalation: null;
+}
+

@@ -27,6 +27,8 @@ import type {
   SLASummaryResponse,
   SLATrendResponse,
   TrendResponse,
+  Complaint360Response,
+  CommunicationEntryRead,
 } from "../types";
 
 const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") ?? "";
@@ -293,3 +295,15 @@ export function getDuplicateChannelComparison(): Promise<ChannelComparisonRespon
 export function downloadBackendExport(path: "complaints/csv" | "complaints/pdf" | "analytics/csv" | "feedback/csv"): Promise<Blob> {
   return download(`/api/exports/${path}`);
 }
+
+export function getComplaint360(complaintId: string): Promise<Complaint360Response> {
+  return request<Complaint360Response>(`/api/complaints/${encodeURIComponent(complaintId)}/360`);
+}
+
+export function addTimelineNote(complaintId: string, message: string): Promise<CommunicationEntryRead> {
+  return request<CommunicationEntryRead>(`/api/complaints/${encodeURIComponent(complaintId)}/timeline`, {
+    method: "POST",
+    body: JSON.stringify({ entry_type: "note", message }),
+  });
+}
+

@@ -26,6 +26,7 @@ import { type CSSProperties, type FormEvent, useEffect, useMemo, useRef, useStat
 import { getComplaints, getHealth, processComplaint, websocketUrl } from "./api/client";
 import { OperationsPage } from "./OperationsPage";
 import { S3ImportPage } from "./S3ImportPage";
+import { WorkspacePage } from "./WorkspacePage";
 import type {
   ChurnRisk,
   ComplaintFilters,
@@ -231,10 +232,11 @@ function EmptyPanel({ title, body }: { title: string; body: string }) {
 }
 
 export function App() {
-  const [activeView, setActiveView] = useState<"dashboard" | "import" | "queue" | "ops">(() => {
+  const [activeView, setActiveView] = useState<"dashboard" | "import" | "queue" | "ops" | "workspace">(() => {
     const view = new URLSearchParams(window.location.search).get("view");
-    return view === "queue" || view === "import" || view === "ops" ? view : "dashboard";
+    return view === "queue" || view === "import" || view === "ops" || view === "workspace" ? view : "dashboard";
   });
+  const [selectedWorkspaceComplaintId, setSelectedWorkspaceComplaintId] = useState<string | null>(null);
   const [filters, setFilters] = useState<ComplaintFilters>(() => readInitialFilters());
   const [limit, setLimit] = useState(() => readInitialNumber("limit", 50, pageSizes));
   const [offset, setOffset] = useState(() => readInitialNumber("offset", 0));
@@ -592,6 +594,15 @@ export function App() {
     );
   }
 
+  if (activeView === "workspace") {
+    return (
+      <WorkspacePage
+        complaintId={selectedWorkspaceComplaintId ?? selectedComplaint?.complaint_id ?? ""}
+        onBack={() => setActiveView("dashboard")}
+      />
+    );
+  }
+
   if (activeView === "queue") {
     return (
       <main className="queue-page">
@@ -652,6 +663,17 @@ export function App() {
                   <p>{selectedComplaint.next_action ?? "No next action returned for this row."}</p>
                   <span>Narrative</span>
                   <p>{selectedComplaint.narrative}</p>
+                  <button
+                    type="button"
+                    className="primary-action"
+                    style={{ marginTop: "14px", width: "100%", minHeight: "38px", borderRadius: "8px", fontWeight: 800 }}
+                    onClick={() => {
+                      setSelectedWorkspaceComplaintId(selectedComplaint.complaint_id);
+                      setActiveView("workspace");
+                    }}
+                  >
+                    Open 360 View
+                  </button>
                 </div>
               ) : (
                 <EmptyPanel title="No complaint selected" body="Select a row once backend records are available." />
@@ -730,6 +752,17 @@ export function App() {
                   <span>Retries <strong>{selectedComplaint.retry_count ?? 0}</strong></span>
                   <span>Review reason <strong>{selectedComplaint.human_review_reason ?? selectedComplaint.review_reason ?? "None"}</strong></span>
                 </div>
+                <button
+                  type="button"
+                  className="primary-action"
+                  style={{ marginTop: "14px", width: "100%", minHeight: "38px", borderRadius: "8px", fontWeight: 800 }}
+                  onClick={() => {
+                    setSelectedWorkspaceComplaintId(selectedComplaint.complaint_id);
+                    setActiveView("workspace");
+                  }}
+                >
+                  Open 360 View
+                </button>
               </>
             ) : (
               <EmptyPanel title="No complaint selected" body="Connect a populated backend database to inspect a real complaint." />

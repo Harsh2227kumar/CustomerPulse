@@ -15,10 +15,12 @@ from app.core.constants import EMBEDDING_DIMENSIONS
 from app.db.base import Base
 from app.models import (  # noqa: F401
     AgentFeedback,
+    CommunicationHistory,
     Complaint,
     ComplaintProcessingRun,
     DuplicateGroup,
     DuplicateMember,
+    Escalation,
     ProcessingJob,
     ProcessingJobItem,
 )
@@ -118,10 +120,12 @@ EXPECTED_COMPLAINT_COLUMNS: dict[str, str] = {
     "updated_at": "TIMESTAMP WITH TIME ZONE",
 }
 REQUIRED_TABLES = (
+    "communication_history",
     "complaint_processing_runs",
     "agent_feedback",
     "duplicate_groups",
     "duplicate_members",
+    "escalations",
     "processing_jobs",
     "processing_job_items",
 )
