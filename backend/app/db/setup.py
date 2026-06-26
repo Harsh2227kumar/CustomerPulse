@@ -54,7 +54,7 @@ class DatabaseSetupStatus:
 
 
 def _make_engine(url: str, *, isolation_level: str | None = None) -> AsyncEngine:
-    kwargs = {"pool_pre_ping": True, "future": True}
+    kwargs: dict[str, bool | str] = {"pool_pre_ping": True, "future": True}
     if isolation_level:
         kwargs["isolation_level"] = isolation_level
     return create_async_engine(url, **kwargs)

@@ -109,7 +109,7 @@ class ProcessingService:
             await self._emit_event(WebSocketEvent.VALIDATING, complaint_request.complaint_id)
             reason = preset_reason or review_reason_for(enrichment)
             now = datetime.now(UTC)
-            self._store_enrichment(complaint, enrichment, embedding, now)
+            self._store_enrichment(complaint, enrichment, embedding, now, complaint_request)
             complaint.ai_status = (
                 ProcessingStatus.HUMAN_REVIEW.value if reason else ProcessingStatus.COMPLETED.value
             )
@@ -249,16 +249,26 @@ class ProcessingService:
             complaint.narrative = complaint_request.narrative
             complaint.channel = complaint_request.channel
             complaint.product = complaint_request.product
+            complaint.sub_product = complaint_request.sub_product
             complaint.issue = complaint_request.issue
+            complaint.sub_issue = complaint_request.sub_issue
             complaint.company = complaint_request.company
+            complaint.company_response = complaint_request.company_response
+            complaint.timely_response = complaint_request.timely_response
+            complaint.date_received = complaint_request.date_received
             return complaint
         complaint = Complaint(
             source_complaint_id=complaint_request.complaint_id,
             narrative=complaint_request.narrative,
             channel=complaint_request.channel,
             product=complaint_request.product,
+            sub_product=complaint_request.sub_product,
             issue=complaint_request.issue,
+            sub_issue=complaint_request.sub_issue,
             company=complaint_request.company,
+            company_response=complaint_request.company_response,
+            timely_response=complaint_request.timely_response,
+            date_received=complaint_request.date_received,
         )
         db.add(complaint)
         return complaint
@@ -295,9 +305,13 @@ class ProcessingService:
         enrichment: AIEnrichment,
         embedding: list[float],
         now: datetime,
+        complaint_request: ComplaintProcessRequest | None = None,
     ) -> None:
         complaint.sentiment = enrichment.sentiment.value
-        complaint.category = enrichment.category
+        if complaint_request and complaint_request.category:
+            complaint.category = complaint_request.category
+        else:
+            complaint.category = enrichment.category
         complaint.urgency_score = enrichment.urgency_score
         complaint.churn_risk = enrichment.churn_risk.value
         complaint.draft_response = enrichment.draft_response
