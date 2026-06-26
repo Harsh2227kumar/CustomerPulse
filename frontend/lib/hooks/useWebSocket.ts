@@ -11,6 +11,9 @@ interface UseWebSocketOptions {
   maxEvents?: number;
 }
 
+const INITIAL_RECONNECT_DELAY_MS = 1000;
+const MAX_RECONNECT_DELAY_MS = 30000;
+
 export function useWebSocket({
   onMessage,
   maxEvents = 20,
@@ -18,6 +21,8 @@ export function useWebSocket({
   const [status, setStatus] = useState<WsStatus>("connecting");
   const [events, setEvents] = useState<WebSocketMessage[]>([]);
   const socketRef = useRef<WebSocket | null>(null);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectDelayRef = useRef(INITIAL_RECONNECT_DELAY_MS);
   const onMessageRef = useRef(onMessage);
 
   useEffect(() => {
@@ -25,25 +30,65 @@ export function useWebSocket({
   }, [onMessage]);
 
   useEffect(() => {
-    const socket = new WebSocket(websocketUrl());
-    socketRef.current = socket;
+    let stopped = false;
 
-    socket.onopen = () => setStatus("live");
-    socket.onclose = () => setStatus("offline");
-    socket.onerror = () => setStatus("offline");
-
-    socket.onmessage = (event) => {
-      try {
-        const parsed = JSON.parse(event.data as string) as WebSocketMessage;
-        setEvents((prev) => [parsed, ...prev].slice(0, maxEvents));
-        onMessageRef.current?.(parsed);
-      } catch {
-        // malformed message — ignore
+    const clearReconnectTimer = () => {
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
       }
     };
 
+    const scheduleReconnect = () => {
+      if (stopped || reconnectTimerRef.current) return;
+      setStatus("offline");
+      const delay = reconnectDelayRef.current;
+      reconnectDelayRef.current = Math.min(delay * 2, MAX_RECONNECT_DELAY_MS);
+      reconnectTimerRef.current = setTimeout(() => {
+        reconnectTimerRef.current = null;
+        connect();
+      }, delay);
+    };
+
+    const connect = () => {
+      if (stopped) return;
+      setStatus("connecting");
+      const socket = new WebSocket(websocketUrl());
+      socketRef.current = socket;
+
+      socket.onopen = () => {
+        reconnectDelayRef.current = INITIAL_RECONNECT_DELAY_MS;
+        setStatus("live");
+      };
+
+      socket.onclose = () => {
+        if (socketRef.current === socket) socketRef.current = null;
+        scheduleReconnect();
+      };
+
+      socket.onerror = () => {
+        setStatus("offline");
+        socket.close();
+      };
+
+      socket.onmessage = (event) => {
+        try {
+          const parsed = JSON.parse(event.data as string) as WebSocketMessage;
+          setEvents((prev) => [parsed, ...prev].slice(0, maxEvents));
+          onMessageRef.current?.(parsed);
+        } catch {
+          // malformed message - ignore
+        }
+      };
+    };
+
+    connect();
+
     return () => {
-      socket.close();
+      stopped = true;
+      clearReconnectTimer();
+      socketRef.current?.close();
+      socketRef.current = null;
     };
   }, [maxEvents]);
 

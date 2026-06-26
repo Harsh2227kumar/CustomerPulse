@@ -1,8 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
   AlertTriangle,
+  BarChart3,
   CheckCircle2,
   Download,
   Layers,
@@ -15,22 +17,25 @@ import {
 import { downloadExport } from "@/lib/api/complaints";
 import { detectDuplicates, getDuplicateChannelComparison, listDuplicates, mergeDuplicate, rejectDuplicate } from "@/lib/api/duplicates";
 import { listFeedback } from "@/lib/api/feedback";
-import { createEmbeddingBackfillJob, createProcessingJob } from "@/lib/api/jobs";
-import { getSlaBreachRisk, getSlaByChannel, getSlaByProduct, getSlaSummary } from "@/lib/api/sla";
+import { createEmbeddingBackfillJob, createProcessingJob, listJobs } from "@/lib/api/jobs";
+import { getSlaBreachRisk, getSlaByChannel, getSlaByProduct, getSlaSummary, getSlaTrend, type SLAGroupSortBy, type SLATrendGranularity } from "@/lib/api/sla";
 import type {
+  ChurnRisk,
   DuplicateGroupSummary,
   FeedbackRead,
   ProcessingJobResponse,
   SLABreachRiskResponse,
   SLAGroupedResponse,
   SLASummaryResponse,
+  SLATrendResponse,
 } from "@/lib/api/types";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { TrendChart } from "@/components/ui/TrendChart";
 import { Modal } from "@/components/ui/Modal";
 import { Pagination } from "@/components/ui/Pagination";
-import { formatDate, formatDateTime, formatRelative, humanize, toPercent, triggerBlobDownload } from "@/lib/utils/format";
+import { churnRiskVariant, formatDate, formatDateTime, formatRelative, humanize, toPercent, triggerBlobDownload, type BadgeVariant } from "@/lib/utils/format";
 
 type Tab = "sla" | "duplicates" | "feedback" | "exports";
 
@@ -72,134 +77,151 @@ export default function OperationsPage() {
   );
 }
 
-// ── SLA Tab ───────────────────────────────────────────────────────────────────
+// -- SLA Tab ------------------------------------------------------------------
+
+type SlaHealth = { label: "Healthy" | "At Risk" | "Critical"; variant: BadgeVariant; color: string };
+
+function getSlaHealth(summary: SLASummaryResponse): SlaHealth {
+  if (summary.high_urgency_untimely_count > 0 || summary.timely_rate_pct < 70) return { label: "Critical", variant: "danger", color: "var(--color-breach)" };
+  if (summary.timely_rate_pct < 90 || summary.untimely_count > 0) return { label: "At Risk", variant: "warning", color: "var(--color-pending)" };
+  return { label: "Healthy", variant: "success", color: "var(--color-resolved)" };
+}
 
 function SlaTab() {
   const [summary, setSummary] = useState<SLASummaryResponse | null>(null);
   const [byProduct, setByProduct] = useState<SLAGroupedResponse | null>(null);
   const [byChannel, setByChannel] = useState<SLAGroupedResponse | null>(null);
   const [breach, setBreach] = useState<SLABreachRiskResponse | null>(null);
+  const [trend, setTrend] = useState<SLATrendResponse | null>(null);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [summaryProduct, setSummaryProduct] = useState("");
+  const [summaryChannel, setSummaryChannel] = useState("");
+  const [groupMode, setGroupMode] = useState<"product" | "channel">("product");
+  const [groupSort, setGroupSort] = useState<SLAGroupSortBy>("timely_rate");
+  const [groupLimit, setGroupLimit] = useState(20);
+  const [riskUrgency, setRiskUrgency] = useState(70);
+  const [riskChurn, setRiskChurn] = useState<ChurnRisk | "">("");
+  const [riskLimit, setRiskLimit] = useState(25);
+  const [riskOffset, setRiskOffset] = useState(0);
+  const [trendGranularity, setTrendGranularity] = useState<SLATrendGranularity>("weekly");
+  const [trendProduct, setTrendProduct] = useState("");
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    setLoading(true);
-    Promise.all([getSlaSummary(), getSlaByProduct(), getSlaByChannel(), getSlaBreachRisk(20)])
-      .then(([s, bp, bc, br]) => { setSummary(s); setByProduct(bp); setByChannel(bc); setBreach(br); })
+  const reload = useCallback((refresh = false) => {
+    if (refresh) setRefreshing(true); else setLoading(true);
+    setError(null);
+    const dates = { date_from: dateFrom || undefined, date_to: dateTo || undefined };
+    Promise.all([
+      getSlaSummary({ ...dates, product: summaryProduct || undefined, channel: summaryChannel || undefined }),
+      getSlaByProduct({ ...dates, limit: groupLimit, sort_by: groupSort }),
+      getSlaByChannel({ ...dates, limit: groupLimit, sort_by: groupSort }),
+      getSlaBreachRisk({ urgency_threshold: riskUrgency, churn_risk: riskChurn || undefined, limit: riskLimit, offset: riskOffset }),
+      getSlaTrend({ ...dates, granularity: trendGranularity, product: trendProduct || undefined }),
+    ])
+      .then(([s, bp, bc, br, tr]) => { setSummary(s); setByProduct(bp); setByChannel(bc); setBreach(br); setTrend(tr); })
       .catch((e) => setError(e instanceof Error ? e.message : "Failed to load SLA data"))
-      .finally(() => setLoading(false));
-  }, []);
+      .finally(() => { setLoading(false); setRefreshing(false); });
+  }, [dateFrom, dateTo, groupLimit, groupSort, riskChurn, riskLimit, riskOffset, riskUrgency, summaryChannel, summaryProduct, trendGranularity, trendProduct]);
 
-  if (loading) return <LoadingSpinner fullPage label="Loading SLA data…" />;
+  useEffect(() => { reload(); }, [reload]);
+
+  const productOptions = useMemo(() => Array.from(new Set((byProduct?.items ?? []).map((i) => i.product).filter(Boolean) as string[])).sort(), [byProduct]);
+  const channelOptions = useMemo(() => Array.from(new Set((byChannel?.items ?? []).map((i) => i.channel).filter(Boolean) as string[])).sort(), [byChannel]);
+  const grouped = groupMode === "product" ? byProduct : byChannel;
+
+  if (loading) return <LoadingSpinner fullPage label="Loading SLA data..." />;
   if (error) return <div className="alert-error"><AlertTriangle size={14} />{error}</div>;
   if (!summary) return null;
 
+  const health = getSlaHealth(summary);
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      {/* Summary row */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
-        {[
-          { label: "Total", value: summary.total_complaints.toLocaleString() },
-          { label: "Timely", value: summary.timely_count.toLocaleString(), color: "var(--color-resolved)" },
-          { label: "Untimely", value: summary.untimely_count.toLocaleString(), color: summary.untimely_count > 0 ? "var(--color-pending)" : undefined },
-          { label: "Timely Rate", value: `${Math.round(summary.timely_rate_pct)}%`, color: summary.timely_rate_pct >= 80 ? "var(--color-resolved)" : "var(--color-breach)" },
-          { label: "Avg Urgency", value: summary.avg_urgency_score != null ? `${Math.round(summary.avg_urgency_score)}/100` : "—" },
-          { label: "High Risk + Late", value: summary.high_urgency_untimely_count.toString(), color: summary.high_urgency_untimely_count > 0 ? "var(--color-error)" : undefined },
-        ].map(({ label, value, color }) => (
-          <div key={label} className="stat-card">
-            <span style={{ fontSize: 10, color: "var(--color-on-surface-variant)", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>{label}</span>
-            <span style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.02em", color: color ?? "var(--color-on-background)" }}>{value}</span>
-          </div>
-        ))}
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-        {/* By product */}
-        <div className="card">
-          <div className="card-header"><span style={{ fontWeight: 600 }}>SLA by Product</span></div>
-          <div style={{ overflowX: "auto" }}>
-            <table className="data-table">
-              <thead><tr><th>Product</th><th>Total</th><th>Timely</th><th>Untimely</th><th>Rate</th><th>Avg Urgency</th></tr></thead>
-              <tbody>
-                {byProduct?.items.length === 0 && <tr><td colSpan={6} style={{ textAlign: "center", color: "var(--color-on-surface-variant)", padding: 16 }}>No data</td></tr>}
-                {byProduct?.items.map((row, i) => (
-                  <tr key={i}>
-                    <td style={{ maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 500 }}>{row.product ?? "Unknown"}</td>
-                    <td>{row.total.toLocaleString()}</td>
-                    <td style={{ color: "var(--color-resolved)" }}>{row.timely.toLocaleString()}</td>
-                    <td style={{ color: row.untimely > 0 ? "var(--color-breach)" : "inherit" }}>{row.untimely.toLocaleString()}</td>
-                    <td>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <div className="progress-bar" style={{ width: 60 }}>
-                          <div className="progress-fill" style={{ width: `${row.timely_rate_pct}%`, background: row.timely_rate_pct >= 80 ? "var(--color-resolved)" : "var(--color-pending)" }} />
-                        </div>
-                        <span style={{ fontSize: 11, fontWeight: 600 }}>{Math.round(row.timely_rate_pct)}%</span>
-                      </div>
-                    </td>
-                    <td>{row.avg_urgency_score != null ? Math.round(row.avg_urgency_score) : "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* By channel */}
-        <div className="card">
-          <div className="card-header"><span style={{ fontWeight: 600 }}>SLA by Channel</span></div>
-          <div style={{ overflowX: "auto" }}>
-            <table className="data-table">
-              <thead><tr><th>Channel</th><th>Total</th><th>Timely</th><th>Untimely</th><th>Rate</th></tr></thead>
-              <tbody>
-                {byChannel?.items.length === 0 && <tr><td colSpan={5} style={{ textAlign: "center", color: "var(--color-on-surface-variant)", padding: 16 }}>No data</td></tr>}
-                {byChannel?.items.map((row, i) => (
-                  <tr key={i}>
-                    <td style={{ fontWeight: 500 }}>{row.channel ?? "Unknown"}</td>
-                    <td>{row.total.toLocaleString()}</td>
-                    <td style={{ color: "var(--color-resolved)" }}>{row.timely.toLocaleString()}</td>
-                    <td style={{ color: row.untimely > 0 ? "var(--color-breach)" : "inherit" }}>{row.untimely.toLocaleString()}</td>
-                    <td style={{ fontWeight: 600, color: row.timely_rate_pct >= 80 ? "var(--color-resolved)" : "var(--color-breach)" }}>{Math.round(row.timely_rate_pct)}%</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      {/* Breach risk */}
       <div className="card">
-        <div className="card-header">
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <Zap size={16} style={{ color: "var(--color-breach)" }} />
-            <span style={{ fontWeight: 600 }}>SLA Breach Risk</span>
+        <div className="card-header" style={{ gap: 12, flexWrap: "wrap" }}>
+          <div><span style={{ fontWeight: 700 }}>SLA Health</span><p style={{ fontSize: 12, color: "var(--color-on-surface-variant)", marginTop: 2 }}>{summary.period_from ? `${formatDate(summary.period_from)} to ${formatDate(summary.period_to)}` : "All available complaints"}</p></div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <input className="form-input" type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setRiskOffset(0); }} style={{ width: 150 }} />
+            <input className="form-input" type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setRiskOffset(0); }} style={{ width: 150 }} />
+            <select className="form-select" value={summaryProduct} onChange={(e) => setSummaryProduct(e.target.value)} style={{ width: 190 }}><option value="">All products</option>{productOptions.map((p) => <option key={p} value={p}>{p}</option>)}</select>
+            <select className="form-select" value={summaryChannel} onChange={(e) => setSummaryChannel(e.target.value)} style={{ width: 150 }}><option value="">All channels</option>{channelOptions.map((c) => <option key={c} value={c}>{c}</option>)}</select>
+            <button className="btn-secondary" onClick={() => reload(true)} disabled={refreshing}><RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />Refresh</button>
           </div>
-          <Badge variant={breach && breach.total > 0 ? "danger" : "neutral"}>{breach?.total ?? 0} at risk</Badge>
         </div>
-        <div style={{ overflowX: "auto" }}>
-          <table className="data-table">
-            <thead><tr><th>Complaint ID</th><th>Product</th><th>Channel</th><th>Urgency</th><th>Risk</th><th>Date</th></tr></thead>
-            <tbody>
-              {breach?.items.length === 0 ? (
-                <tr><td colSpan={6} style={{ textAlign: "center", color: "var(--color-on-surface-variant)", padding: 20 }}>No breach risk items</td></tr>
-              ) : (
-                breach?.items.map((item) => (
-                  <tr key={item.complaint_id} onClick={() => window.location.assign(`/queue/${item.complaint_id}`)}>
-                    <td><span className="id-pill">{item.complaint_id.slice(0, 14)}…</span></td>
-                    <td style={{ maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.product ?? "—"}</td>
-                    <td>{item.channel ?? "—"}</td>
-                    <td style={{ fontWeight: 600, color: item.urgency_score && item.urgency_score >= 70 ? "var(--color-breach)" : "inherit" }}>{item.urgency_score ?? "—"}</td>
-                    <td>{item.churn_risk ? <Badge variant={item.churn_risk === "High" ? "danger" : item.churn_risk === "Medium" ? "warning" : "success"}>{item.churn_risk}</Badge> : "—"}</td>
-                    <td style={{ whiteSpace: "nowrap", color: "var(--color-on-surface-variant)", fontSize: 11 }}>{formatDate(item.date_received)}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        <div className="card-body" style={{ display: "grid", gridTemplateColumns: "minmax(220px, 0.8fr) minmax(280px, 1.4fr)", gap: 18 }}>
+          <div style={{ borderRight: "1px solid var(--color-outline-variant)", paddingRight: 18 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}><Badge variant={health.variant}>{health.label}</Badge><span style={{ fontSize: 12, color: "var(--color-on-surface-variant)", fontWeight: 600 }}>At Risk</span></div>
+            <div style={{ fontSize: 54, fontWeight: 800, lineHeight: 1, color: health.color }}>{Math.round(summary.timely_rate_pct)}%</div>
+            <p style={{ fontSize: 13, color: "var(--color-on-surface-variant)", marginTop: 6 }}>Timely response rate</p>
+            <RateBar timely={summary.timely_count} untimely={summary.untimely_count} />
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
+            <SlaMetric label="Total" value={summary.total_complaints.toLocaleString()} />
+            <SlaMetric label="Timely" value={summary.timely_count.toLocaleString()} color="var(--color-resolved)" />
+            <SlaMetric label="Untimely" value={summary.untimely_count.toLocaleString()} color={summary.untimely_count > 0 ? "var(--color-breach)" : undefined} />
+            <SlaMetric label="High-risk late" value={summary.high_urgency_untimely_count.toLocaleString()} color={summary.high_urgency_untimely_count > 0 ? "var(--color-error)" : "var(--color-resolved)"} />
+            <SlaMetric label="Avg urgency" value={summary.avg_urgency_score != null ? `${Math.round(summary.avg_urgency_score)}/100` : "-"} />
+          </div>
         </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.15fr) minmax(320px, 0.85fr)", gap: 16 }}>
+        <div className="card">
+          <div className="card-header" style={{ gap: 12, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}><CheckCircle2 size={16} style={{ color: "var(--color-primary)" }} /><span style={{ fontWeight: 700 }}>Product / Channel Breakdown</span></div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {(["product", "channel"] as const).map((m) => <button key={m} className={groupMode === m ? "btn-primary" : "btn-secondary"} style={{ height: 30, padding: "0 12px", fontSize: 11 }} onClick={() => setGroupMode(m)}>{m === "product" ? "Product" : "Channel"}</button>)}
+              <select className="form-select" value={groupSort} onChange={(e) => setGroupSort(e.target.value as SLAGroupSortBy)} style={{ width: 165 }}><option value="timely_rate">Timely rate</option><option value="total">Total</option><option value="untimely_count">Untimely count</option></select>
+              <select className="form-select" value={groupLimit} onChange={(e) => setGroupLimit(Number(e.target.value))} style={{ width: 110 }}>{[10, 20, 50, 100].map((v) => <option key={v} value={v}>{v} rows</option>)}</select>
+            </div>
+          </div>
+          <GroupedSlaTable mode={groupMode} response={grouped} />
+        </div>
+        <SlaTrendPanel trend={trend} granularity={trendGranularity} product={trendProduct} products={productOptions} onGranularityChange={setTrendGranularity} onProductChange={setTrendProduct} />
+      </div>
+
+      <div className="card">
+        <div className="card-header" style={{ gap: 12, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}><Zap size={16} style={{ color: "var(--color-breach)" }} /><span style={{ fontWeight: 700 }}>At-risk Queue</span><Badge variant={breach && breach.total > 0 ? "danger" : "neutral"}>{breach?.total ?? 0} at risk</Badge></div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--color-on-surface-variant)", fontWeight: 600 }}>Urgency {riskUrgency}<input type="range" min={0} max={100} step={5} value={riskUrgency} onChange={(e) => { setRiskUrgency(Number(e.target.value)); setRiskOffset(0); }} style={{ width: 120 }} /></label>
+            <select className="form-select" value={riskChurn} onChange={(e) => { setRiskChurn(e.target.value as ChurnRisk | ""); setRiskOffset(0); }} style={{ width: 150 }}><option value="">All churn risk</option><option value="High">High</option><option value="Medium">Medium</option><option value="Low">Low</option></select>
+          </div>
+        </div>
+        <RiskQueue breach={breach} limit={riskLimit} offset={riskOffset} setLimit={setRiskLimit} setOffset={setRiskOffset} />
       </div>
     </div>
   );
+}
+
+function SlaMetric({ label, value, color }: { label: string; value: string; color?: string }) {
+  return <div className="stat-card" style={{ minHeight: 86 }}><span style={{ fontSize: 10, color: "var(--color-on-surface-variant)", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700 }}>{label}</span><span style={{ fontSize: 25, fontWeight: 800, color: color ?? "var(--color-on-background)", lineHeight: 1.1 }}>{value}</span></div>;
+}
+
+function RateBar({ timely, untimely }: { timely: number; untimely: number }) {
+  const total = Math.max(timely + untimely, 1);
+  return <div style={{ marginTop: 18 }}><div style={{ display: "flex", height: 9, borderRadius: 999, overflow: "hidden", background: "var(--color-surface-container)", gap: 2 }}><div style={{ width: `${(timely / total) * 100}%`, background: "var(--color-resolved)", borderRadius: 999 }} /><div style={{ width: `${(untimely / total) * 100}%`, background: "var(--color-breach)", borderRadius: 999 }} /></div><div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginTop: 6, fontSize: 11 }}><span style={{ color: "var(--color-resolved)", fontWeight: 600 }}>{timely.toLocaleString()} timely</span><span style={{ color: untimely > 0 ? "var(--color-breach)" : "var(--color-on-surface-variant)", fontWeight: 600 }}>{untimely.toLocaleString()} untimely</span></div></div>;
+}
+
+function GroupedSlaTable({ mode, response }: { mode: "product" | "channel"; response: SLAGroupedResponse | null }) {
+  return <div style={{ overflowX: "auto" }}><table className="data-table"><thead><tr><th>{mode === "product" ? "Product" : "Channel"}</th><th>Total</th><th>Timely</th><th>Untimely</th><th>Rate</th><th>Avg Urgency</th></tr></thead><tbody>{response?.items.length === 0 ? <tr><td colSpan={6} style={{ textAlign: "center", color: "var(--color-on-surface-variant)", padding: 22 }}>No grouped SLA data</td></tr> : response?.items.map((row, i) => { const label = mode === "product" ? row.product : row.channel; return <tr key={`${mode}-${label ?? "unknown"}-${i}`}><td style={{ maxWidth: 240, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 600 }}>{label ?? "Unknown"}</td><td>{row.total.toLocaleString()}</td><td style={{ color: "var(--color-resolved)", fontWeight: 600 }}>{row.timely.toLocaleString()}</td><td style={{ color: row.untimely > 0 ? "var(--color-breach)" : "inherit", fontWeight: row.untimely > 0 ? 600 : 400 }}>{row.untimely.toLocaleString()}</td><td><InlineRate value={row.timely_rate_pct} /></td><td>{row.avg_urgency_score != null ? Math.round(row.avg_urgency_score) : "-"}</td></tr>; })}</tbody></table></div>;
+}
+
+function InlineRate({ value }: { value: number }) {
+  const color = value >= 90 ? "var(--color-resolved)" : value >= 70 ? "var(--color-pending)" : "var(--color-breach)";
+  return <div style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 104 }}><div className="progress-bar" style={{ width: 58 }}><div className="progress-fill" style={{ width: `${Math.min(100, Math.max(0, value))}%`, background: color }} /></div><span style={{ fontSize: 12, fontWeight: 700, color }}>{Math.round(value)}%</span></div>;
+}
+
+function SlaTrendPanel({ trend, granularity, product, products, onGranularityChange, onProductChange }: { trend: SLATrendResponse | null; granularity: SLATrendGranularity; product: string; products: string[]; onGranularityChange: (value: SLATrendGranularity) => void; onProductChange: (value: string) => void }) {
+  const chartData = (trend?.items ?? []).map((item) => ({ period: item.period, count: item.timely }));
+  return <div className="card"><div className="card-header" style={{ gap: 12, flexWrap: "wrap" }}><div style={{ display: "flex", alignItems: "center", gap: 8 }}><BarChart3 size={16} style={{ color: "var(--color-primary)" }} /><span style={{ fontWeight: 700 }}>SLA Trend</span></div><div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{(["weekly", "monthly"] as const).map((v) => <button key={v} className={granularity === v ? "btn-primary" : "btn-secondary"} style={{ height: 30, padding: "0 12px", fontSize: 11 }} onClick={() => onGranularityChange(v)}>{v === "weekly" ? "Weekly" : "Monthly"}</button>)}<select className="form-select" value={product} onChange={(e) => onProductChange(e.target.value)} style={{ width: 190 }}><option value="">All products</option>{products.map((p) => <option key={p} value={p}>{p}</option>)}</select></div></div><div className="card-body"><TrendChart data={chartData} height={150} color="var(--color-resolved)" label="SLA Timely Trend" /></div><div style={{ overflowX: "auto" }}><table className="data-table"><thead><tr><th>Period</th><th>Total</th><th>Timely</th><th>Untimely</th><th>Rate</th></tr></thead><tbody>{trend?.items.length === 0 ? <tr><td colSpan={5} style={{ textAlign: "center", color: "var(--color-on-surface-variant)", padding: 18 }}>No SLA trend data</td></tr> : trend?.items.slice(-6).map((row) => <tr key={row.period}><td style={{ fontWeight: 600 }}>{row.period}</td><td>{row.total.toLocaleString()}</td><td style={{ color: "var(--color-resolved)", fontWeight: 600 }}>{row.timely.toLocaleString()}</td><td style={{ color: row.untimely > 0 ? "var(--color-breach)" : "inherit" }}>{row.untimely.toLocaleString()}</td><td><InlineRate value={row.timely_rate_pct} /></td></tr>)}</tbody></table></div></div>;
+}
+
+function RiskQueue({ breach, limit, offset, setLimit, setOffset }: { breach: SLABreachRiskResponse | null; limit: number; offset: number; setLimit: (value: number) => void; setOffset: (value: number) => void }) {
+  return <><div style={{ overflowX: "auto" }}><table className="data-table"><thead><tr><th>Complaint ID</th><th>Product</th><th>Channel</th><th>Urgency</th><th>Churn Risk</th><th>Received</th><th>Timely Response</th><th></th></tr></thead><tbody>{breach?.items.length === 0 ? <tr><td colSpan={8} style={{ textAlign: "center", color: "var(--color-on-surface-variant)", padding: 24 }}>No at-risk complaints match the selected risk filters.</td></tr> : breach?.items.map((item) => { const displayId = item.source_complaint_id || item.complaint_id; return <tr key={item.complaint_id}><td><span className="id-pill">{displayId.slice(0, 16)}{displayId.length > 16 ? "..." : ""}</span></td><td style={{ maxWidth: 240, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.product ?? "-"}</td><td>{item.channel ?? "-"}</td><td style={{ fontWeight: 700, color: item.urgency_score != null && item.urgency_score >= 70 ? "var(--color-breach)" : "var(--color-on-surface)" }}>{item.urgency_score ?? "-"}</td><td>{item.churn_risk ? <Badge variant={churnRiskVariant(item.churn_risk)}>{item.churn_risk}</Badge> : "-"}</td><td style={{ whiteSpace: "nowrap", color: "var(--color-on-surface-variant)", fontSize: 12 }}>{formatDate(item.date_received)}</td><td>{item.timely_response == null ? <Badge variant="neutral">Unknown</Badge> : <Badge variant={item.timely_response ? "success" : "danger"}>{item.timely_response ? "Timely" : "Untimely"}</Badge>}</td><td style={{ textAlign: "right" }}><Link className="btn-secondary" style={{ height: 28, padding: "0 10px", fontSize: 11 }} href={`/queue/${item.complaint_id}`}>Open</Link></td></tr>; })}</tbody></table></div><Pagination total={breach?.total ?? 0} limit={limit} offset={offset} onOffsetChange={setOffset} onLimitChange={setLimit} pageSizes={[10, 25, 50, 100, 200]} isLoading={false} /></>;
 }
 
 // ── Duplicates Tab ────────────────────────────────────────────────────────────
@@ -425,6 +447,13 @@ function ExportsTab() {
   const [backfillLoading, setBackfillLoading] = useState(false);
   const [exportLoading, setExportLoading] = useState<string | null>(null);
   const [jobError, setJobError] = useState<string | null>(null);
+  const [jobsHistory, setJobsHistory] = useState<ProcessingJobResponse[]>([]);
+
+  const reloadJobs = useCallback(() => {
+    listJobs({ limit: 10 }).then((r) => setJobsHistory(r.items)).catch(() => null);
+  }, []);
+
+  useEffect(() => { reloadJobs(); }, [reloadJobs]);
 
   const exports: { label: string; path: Parameters<typeof downloadExport>[0]; description: string }[] = [
     { label: "Complaints CSV", path: "complaints/csv", description: "Full complaint data with AI analysis" },
@@ -449,6 +478,7 @@ function ExportsTab() {
     try {
       const result = await createProcessingJob(ids);
       setJobResult(result);
+      reloadJobs();
     } catch (e) { setJobError(e instanceof Error ? e.message : "Failed"); }
     finally { setJobLoading(false); }
   }
@@ -458,6 +488,7 @@ function ExportsTab() {
     try {
       const result = await createEmbeddingBackfillJob();
       setJobResult(result);
+      reloadJobs();
     } catch (e) { alert(e instanceof Error ? e.message : "Failed"); }
     finally { setBackfillLoading(false); }
   }
@@ -535,6 +566,53 @@ function ExportsTab() {
             </div>
           </div>
         )}
+
+        <div className="card">
+          <div className="card-header" style={{ justifyContent: "space-between" }}>
+            <span style={{ fontWeight: 600 }}>System Jobs History Log</span>
+            <button className="btn-secondary" style={{ height: 26, fontSize: 11, padding: "0 8px" }} onClick={reloadJobs}>
+              <RefreshCw size={12} /> Refresh
+            </button>
+          </div>
+          <div style={{ overflowX: "auto" }}>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Job ID</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Items</th>
+                  <th>Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                {jobsHistory.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} style={{ textAlign: "center", padding: 20, color: "var(--color-on-surface-variant)" }}>
+                      No historical jobs found
+                    </td>
+                  </tr>
+                ) : (
+                  jobsHistory.map((j) => (
+                    <tr key={j.job_id}>
+                      <td style={{ fontFamily: "var(--font-mono)", fontSize: 11 }}>{j.job_id.slice(0, 12)}…</td>
+                      <td>{humanize(j.job_type)}</td>
+                      <td>
+                        <Badge variant={j.status === "completed" ? "success" : j.status === "failed" ? "danger" : "warning"}>
+                          {j.status}
+                        </Badge>
+                      </td>
+                      <td>{j.total_items}</td>
+                      <td style={{ fontSize: 11, color: "var(--color-on-surface-variant)", whiteSpace: "nowrap" }}>
+                        {formatRelative(j.created_at)}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   );

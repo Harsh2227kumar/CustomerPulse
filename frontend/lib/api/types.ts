@@ -113,6 +113,9 @@ export interface ComplaintListItem {
   error_message?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
+  sla_deadline?: string | null;
+  sla_status?: string | null;
+  assigned_agent_id?: string | null;
 }
 
 export interface ComplaintDetail extends ComplaintListItem {
@@ -229,6 +232,20 @@ export interface ProcessingJobResponse {
   items: JobItemResponse[];
 }
 
+export interface JobListResponse {
+  items: ProcessingJobResponse[];
+  total_count: number;
+  limit: number;
+  offset: number;
+}
+
+export interface JobListResponse {
+  items: ProcessingJobResponse[];
+  total_count: number;
+  limit: number;
+  offset: number;
+}
+
 // ── Analytics ───────────────────────────────────────────────────────────────
 
 export interface TrendPoint {
@@ -267,6 +284,73 @@ export interface HighUrgencyResponse {
   count: number;
   limit: number;
   offset: number;
+}
+
+export interface ComplaintVolumeSummary {
+  total_count: number;
+  avg_per_period: number;
+  peak_period: string | null;
+  peak_count: number;
+  high_urgency_count: number;
+  human_review_count: number;
+  negative_count: number;
+  avg_urgency: number | null;
+}
+
+export interface ComplaintVolumeTimelineItem {
+  period: string;
+  total: number;
+  high_urgency: number;
+  human_review: number;
+  negative: number;
+  timely: number;
+  untimely: number;
+  avg_urgency: number | null;
+}
+
+export interface ComplaintVolumeGroupItem {
+  group: string;
+  count: number;
+  avg_urgency: number | null;
+  high_urgency: number;
+  negative: number;
+  human_review: number;
+}
+
+export interface ComplaintVolumeHeatmapItem {
+  product: string;
+  channel: string;
+  count: number;
+  avg_urgency: number | null;
+}
+
+export interface ComplaintVolumeMixItem {
+  label: string;
+  count: number;
+}
+
+export interface ComplaintVolumeSampleItem {
+  complaint_id: string;
+  product: string | null;
+  channel: string | null;
+  category: string | null;
+  sentiment: string | null;
+  ai_status: string;
+  urgency_score: number | null;
+  date_received: string | null;
+  narrative: string;
+}
+
+export interface ComplaintVolumeInsightsResponse {
+  granularity: string;
+  group_by: string;
+  summary: ComplaintVolumeSummary;
+  timeline: ComplaintVolumeTimelineItem[];
+  groups: ComplaintVolumeGroupItem[];
+  heatmap: ComplaintVolumeHeatmapItem[];
+  sentiment_mix: ComplaintVolumeMixItem[];
+  status_mix: ComplaintVolumeMixItem[];
+  samples: ComplaintVolumeSampleItem[];
 }
 
 // ── SLA ─────────────────────────────────────────────────────────────────────

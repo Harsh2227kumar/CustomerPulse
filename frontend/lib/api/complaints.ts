@@ -60,6 +60,16 @@ export function getComplaintDetail(
   );
 }
 
+export function assignComplaint(
+  complaintId: string,
+  agentId: string
+): Promise<ComplaintDetail> {
+  return request<ComplaintDetail>(
+    `/api/complaints/${encodeURIComponent(complaintId)}/assign`,
+    { method: "POST", body: JSON.stringify({ agent_id: agentId }) }
+  );
+}
+
 // ── Complaint processing ─────────────────────────────────────────────────────
 
 /** Create and immediately process a new complaint (ticket). */

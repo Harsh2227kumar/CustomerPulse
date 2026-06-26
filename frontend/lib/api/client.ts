@@ -39,7 +39,7 @@ export function apiBase(): string {
 /** WebSocket URL derived from the API base URL. */
 export function websocketUrl(): string {
   const explicit = process.env.NEXT_PUBLIC_WS_BASE_URL?.replace(/\/$/, "");
-  if (explicit) return `${explicit}/ws`;
+  if (explicit) return explicit.endsWith("/ws") ? explicit : `${explicit}/ws`;
 
   const base = apiBase();
   if (base) {

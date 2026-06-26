@@ -12,8 +12,10 @@ import {
   RefreshCw,
   Search,
   X,
+  Zap,
 } from "lucide-react";
 import { getComplaints } from "@/lib/api/complaints";
+import { createProcessingJob } from "@/lib/api/jobs";
 import type { ComplaintFilters, ComplaintListItem } from "@/lib/api/types";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -59,6 +61,11 @@ export default function QueuePage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedRows, setSelectedRows] = useState<string[]>([]);
+  const [batchLoading, setBatchLoading] = useState(false);
+  const [batchModalOpen, setBatchModalOpen] = useState(false);
+  const [batchGroupType, setBatchGroupType] = useState<"product" | "channel" | "category">("product");
+  const [batchGroupVal, setBatchGroupVal] = useState("");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchData = useCallback(async (f: ComplaintFilters, l: number, o: number) => {
@@ -100,6 +107,44 @@ export default function QueuePage() {
     setTimeout(() => setCopied(false), 1500);
   }
 
+  async function handleProcessSelected() {
+    if (selectedRows.length === 0) return;
+    setBatchLoading(true);
+    try {
+      const res = await createProcessingJob(selectedRows);
+      alert(`Dispatched AI analysis job ${res.job_id} for ${res.total_items} selected complaints!`);
+      setSelectedRows([]);
+      fetchData(filters, limit, offset);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Batch AI dispatch failed");
+    } finally {
+      setBatchLoading(false);
+    }
+  }
+
+  async function handleProcessGroup() {
+    if (!batchGroupVal.trim()) return;
+    setBatchLoading(true);
+    try {
+      const filterKey = batchGroupType === "product" ? "product" : batchGroupType === "channel" ? "channel" : "search";
+      const qRes = await getComplaints({ ...EMPTY_FILTERS, [filterKey]: batchGroupVal, ai_status: "pending" }, 100, 0);
+      const ids = qRes.items.map((i) => i.complaint_id);
+      if (ids.length === 0) {
+        alert(`No pending/unprocessed complaints found for ${batchGroupType} "${batchGroupVal}".`);
+        return;
+      }
+      const res = await createProcessingJob(ids);
+      alert(`Dispatched AI batch job ${res.job_id} for ${res.total_items} complaints in "${batchGroupVal}"!`);
+      setBatchModalOpen(false);
+      setBatchGroupVal("");
+      fetchData(filters, limit, offset);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Group AI batch dispatch failed");
+    } finally {
+      setBatchLoading(false);
+    }
+  }
+
   const selected = items.find((i) => i.complaint_id === selectedId) ?? null;
   const activeFilterCount = Object.entries(filters).filter(
     ([k, v]) => k !== "sort_by" && k !== "sort_direction" && v !== ""
@@ -126,6 +171,14 @@ export default function QueuePage() {
           </button>
           <button className="btn-secondary" onClick={() => fetchData(filters, limit, offset)} disabled={loading}>
             <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+          </button>
+          <button
+            className="btn-secondary"
+            style={{ color: "var(--color-primary)", borderColor: "var(--color-primary)", fontWeight: 600 }}
+            onClick={() => setBatchModalOpen(true)}
+            title="Run AI processing on a category or group"
+          >
+            <Zap size={14} /> Batch AI Process
           </button>
           <Link href="/new-complaint" className="btn-primary">
             <FilePlus size={14} /> New Complaint
@@ -285,6 +338,16 @@ export default function QueuePage() {
               <table className="data-table">
                 <thead>
                   <tr>
+                    <th style={{ width: 36, textAlign: "center" }}>
+                      <input
+                        type="checkbox"
+                        checked={items.length > 0 && items.every((i) => selectedRows.includes(i.complaint_id))}
+                        onChange={(e) => {
+                          if (e.target.checked) setSelectedRows(Array.from(new Set([...selectedRows, ...items.map((i) => i.complaint_id)])));
+                          else setSelectedRows(selectedRows.filter((id) => !items.some((i) => i.complaint_id === id)));
+                        }}
+                      />
+                    </th>
                     <th>ID</th>
                     <th>Product / Issue</th>
                     <th>Urgency</th>
@@ -302,6 +365,16 @@ export default function QueuePage() {
                       className={selectedId === item.complaint_id ? "selected" : ""}
                       onClick={() => setSelectedId(item.complaint_id)}
                     >
+                      <td style={{ textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={selectedRows.includes(item.complaint_id)}
+                          onChange={(e) => {
+                            if (e.target.checked) setSelectedRows([...selectedRows, item.complaint_id]);
+                            else setSelectedRows(selectedRows.filter((id) => id !== item.complaint_id));
+                          }}
+                        />
+                      </td>
                       <td>
                         <span className="id-pill">{item.complaint_id.slice(0, 12)}…</span>
                       </td>
@@ -375,6 +448,50 @@ export default function QueuePage() {
           )}
         </div>
       </div>
+
+      {/* Floating Action Bar */}
+      {selectedRows.length > 0 && (
+        <div style={{ position: "fixed", bottom: 28, left: "50%", transform: "translateX(-50%)", zIndex: 100, background: "var(--color-surface)", border: "2px solid var(--color-primary)", boxShadow: "0 10px 25px -5px rgba(0,0,0,0.3)", borderRadius: 999, padding: "10px 24px", display: "flex", alignItems: "center", gap: 16 }}>
+          <span style={{ fontWeight: 600, fontSize: 13, color: "var(--color-on-surface)" }}>✓ {selectedRows.length} complaints selected</span>
+          <button className="btn-secondary" style={{ height: 28, fontSize: 11, padding: "0 12px", borderRadius: 999 }} onClick={() => setSelectedRows([])}>Clear</button>
+          <button className="btn-primary" style={{ height: 32, fontSize: 12, padding: "0 16px", borderRadius: 999 }} onClick={handleProcessSelected} disabled={batchLoading}>
+            {batchLoading ? <RefreshCw size={14} className="animate-spin" /> : "⚡ Dispatch AI Analysis"}
+          </button>
+        </div>
+      )}
+
+      {/* Batch Group Modal */}
+      {batchModalOpen && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div className="card" style={{ width: 440, padding: 24, display: "flex", flexDirection: "column", gap: 16, background: "var(--color-surface)", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.3)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}><Zap size={18} className="text-primary" /> Batch AI Process Group</h3>
+              <button className="btn-icon" onClick={() => setBatchModalOpen(false)}><X size={16} /></button>
+            </div>
+            <p style={{ fontSize: 13, lineHeight: 1.5, color: "var(--color-on-surface-variant)" }}>
+              Select a category, product, or channel to immediately dispatch all pending/unprocessed complaints in that group for AI analysis.
+            </p>
+            <div>
+              <label className="form-label" style={{ marginBottom: 6 }}>Grouping Dimension</label>
+              <select className="form-select" value={batchGroupType} onChange={(e: any) => setBatchGroupType(e.target.value)}>
+                <option value="product">By Product (e.g. Mortgage, Credit Card)</option>
+                <option value="channel">By Channel (e.g. Web, Phone)</option>
+                <option value="category">By Category / Keyword</option>
+              </select>
+            </div>
+            <div>
+              <label className="form-label" style={{ marginBottom: 6 }}>Group Name / Keyword</label>
+              <input className="form-input" placeholder={batchGroupType === "product" ? "e.g. Credit card" : batchGroupType === "channel" ? "e.g. Phone" : "e.g. Billing"} value={batchGroupVal} onChange={(e) => setBatchGroupVal(e.target.value)} />
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 12 }}>
+              <button className="btn-secondary" onClick={() => setBatchModalOpen(false)}>Cancel</button>
+              <button className="btn-primary" onClick={handleProcessGroup} disabled={batchLoading || !batchGroupVal.trim()}>
+                {batchLoading ? <RefreshCw size={14} className="animate-spin" /> : "Dispatch Batch AI Job"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

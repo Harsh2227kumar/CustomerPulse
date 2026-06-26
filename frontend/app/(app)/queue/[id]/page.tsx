@@ -16,9 +16,11 @@ import {
   RotateCcw,
   Shield,
   ThumbsUp,
+  User,
 } from "lucide-react";
 import {
   approveReview,
+  assignComplaint,
   getComplaintDetail,
   rerunReview,
   resolveReview,
@@ -53,6 +55,44 @@ export default function ComplaintDetailPage({ params }: { params: Promise<{ id: 
   const [narrativeExpanded, setNarrativeExpanded] = useState(false);
   const [reasoningExpanded, setReasoningExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [assigning, setAssigning] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState("");
+  const [countdown, setCountdown] = useState("");
+
+  useEffect(() => {
+    if (!complaint?.sla_deadline || complaint.sla_status === "Resolved") {
+      setCountdown("");
+      return;
+    }
+    const deadline = new Date(complaint.sla_deadline).getTime();
+    function tick() {
+      const diff = deadline - Date.now();
+      if (diff <= 0) {
+        setCountdown("Breached (0s remaining)");
+      } else {
+        const h = Math.floor(diff / (1000 * 60 * 60));
+        const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const s = Math.floor((diff % (1000 * 60)) / 1000);
+        setCountdown(`${h}h ${m}m ${s}s remaining`);
+      }
+    }
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [complaint]);
+
+  async function handleAssign(agentId: string) {
+    if (!complaint || !agentId) return;
+    setAssigning(true);
+    try {
+      const updated = await assignComplaint(complaint.complaint_id, agentId);
+      setComplaint(updated);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to assign complaint");
+    } finally {
+      setAssigning(false);
+    }
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -369,6 +409,77 @@ export default function ComplaintDetailPage({ params }: { params: Promise<{ id: 
 
         {/* ── Column 3: Actions + Feedback ────────────────────────────────── */}
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {/* SLA Countdown Card */}
+          {countdown && (
+            <div className="card" style={{ borderLeft: complaint.sla_status === "Breached" ? "4px solid var(--color-error)" : complaint.sla_status === "At Risk" ? "4px solid var(--color-warning)" : "4px solid var(--color-primary)" }}>
+              <div className="card-header" style={{ paddingBottom: 8 }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 600, fontSize: "var(--text-headline-sm)" }}>
+                  <Clock size={16} style={{ color: complaint.sla_status === "Breached" ? "var(--color-error)" : "var(--color-primary)" }} />
+                  SLA Deadline Countdown
+                </span>
+                <Badge variant={complaint.sla_status === "Breached" ? "danger" : complaint.sla_status === "At Risk" ? "warning" : "neutral"}>
+                  {complaint.sla_status}
+                </Badge>
+              </div>
+              <div style={{ padding: "8px 16px 12px" }}>
+                <div style={{ fontSize: 18, fontWeight: 700, fontFamily: "var(--font-mono)", color: complaint.sla_status === "Breached" ? "var(--color-error)" : "inherit" }}>
+                  {countdown}
+                </div>
+                {complaint.sla_deadline && (
+                  <div style={{ fontSize: 11, color: "var(--color-on-surface-variant)", marginTop: 4 }}>
+                    Target ETA: {formatDateTime(complaint.sla_deadline)}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Assign Agent Card */}
+          <div className="card">
+            <div className="card-header">
+              <span style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 600, fontSize: "var(--text-headline-sm)" }}>
+                <User size={16} style={{ color: "var(--color-primary)" }} />
+                Assigned Agent
+              </span>
+              <Badge variant={complaint.assigned_agent_id ? "info" : "neutral"}>
+                {complaint.assigned_agent_id ? "Assigned" : "Unassigned"}
+              </Badge>
+            </div>
+            <div style={{ padding: "12px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
+              {complaint.assigned_agent_id ? (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <span style={{ fontWeight: 600, fontSize: 13 }}>{complaint.assigned_agent_id}</span>
+                  <button className="btn-ghost" style={{ fontSize: 11, padding: "2px 8px", height: 24 }} onClick={() => handleAssign("")} disabled={assigning}>
+                    Reassign
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: "flex", gap: 8 }}>
+                  <select
+                    className="form-select"
+                    style={{ flex: 1, fontSize: 12, height: 32 }}
+                    value={selectedAgent}
+                    onChange={(e) => setSelectedAgent(e.target.value)}
+                  >
+                    <option value="">Select Agent...</option>
+                    <option value="agent (Tier 1 Support)">agent (Tier 1 Support)</option>
+                    <option value="manager (Tier 2 Escalation)">manager (Tier 2 Escalation)</option>
+                    <option value="admin (System Lead)">admin (System Lead)</option>
+                    <option value="Harsh Kumar">Harsh Kumar</option>
+                  </select>
+                  <button
+                    className="btn-primary"
+                    style={{ height: 32, padding: "0 12px", fontSize: 12 }}
+                    disabled={!selectedAgent || assigning}
+                    onClick={() => { handleAssign(selectedAgent); setSelectedAgent(""); }}
+                  >
+                    {assigning ? <Loader2 size={13} className="animate-spin" /> : "Assign"}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Review actions */}
           {complaint.ai_status === "human_review" && (
             <ReviewActionsPanel

@@ -1,10 +1,17 @@
-import { request } from "./client";
+import { download, request } from "./client";
 import type {
   AgentFeedbackUpsertRequest,
+  FeedbackAction,
   FeedbackListResponse,
   FeedbackRead,
 } from "./types";
 
+export interface FeedbackListParams {
+  limit?: number;
+  offset?: number;
+  agent_id?: string;
+  feedback_action?: FeedbackAction | "";
+}
 export function submitFeedback(
   complaintId: string,
   payload: AgentFeedbackUpsertRequest
@@ -21,6 +28,21 @@ export function getFeedback(complaintId: string): Promise<FeedbackRead> {
   );
 }
 
-export function listFeedback(limit = 20): Promise<FeedbackListResponse> {
-  return request<FeedbackListResponse>(`/api/feedback?limit=${limit}`);
+export function listFeedback(
+  limit = 50,
+  offset = 0,
+  agentId?: string,
+  feedbackAction?: string
+): Promise<FeedbackListResponse> {
+  const params = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+  });
+  if (agentId) params.set("agent_id", agentId);
+  if (feedbackAction) params.set("feedback_action", feedbackAction);
+  return request<FeedbackListResponse>(`/api/feedback?${params.toString()}`);
+}
+
+export function exportFeedbackNdjson(): Promise<Blob> {
+  return download("/api/feedback/export");
 }

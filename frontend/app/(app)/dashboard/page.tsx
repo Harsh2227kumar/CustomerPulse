@@ -128,6 +128,7 @@ export default function DashboardPage() {
 
   const { sla, trend, trendMonthly, products, highUrgency, recent } = data;
   const trendData = granularity === "week" ? trend : trendMonthly;
+  const slaHealth = dashboardSlaHealth(sla);
 
   // Compute product distribution
   const topProducts = [...products.items]
@@ -380,14 +381,14 @@ export default function DashboardPage() {
               <span style={{ fontWeight: 600, fontSize: "var(--text-headline-sm)" }}>
                 SLA Health
               </span>
-              <Badge variant={sla.timely_rate_pct >= 80 ? "success" : sla.timely_rate_pct >= 60 ? "warning" : "danger"}>
-                {sla.timely_rate_pct >= 80 ? "Healthy" : sla.timely_rate_pct >= 60 ? "At Risk" : "Critical"}
+              <Badge variant={slaHealth.variant}>
+                {slaHealth.label}
               </Badge>
             </div>
             <div className="card-body" style={{ paddingTop: 12 }}>
               {/* Big donut-style metric */}
               <div style={{ textAlign: "center", marginBottom: 16 }}>
-                <div style={{ fontSize: 40, fontWeight: 700, color: sla.timely_rate_pct >= 80 ? "var(--color-resolved)" : sla.timely_rate_pct >= 60 ? "var(--color-pending)" : "var(--color-breach)", lineHeight: 1.1 }}>
+                <div style={{ fontSize: 40, fontWeight: 700, color: slaHealth.color, lineHeight: 1.1 }}>
                   {Math.round(sla.timely_rate_pct)}%
                 </div>
                 <div style={{ fontSize: "var(--text-body-sm)", color: "var(--color-on-surface-variant)", marginTop: 2 }}>
@@ -432,6 +433,9 @@ export default function DashboardPage() {
                   </div>
                 )}
               </div>
+              <Link href="/operations" className="btn-secondary" style={{ width: "100%", marginTop: 14, justifyContent: "center" }}>
+                View Details <ArrowRight size={14} />
+              </Link>
             </div>
           </div>
 
@@ -489,6 +493,16 @@ export default function DashboardPage() {
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
+
+function dashboardSlaHealth(sla: SLASummaryResponse): { label: "Healthy" | "At Risk" | "Critical"; variant: "success" | "warning" | "danger"; color: string } {
+  if (sla.high_urgency_untimely_count > 0 || sla.timely_rate_pct < 70) {
+    return { label: "Critical", variant: "danger", color: "var(--color-breach)" };
+  }
+  if (sla.timely_rate_pct < 90 || sla.untimely_count > 0) {
+    return { label: "At Risk", variant: "warning", color: "var(--color-pending)" };
+  }
+  return { label: "Healthy", variant: "success", color: "var(--color-resolved)" };
+}
 
 function KpiCard({
   icon,

@@ -3,9 +3,27 @@ import type {
   ChannelComparisonResponse,
   DuplicateDetectRequest,
   DuplicateDetectResponse,
+  DuplicateDetectionType,
   DuplicateGroupListResponse,
   DuplicateGroupRead,
+  DuplicateStatus,
 } from "./types";
+
+export interface DuplicateListParams {
+  limit?: number;
+  offset?: number;
+  detection_type?: DuplicateDetectionType | "";
+  status?: DuplicateStatus | "";
+}
+
+function queryString(params: DuplicateListParams): string {
+  const search = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== "") search.set(key, String(value));
+  });
+  const value = search.toString();
+  return value ? `?${value}` : "";
+}
 
 export function detectDuplicates(
   payload: DuplicateDetectRequest
@@ -16,8 +34,8 @@ export function detectDuplicates(
   });
 }
 
-export function listDuplicates(): Promise<DuplicateGroupListResponse> {
-  return request<DuplicateGroupListResponse>("/api/duplicates");
+export function listDuplicates(params: DuplicateListParams = {}): Promise<DuplicateGroupListResponse> {
+  return request<DuplicateGroupListResponse>(`/api/duplicates${queryString(params)}`);
 }
 
 export function getDuplicateGroup(groupId: string): Promise<DuplicateGroupRead> {
@@ -33,7 +51,10 @@ export function mergeDuplicate(
 ): Promise<DuplicateGroupRead> {
   return request<DuplicateGroupRead>(
     `/api/duplicates/${encodeURIComponent(groupId)}/merge`,
-    { method: "POST", body: JSON.stringify({ canonical_complaint_id: canonicalComplaintId, notes }) }
+    {
+      method: "POST",
+      body: JSON.stringify({ canonical_complaint_id: canonicalComplaintId, notes }),
+    }
   );
 }
 

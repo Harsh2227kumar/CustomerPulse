@@ -1,5 +1,25 @@
 import { request } from "./client";
-import type { ProcessingJobResponse } from "./types";
+import type { JobListResponse, ProcessingJobResponse } from "./types";
+
+export interface JobListParams {
+  limit?: number;
+  offset?: number;
+  job_type?: "process_complaints" | "embedding_backfill" | "";
+  status?: "queued" | "running" | "completed" | "completed_with_errors" | "failed" | "";
+}
+
+function queryString(params: JobListParams): string {
+  const search = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== "") search.set(key, String(value));
+  });
+  const value = search.toString();
+  return value ? `?${value}` : "";
+}
+
+export function listJobs(params: JobListParams = {}): Promise<JobListResponse> {
+  return request<JobListResponse>(`/api/jobs${queryString(params)}`);
+}
 
 export function createProcessingJob(
   complaintIds: string[]
@@ -28,3 +48,4 @@ export function retryJob(jobId: string): Promise<ProcessingJobResponse> {
     { method: "POST" }
   );
 }
+
