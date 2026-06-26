@@ -205,6 +205,7 @@ class CfpbS3IngestionService:
                 with TextIOWrapper(body, encoding="utf-8-sig", newline="") as text:
                     yield text
                 return
+            print("DEBUG KEY:", repr(self.settings.CFPB_S3_KEY))
             raise S3IngestionError("CFPB_S3_KEY must reference a .csv or .zip object.")
         except (BotoCoreError, ClientError, OSError, zipfile.BadZipFile) as exc:
             raise S3IngestionError(f"Unable to read the CFPB object from S3: {exc}") from exc
