@@ -34,3 +34,12 @@ class ProcessingJobResponse(BaseModel):
     started_at: datetime | None = None
     finished_at: datetime | None = None
     items: list[JobItemResponse] = Field(default_factory=list)
+
+
+class JobListResponse(BaseModel):
+    items: list[ProcessingJobResponse]
+    total_count: int
+    limit: int
+    offset: int
+
+

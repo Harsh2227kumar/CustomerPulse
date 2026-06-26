@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, patch
 from httpx import ASGITransport, AsyncClient
 
 from app.analytics.repository import get_product_summary
-from app.analytics.router import complaint_trends, high_urgency, human_review_trends, product_summary
+from app.analytics.router import complaint_trends, complaint_volume_insights, high_urgency, human_review_trends, product_summary
 from app.db.session import get_db_session
 from app.main import app
 
@@ -20,6 +20,57 @@ class AnalyticsTests(unittest.IsolatedAsyncioTestCase):
 
     async def asyncTearDown(self) -> None:
         app.dependency_overrides.clear()
+
+
+    async def test_complaint_volume_insights_shapes_operational_metrics(self) -> None:
+        rows = {
+            "timeline": [
+                {
+                    "period": datetime(2026, 1, 1, tzinfo=timezone.utc),
+                    "total": 10,
+                    "high_urgency": 3,
+                    "human_review": 2,
+                    "negative": 5,
+                    "timely": 8,
+                    "untimely": 2,
+                    "avg_urgency": 66.5,
+                }
+            ],
+            "groups": [
+                {
+                    "group_value": "Credit card",
+                    "count": 7,
+                    "avg_urgency": 72.0,
+                    "high_urgency": 2,
+                    "negative": 4,
+                    "human_review": 1,
+                }
+            ],
+            "heatmap": [{"product": "Credit card", "channel": "Web", "count": 5, "avg_urgency": 70.0}],
+            "sentiment_mix": [{"label": "Negative", "count": 5}],
+            "status_mix": [{"label": "completed", "count": 8}],
+            "samples": [
+                {
+                    "complaint_id": "CP-001",
+                    "product": "Credit card",
+                    "channel": "Web",
+                    "category": "billing",
+                    "sentiment": "Negative",
+                    "ai_status": "completed",
+                    "urgency_score": 91,
+                    "date_received": datetime(2026, 1, 1, tzinfo=timezone.utc),
+                    "narrative": "Charge posted twice.",
+                }
+            ],
+        }
+        with patch("app.analytics.router.get_complaint_volume_insights", AsyncMock(return_value=rows)):
+            response = await complaint_volume_insights("week", "product", None, None, 12, object())
+
+        self.assertEqual(response.summary.total_count, 10)
+        self.assertEqual(response.summary.peak_count, 10)
+        self.assertEqual(response.groups[0].group, "Credit card")
+        self.assertEqual(response.heatmap[0].channel, "Web")
+        self.assertEqual(response.samples[0].complaint_id, "CP-001")
 
     async def test_complaint_trend_monthly_groups_correctly(self) -> None:
         with patch(
