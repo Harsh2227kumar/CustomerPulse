@@ -21,6 +21,7 @@ from app.models import (  # noqa: F401
     DuplicateGroup,
     DuplicateMember,
     Escalation,
+    ImportAuditLog,
     ProcessingJob,
     ProcessingJobItem,
 )
@@ -55,7 +56,7 @@ class DatabaseSetupStatus:
 
 
 def _make_engine(url: str, *, isolation_level: str | None = None) -> AsyncEngine:
-    kwargs = {"pool_pre_ping": True, "future": True}
+    kwargs: dict[str, bool | str] = {"pool_pre_ping": True, "future": True}
     if isolation_level:
         kwargs["isolation_level"] = isolation_level
     return create_async_engine(url, **kwargs)
@@ -128,6 +129,7 @@ REQUIRED_TABLES = (
     "escalations",
     "processing_jobs",
     "processing_job_items",
+    "import_audit_logs",
 )
 
 

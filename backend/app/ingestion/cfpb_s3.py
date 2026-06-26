@@ -5,20 +5,20 @@ import re
 import tempfile
 import time
 import zipfile
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 from datetime import UTC, date, datetime
 from io import TextIOWrapper
-from typing import Any, TextIO
+from typing import Any, Iterator, TextIO
 
 import boto3
-from botocore.exceptions import BotoCoreError, ClientError
+from botocore.exceptions import BotoCoreError, ClientError, NoCredentialsError, EndpointConnectionError
 from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings
-from app.core.constants import ProcessingStatus
+from app.core.constants import ComplaintChannel, ProcessingStatus
 from app.models.complaint import Complaint
 from app.schemas.ingestion import (
     S3ComplaintImportFilters,
@@ -39,14 +39,25 @@ class S3QueryModeRequiredError(S3IngestionError):
     pass
 
 
-class S3SourceUnavailableError(S3IngestionError):
+class S3CredentialsMissingError(S3IngestionError):
     pass
 
 
-def _is_access_denied(exc: ClientError) -> bool:
-    code = exc.response.get("Error", {}).get("Code", "")
-    message = exc.response.get("Error", {}).get("Message", "")
-    return "accessdenied" in code.lower() or "not authorized" in message.lower()
+class AthenaTimeoutError(S3IngestionError):
+    pass
+
+
+class AthenaTableMissingError(S3IngestionError):
+    pass
+
+
+class NoMatchingRowsError(S3IngestionError):
+    pass
+
+
+class S3SourceUnavailableError(S3IngestionError):
+    pass
+
 
 
 def _value(row: dict[str, Any], *keys: str) -> Any:
@@ -85,7 +96,31 @@ def _datetime(value: Any) -> datetime | None:
             return parsed if parsed.tzinfo else parsed.replace(tzinfo=UTC)
         except ValueError:
             continue
+    for fmt in ("%m/%d/%Y", "%Y/%m/%d", "%d/%m/%Y", "%Y-%m-%d"):
+        try:
+            parsed = datetime.strptime(text, fmt)
+            return parsed.replace(tzinfo=UTC)
+        except ValueError:
+            continue
     return None
+
+
+def normalize_channel(raw_channel: str | None) -> str:
+    if not raw_channel:
+        return ComplaintChannel.WEB.value
+    cleaned = raw_channel.strip().lower()
+    if "web" in cleaned:
+        return ComplaintChannel.WEB.value
+    if "phone" in cleaned or "call" in cleaned:
+        return ComplaintChannel.PHONE.value
+    if "email" in cleaned:
+        return ComplaintChannel.EMAIL.value
+    if "chat" in cleaned or "sms" in cleaned or "social" in cleaned:
+        return ComplaintChannel.CHAT.value
+    if "manual" in cleaned or "referral" in cleaned or "mail" in cleaned or "fax" in cleaned or "postal" in cleaned:
+        return ComplaintChannel.MANUAL.value
+    return ComplaintChannel.WEB.value
+
 
 
 def map_cfpb_csv_row(row: dict[str, Any]) -> dict[str, Any] | None:
@@ -100,11 +135,12 @@ def map_cfpb_csv_row(row: dict[str, Any]) -> dict[str, Any] | None:
     )
     if complaint_id is None or narrative is None:
         return None
+    raw_channel = _text(_value(row, "Submitted via", "submitted_via"), 64)
     return {
         "id": f"cfpb-{complaint_id}"[:64],
         "source_complaint_id": complaint_id,
         "narrative": narrative,
-        "channel": _text(_value(row, "Submitted via", "submitted_via"), 64),
+        "channel": normalize_channel(raw_channel),
         "product": _text(_value(row, "Product", "product"), 255),
         "sub_product": _text(_value(row, "Sub-product", "sub_product"), 255),
         "issue": _text(_value(row, "Issue", "issue"), 255),
@@ -158,16 +194,20 @@ class CfpbS3IngestionService:
         self.bucket = settings.s3_bucket_name
         self.key = settings.cfpb_s3_key
         self.mode = settings.cfpb_ingestion_mode
-        self.client = boto3.client("s3", region_name=settings.aws_region)
-        if self.mode == "athena":
-            if not settings.athena_database or not settings.athena_table or not settings.athena_output_location:
-                raise S3IngestionError("Athena ingestion settings are incomplete.")
-            self.athena_database = self._identifier(settings.athena_database)
-            self.athena_table = self._identifier(settings.athena_table)
-            self.athena_output_location = settings.athena_output_location
-            self.athena_workgroup = settings.athena_workgroup
-            self.athena_timeout_seconds = settings.athena_query_timeout_seconds
-            self.athena = boto3.client("athena", region_name=settings.aws_region)
+        self.last_execution_id: str | None = None
+        try:
+            self.client = boto3.client("s3", region_name=settings.aws_region)
+            if self.mode == "athena":
+                if not settings.athena_database or not settings.athena_table or not settings.athena_output_location:
+                    raise S3IngestionError("Athena ingestion settings are incomplete.")
+                self.athena_database = self._identifier(settings.athena_database)
+                self.athena_table = self._identifier(settings.athena_table)
+                self.athena_output_location = settings.athena_output_location
+                self.athena_workgroup = settings.athena_workgroup
+                self.athena_timeout_seconds = settings.athena_query_timeout_seconds
+                self.athena = boto3.client("athena", region_name=settings.aws_region)
+        except (NoCredentialsError, ClientError) as exc:
+            raise S3CredentialsMissingError(f"AWS configuration or credentials missing/invalid: {exc}") from exc
 
     @property
     def source(self) -> S3SourceSummary:
@@ -184,7 +224,7 @@ class CfpbS3IngestionService:
         return value
 
     @contextmanager
-    def _csv_stream(self) -> Iterator[TextIO]:
+    def _csv_stream(self) -> Generator[TextIO, None, None]:
         key_lower = self.key.lower()
         try:
             if key_lower.endswith(".zip"):
@@ -205,9 +245,19 @@ class CfpbS3IngestionService:
                 with TextIOWrapper(body, encoding="utf-8-sig", newline="") as text:
                     yield text
                 return
-            print("DEBUG KEY:", repr(self.settings.CFPB_S3_KEY))
             raise S3IngestionError("CFPB_S3_KEY must reference a .csv or .zip object.")
-        except (BotoCoreError, ClientError, OSError, zipfile.BadZipFile) as exc:
+        except NoCredentialsError as exc:
+            raise S3CredentialsMissingError("AWS credentials are missing.") from exc
+        except EndpointConnectionError as exc:
+            raise S3SourceUnavailableError(f"S3 endpoint is unreachable: {exc}") from exc
+        except ClientError as exc:
+            error_code = exc.response.get("Error", {}).get("Code", "")
+            if error_code in ("InvalidAccessKeyId", "SignatureDoesNotMatch", "AuthFailure", "AccessDenied", "ExpiredToken"):
+                raise S3CredentialsMissingError(f"AWS credentials are invalid: {exc}") from exc
+            if error_code in ("NoSuchBucket", "NoSuchKey"):
+                raise S3SourceUnavailableError(f"S3 bucket or key does not exist: {exc}") from exc
+            raise S3IngestionError(f"S3 Client Error: {exc}") from exc
+        except (BotoCoreError, OSError, zipfile.BadZipFile) as exc:
             raise S3IngestionError(f"Unable to read the CFPB object from S3: {exc}") from exc
 
     def _rows(self) -> Iterator[dict[str, Any]]:
@@ -222,20 +272,13 @@ class CfpbS3IngestionService:
     def _sql_text(value: str) -> str:
         return "'" + value.replace("'", "''") + "'"
 
-    def _athena_where(
-        self,
-        filters: S3ComplaintImportFilters | None = None,
-        *,
-        require_importable: bool = True,
-    ) -> str:
+    def _athena_where(self, filters: S3ComplaintImportFilters | None = None, *, require_importable: bool = True) -> str:
         clauses = ["complaint_id IS NOT NULL"]
         if require_importable:
-            clauses.extend(
-                [
-                    "consumer_complaint_narrative IS NOT NULL",
-                    "trim(consumer_complaint_narrative) <> ''",
-                ]
-            )
+            clauses.extend([
+                "consumer_complaint_narrative IS NOT NULL",
+                "trim(consumer_complaint_narrative) <> ''",
+            ])
         if filters is None:
             return " AND ".join(clauses)
         for field in ("product", "sub_product", "issue", "company", "channel"):
@@ -265,6 +308,7 @@ class CfpbS3IngestionService:
                 WorkGroup=self.athena_workgroup,
             )
             execution_id = started["QueryExecutionId"]
+            self.last_execution_id = execution_id
             deadline = time.monotonic() + self.athena_timeout_seconds
             while True:
                 status = self.athena.get_query_execution(QueryExecutionId=execution_id)[
@@ -275,10 +319,13 @@ class CfpbS3IngestionService:
                     break
                 if state in {"FAILED", "CANCELLED"}:
                     reason = status.get("StateChangeReason", state)
+                    reason_lower = reason.lower()
+                    if "table not found" in reason_lower or "does not exist" in reason_lower or "table missing" in reason_lower:
+                        raise AthenaTableMissingError(f"Athena table or database does not exist: {reason}")
                     raise S3IngestionError(f"Athena query did not complete: {reason}")
                 if time.monotonic() >= deadline:
                     self.athena.stop_query_execution(QueryExecutionId=execution_id)
-                    raise S3IngestionError("Athena query timed out.")
+                    raise AthenaTimeoutError("Athena query timed out.")
                 time.sleep(0.2)
 
             output: list[dict[str, str | None]] = []
@@ -299,15 +346,29 @@ class CfpbS3IngestionService:
                 token = result.get("NextToken")
                 if not token:
                     return output
+        except AthenaTableMissingError:
+            raise
+        except AthenaTimeoutError:
+            raise
+        except NoCredentialsError as exc:
+            raise S3CredentialsMissingError("AWS credentials are missing for Athena.") from exc
+        except EndpointConnectionError as exc:
+            raise S3SourceUnavailableError(f"Athena endpoint is unreachable: {exc}") from exc
         except ClientError as exc:
-            if _is_access_denied(exc):
-                raise S3SourceUnavailableError(
-                    "AWS credentials cannot run Athena queries. Ask an AWS administrator for Athena query "
-                    "permissions and S3 access to the Athena results location."
-                ) from exc
-            raise S3IngestionError(f"Unable to query the CFPB data through Athena: {exc}") from exc
+            error_code = exc.response.get("Error", {}).get("Code", "")
+            if error_code in ("InvalidAccessKeyId", "SignatureDoesNotMatch", "AuthFailure", "AccessDenied", "ExpiredToken"):
+                raise S3CredentialsMissingError(f"AWS credentials are invalid for Athena: {exc}") from exc
+            raise S3IngestionError(f"Athena Client Error: {exc}") from exc
         except (BotoCoreError, KeyError) as exc:
             raise S3IngestionError(f"Unable to query the CFPB data through Athena: {exc}") from exc
+
+    def _athena_option_values(self, column: str) -> list[str]:
+        rows = self._run_athena(
+            f"SELECT DISTINCT {column} AS value FROM {self._athena_source} "
+            f"WHERE {self._athena_where(require_importable=False)} AND {column} IS NOT NULL AND trim(CAST({column} AS varchar)) <> '' "
+            "ORDER BY value"
+        )
+        return [value for row in rows if (value := _text(row.get("value"))) is not None]
 
     def _unavailable_options(self, reason: str) -> S3ImportOptionsResponse:
         return S3ImportOptionsResponse(
@@ -322,14 +383,6 @@ class CfpbS3IngestionService:
             channels=[],
             timely_responses=[],
         )
-
-    def _athena_option_values(self, column: str) -> list[str]:
-        rows = self._run_athena(
-            f"SELECT DISTINCT {column} AS value FROM {self._athena_source} "
-            f"WHERE {self._athena_where(require_importable=False)} AND {column} IS NOT NULL AND trim(CAST({column} AS varchar)) <> '' "
-            "ORDER BY value"
-        )
-        return [value for row in rows if (value := _text(row.get("value"))) is not None]
 
     def _load_athena_options(self) -> S3ImportOptionsResponse:
         boundaries = self._run_athena(
