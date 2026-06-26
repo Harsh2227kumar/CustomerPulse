@@ -1,0 +1,47 @@
+{
+  "total_pairs": 1249,
+  "pair_type_counts": [
+    {
+      "pair_type": "different_product_similar_narrative",
+      "count": 300
+    },
+    {
+      "pair_type": "fraud_legal_case",
+      "count": 216
+    },
+    {
+      "pair_type": "high_urgency_case",
+      "count": 229
+    },
+    {
+      "pair_type": "low_evidence_case",
+      "count": 141
+    },
+    {
+      "pair_type": "same_product_different_issue",
+      "count": 100
+    },
+    {
+      "pair_type": "same_product_same_issue",
+      "count": 263
+    }
+  ],
+  "expected_validation_behavior_counts": [
+    {
+      "expected_validation_behavior": "approved_or_review_if_risky",
+      "count": 263
+    },
+    {
+      "expected_validation_behavior": "manual_review",
+      "count": 541
+    },
+    {
+      "expected_validation_behavior": "manual_review_or_escalate",
+      "count": 216
+    },
+    {
+      "expected_validation_behavior": "manual_review_unless_strong_match",
+      "count": 229
+    }
+  ]
+}

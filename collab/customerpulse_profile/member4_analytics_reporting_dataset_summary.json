@@ -1,0 +1,36 @@
+{
+  "files": {
+    "top_products": "member4_top_products.csv",
+    "top_issues": "member4_top_issues.csv",
+    "top_product_issue_company": "member4_top_product_issue_company.csv",
+    "channel_distribution": "member4_channel_distribution.csv",
+    "monthly_date_trends": "member4_monthly_date_trends.csv",
+    "daily_date_trends": "member4_daily_date_trends.csv",
+    "reason_code_trends": "member4_reason_code_trends.csv",
+    "root_cause_phrase_candidates": "member4_root_cause_phrase_candidates.csv",
+    "duplicate_repeated_issue_groups": "member4_duplicate_repeated_issue_groups.csv",
+    "business_metric_candidates": "member4_business_metric_candidates.csv",
+    "report_filter_values": "member4_report_filter_values.json"
+  },
+  "counts": {
+    "top_products": 27,
+    "top_issues": 179,
+    "top_product_issue_company": 500,
+    "channel_distribution": 2,
+    "monthly_date_trends": 139,
+    "daily_date_trends": 4054,
+    "reason_code_trends": 139,
+    "root_cause_phrase_candidates": 223,
+    "duplicate_repeated_issue_groups": 500
+  },
+  "recommended_manager_views": [
+    "Product trends",
+    "Issue trends",
+    "Channel distribution",
+    "Root-cause themes",
+    "Company/product hotspots",
+    "Untimely response trend",
+    "High-risk reason-code trend",
+    "Duplicate/repeated issue groups"
+  ]
+}

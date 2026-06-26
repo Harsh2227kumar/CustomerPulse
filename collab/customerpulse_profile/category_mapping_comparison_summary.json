@@ -1,0 +1,717 @@
+{
+  "total_evaluated_rows": 100000,
+  "accuracy_summary": [
+    {
+      "match_status": "match",
+      "count": 89055,
+      "percentage": 89.06
+    },
+    {
+      "match_status": "mismatch",
+      "count": 10945,
+      "percentage": 10.94
+    }
+  ],
+  "top_mismatch_pairs": [
+    {
+      "dataset_product": "Debt collection",
+      "dataset_issue": "Attempts to collect debt not owed",
+      "expected_dataset_category": "Debt collection issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 2387
+    },
+    {
+      "dataset_product": "Debt collection",
+      "dataset_issue": "Written notification about debt",
+      "expected_dataset_category": "Debt collection issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 1411
+    },
+    {
+      "dataset_product": "Checking or savings account",
+      "dataset_issue": "Managing an account",
+      "expected_dataset_category": "Account issue",
+      "current_predicted_category": "Card issue",
+      "count": 862
+    },
+    {
+      "dataset_product": "Debt collection",
+      "dataset_issue": "False statements or representation",
+      "expected_dataset_category": "Debt collection issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 566
+    },
+    {
+      "dataset_product": "Debt collection",
+      "dataset_issue": "Took or threatened to take negative or legal action",
+      "expected_dataset_category": "Debt collection issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 360
+    },
+    {
+      "dataset_product": "Checking or savings account",
+      "dataset_issue": "Problem with a lender or other company charging your account",
+      "expected_dataset_category": "Account issue",
+      "current_predicted_category": "Card issue",
+      "count": 288
+    },
+    {
+      "dataset_product": "Money transfer, virtual currency, or money service",
+      "dataset_issue": "Fraud or scam",
+      "expected_dataset_category": "Payment or transfer issue",
+      "current_predicted_category": "Card issue",
+      "count": 162
+    },
+    {
+      "dataset_product": "Debt collection",
+      "dataset_issue": "Cont'd attempts collect debt not owed",
+      "expected_dataset_category": "Debt collection issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 160
+    },
+    {
+      "dataset_product": "Mortgage",
+      "dataset_issue": "Trouble during payment process",
+      "expected_dataset_category": "Loan or mortgage issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 144
+    },
+    {
+      "dataset_product": "Student loan",
+      "dataset_issue": "Dealing with your lender or servicer",
+      "expected_dataset_category": "Loan or mortgage issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 139
+    },
+    {
+      "dataset_product": "Credit card",
+      "dataset_issue": "Getting a credit card",
+      "expected_dataset_category": "Card issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 138
+    },
+    {
+      "dataset_product": "Credit card or prepaid card",
+      "dataset_issue": "Getting a credit card",
+      "expected_dataset_category": "Card issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 131
+    },
+    {
+      "dataset_product": "Checking or savings account",
+      "dataset_issue": "Closing an account",
+      "expected_dataset_category": "Account issue",
+      "current_predicted_category": "Card issue",
+      "count": 122
+    },
+    {
+      "dataset_product": "Debt collection",
+      "dataset_issue": "Communication tactics",
+      "expected_dataset_category": "Debt collection issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 111
+    },
+    {
+      "dataset_product": "Money transfer, virtual currency, or money service",
+      "dataset_issue": "Fraud or scam",
+      "expected_dataset_category": "Payment or transfer issue",
+      "current_predicted_category": "Account issue",
+      "count": 107
+    },
+    {
+      "dataset_product": "Debt collection",
+      "dataset_issue": "Disclosure verification of debt",
+      "expected_dataset_category": "Debt collection issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 93
+    },
+    {
+      "dataset_product": "Vehicle loan or lease",
+      "dataset_issue": "Managing the loan or lease",
+      "expected_dataset_category": "Loan or mortgage issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 89
+    },
+    {
+      "dataset_product": "Checking or savings account",
+      "dataset_issue": "Problem caused by your funds being low",
+      "expected_dataset_category": "Account issue",
+      "current_predicted_category": "Card issue",
+      "count": 89
+    },
+    {
+      "dataset_product": "Checking or savings account",
+      "dataset_issue": "Opening an account",
+      "expected_dataset_category": "Account issue",
+      "current_predicted_category": "Card issue",
+      "count": 89
+    },
+    {
+      "dataset_product": "Credit card or prepaid card",
+      "dataset_issue": "Closing your account",
+      "expected_dataset_category": "Card issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 88
+    },
+    {
+      "dataset_product": "Checking or savings account",
+      "dataset_issue": "Managing an account",
+      "expected_dataset_category": "Account issue",
+      "current_predicted_category": "Loan or mortgage issue",
+      "count": 86
+    },
+    {
+      "dataset_product": "Credit card or prepaid card",
+      "dataset_issue": "Problem when making payments",
+      "expected_dataset_category": "Card issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 76
+    },
+    {
+      "dataset_product": "Credit card",
+      "dataset_issue": "Problem with a company's investigation into an existing problem",
+      "expected_dataset_category": "Card issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 75
+    },
+    {
+      "dataset_product": "Credit card",
+      "dataset_issue": "Closing your account",
+      "expected_dataset_category": "Card issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 74
+    },
+    {
+      "dataset_product": "Credit card",
+      "dataset_issue": "Problem with a purchase shown on your statement",
+      "expected_dataset_category": "Card issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 72
+    },
+    {
+      "dataset_product": "Mortgage",
+      "dataset_issue": "Applying for a mortgage or refinancing an existing mortgage",
+      "expected_dataset_category": "Loan or mortgage issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 72
+    },
+    {
+      "dataset_product": "Credit card or prepaid card",
+      "dataset_issue": "Problem with a purchase shown on your statement",
+      "expected_dataset_category": "Card issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 68
+    },
+    {
+      "dataset_product": "Money transfer, virtual currency, or money service",
+      "dataset_issue": "Unauthorized transactions or other transaction problem",
+      "expected_dataset_category": "Payment or transfer issue",
+      "current_predicted_category": "Card issue",
+      "count": 66
+    },
+    {
+      "dataset_product": "Money transfer, virtual currency, or money service",
+      "dataset_issue": "Other transaction problem",
+      "expected_dataset_category": "Payment or transfer issue",
+      "current_predicted_category": "Account issue",
+      "count": 66
+    },
+    {
+      "dataset_product": "Mortgage",
+      "dataset_issue": "Struggling to pay mortgage",
+      "expected_dataset_category": "Loan or mortgage issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 62
+    },
+    {
+      "dataset_product": "Money transfer, virtual currency, or money service",
+      "dataset_issue": "Other transaction problem",
+      "expected_dataset_category": "Payment or transfer issue",
+      "current_predicted_category": "Card issue",
+      "count": 61
+    },
+    {
+      "dataset_product": "Vehicle loan or lease",
+      "dataset_issue": "Getting a loan or lease",
+      "expected_dataset_category": "Loan or mortgage issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 55
+    },
+    {
+      "dataset_product": "Credit card or prepaid card",
+      "dataset_issue": "Other features, terms, or problems",
+      "expected_dataset_category": "Card issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 54
+    },
+    {
+      "dataset_product": "Vehicle loan or lease",
+      "dataset_issue": "Repossession",
+      "expected_dataset_category": "Loan or mortgage issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 51
+    },
+    {
+      "dataset_product": "Mortgage",
+      "dataset_issue": "Loan servicing, payments, escrow account",
+      "expected_dataset_category": "Loan or mortgage issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 50
+    },
+    {
+      "dataset_product": "Vehicle loan or lease",
+      "dataset_issue": "Problems at the end of the loan or lease",
+      "expected_dataset_category": "Loan or mortgage issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 47
+    },
+    {
+      "dataset_product": "Bank account or service",
+      "dataset_issue": "Account opening, closing, or management",
+      "expected_dataset_category": "Account issue",
+      "current_predicted_category": "Card issue",
+      "count": 44
+    },
+    {
+      "dataset_product": "Checking or savings account",
+      "dataset_issue": "Managing an account",
+      "expected_dataset_category": "Account issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 44
+    },
+    {
+      "dataset_product": "Credit card or prepaid card",
+      "dataset_issue": "Fees or interest",
+      "expected_dataset_category": "Card issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 44
+    },
+    {
+      "dataset_product": "Mortgage",
+      "dataset_issue": "Trouble during payment process",
+      "expected_dataset_category": "Loan or mortgage issue",
+      "current_predicted_category": "Debt collection issue",
+      "count": 42
+    },
+    {
+      "dataset_product": "Credit card or prepaid card",
+      "dataset_issue": "Trouble using your card",
+      "expected_dataset_category": "Card issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 41
+    },
+    {
+      "dataset_product": "Money transfer, virtual currency, or money service",
+      "dataset_issue": "Managing, opening, or closing your mobile wallet account",
+      "expected_dataset_category": "Payment or transfer issue",
+      "current_predicted_category": "Card issue",
+      "count": 40
+    },
+    {
+      "dataset_product": "Credit card",
+      "dataset_issue": "Problem when making payments",
+      "expected_dataset_category": "Card issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 40
+    },
+    {
+      "dataset_product": "Credit card",
+      "dataset_issue": "Other features, terms, or problems",
+      "expected_dataset_category": "Card issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 39
+    },
+    {
+      "dataset_product": "Money transfer, virtual currency, or money service",
+      "dataset_issue": "Money was not available when promised",
+      "expected_dataset_category": "Payment or transfer issue",
+      "current_predicted_category": "Account issue",
+      "count": 39
+    },
+    {
+      "dataset_product": "Student loan",
+      "dataset_issue": "Dealing with my lender or servicer",
+      "expected_dataset_category": "Loan or mortgage issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 38
+    },
+    {
+      "dataset_product": "Credit card",
+      "dataset_issue": "Fees or interest",
+      "expected_dataset_category": "Card issue",
+      "current_predicted_category": "Loan or mortgage issue",
+      "count": 35
+    },
+    {
+      "dataset_product": "Consumer Loan",
+      "dataset_issue": "Managing the loan or lease",
+      "expected_dataset_category": "Loan or mortgage issue",
+      "current_predicted_category": "Payment or transfer issue",
+      "count": 35
+    },
+    {
+      "dataset_product": "Debt collection",
+      "dataset_issue": "Electronic communications",
+      "expected_dataset_category": "Debt collection issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 35
+    },
+    {
+      "dataset_product": "Checking or savings account",
+      "dataset_issue": "Opening an account",
+      "expected_dataset_category": "Account issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 34
+    },
+    {
+      "dataset_product": "Debt collection",
+      "dataset_issue": "Threatened to contact someone or share information improperly",
+      "expected_dataset_category": "Debt collection issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 34
+    },
+    {
+      "dataset_product": "Credit card",
+      "dataset_issue": "Trouble using your card",
+      "expected_dataset_category": "Card issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 33
+    },
+    {
+      "dataset_product": "Vehicle loan or lease",
+      "dataset_issue": "Struggling to pay your loan",
+      "expected_dataset_category": "Loan or mortgage issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 31
+    },
+    {
+      "dataset_product": "Student loan",
+      "dataset_issue": "Struggling to repay your loan",
+      "expected_dataset_category": "Loan or mortgage issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 30
+    },
+    {
+      "dataset_product": "Checking or savings account",
+      "dataset_issue": "Closing an account",
+      "expected_dataset_category": "Account issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 30
+    },
+    {
+      "dataset_product": "Mortgage",
+      "dataset_issue": "Closing on a mortgage",
+      "expected_dataset_category": "Loan or mortgage issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 30
+    },
+    {
+      "dataset_product": "Credit card",
+      "dataset_issue": "Fees or interest",
+      "expected_dataset_category": "Card issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 29
+    },
+    {
+      "dataset_product": "Consumer Loan",
+      "dataset_issue": "Managing the loan or lease",
+      "expected_dataset_category": "Loan or mortgage issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 28
+    },
+    {
+      "dataset_product": "Money transfer, virtual currency, or money service",
+      "dataset_issue": "Unauthorized transactions or other transaction problem",
+      "expected_dataset_category": "Payment or transfer issue",
+      "current_predicted_category": "Account issue",
+      "count": 27
+    },
+    {
+      "dataset_product": "Mortgage",
+      "dataset_issue": "Loan modification,collection,foreclosure",
+      "expected_dataset_category": "Loan or mortgage issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 26
+    },
+    {
+      "dataset_product": "Student loan",
+      "dataset_issue": "Dealing with your lender or servicer",
+      "expected_dataset_category": "Loan or mortgage issue",
+      "current_predicted_category": "Debt collection issue",
+      "count": 26
+    },
+    {
+      "dataset_product": "Mortgage",
+      "dataset_issue": "Struggling to pay mortgage",
+      "expected_dataset_category": "Loan or mortgage issue",
+      "current_predicted_category": "Debt collection issue",
+      "count": 25
+    },
+    {
+      "dataset_product": "Money transfer, virtual currency, or money service",
+      "dataset_issue": "Money was not available when promised",
+      "expected_dataset_category": "Payment or transfer issue",
+      "current_predicted_category": "Card issue",
+      "count": 24
+    },
+    {
+      "dataset_product": "Credit card or prepaid card",
+      "dataset_issue": "Fees or interest",
+      "expected_dataset_category": "Card issue",
+      "current_predicted_category": "Loan or mortgage issue",
+      "count": 23
+    },
+    {
+      "dataset_product": "Consumer Loan",
+      "dataset_issue": "Problems when you are unable to pay",
+      "expected_dataset_category": "Loan or mortgage issue",
+      "current_predicted_category": "Payment or transfer issue",
+      "count": 22
+    },
+    {
+      "dataset_product": "Bank account or service",
+      "dataset_issue": "Deposits and withdrawals",
+      "expected_dataset_category": "Account issue",
+      "current_predicted_category": "Card issue",
+      "count": 22
+    },
+    {
+      "dataset_product": "Money transfer, virtual currency, or money service",
+      "dataset_issue": "Trouble accessing funds in your mobile or digital wallet",
+      "expected_dataset_category": "Payment or transfer issue",
+      "current_predicted_category": "Card issue",
+      "count": 22
+    },
+    {
+      "dataset_product": "Credit card",
+      "dataset_issue": "Billing disputes",
+      "expected_dataset_category": "Card issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 21
+    },
+    {
+      "dataset_product": "Mortgage",
+      "dataset_issue": "Application, originator, mortgage broker",
+      "expected_dataset_category": "Loan or mortgage issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 18
+    },
+    {
+      "dataset_product": "Consumer Loan",
+      "dataset_issue": "Managing the loan or lease",
+      "expected_dataset_category": "Loan or mortgage issue",
+      "current_predicted_category": "General complaint",
+      "count": 17
+    },
+    {
+      "dataset_product": "Credit card or prepaid card",
+      "dataset_issue": "Advertising and marketing, including promotional offers",
+      "expected_dataset_category": "Card issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 17
+    },
+    {
+      "dataset_product": "Bank account or service",
+      "dataset_issue": "Problems caused by my funds being low",
+      "expected_dataset_category": "Account issue",
+      "current_predicted_category": "Card issue",
+      "count": 16
+    },
+    {
+      "dataset_product": "Student loan",
+      "dataset_issue": "Improper use of your report",
+      "expected_dataset_category": "Credit reporting issue",
+      "current_predicted_category": "Loan or mortgage issue",
+      "count": 16
+    },
+    {
+      "dataset_product": "Money transfer, virtual currency, or money service",
+      "dataset_issue": "Managing, opening, or closing your mobile wallet account",
+      "expected_dataset_category": "Payment or transfer issue",
+      "current_predicted_category": "Account issue",
+      "count": 16
+    },
+    {
+      "dataset_product": "Consumer Loan",
+      "dataset_issue": "Taking out the loan or lease",
+      "expected_dataset_category": "Loan or mortgage issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 16
+    },
+    {
+      "dataset_product": "Credit card",
+      "dataset_issue": "Delinquent account",
+      "expected_dataset_category": "Card issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 15
+    },
+    {
+      "dataset_product": "Mortgage",
+      "dataset_issue": "Loan servicing, payments, escrow account",
+      "expected_dataset_category": "Loan or mortgage issue",
+      "current_predicted_category": "Debt collection issue",
+      "count": 15
+    },
+    {
+      "dataset_product": "Credit card",
+      "dataset_issue": "Advertising and marketing, including promotional offers",
+      "expected_dataset_category": "Card issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 15
+    },
+    {
+      "dataset_product": "Credit card",
+      "dataset_issue": "APR or interest rate",
+      "expected_dataset_category": "Card issue",
+      "current_predicted_category": "Loan or mortgage issue",
+      "count": 15
+    },
+    {
+      "dataset_product": "Checking or savings account",
+      "dataset_issue": "Managing an account",
+      "expected_dataset_category": "Account issue",
+      "current_predicted_category": "Debt collection issue",
+      "count": 15
+    },
+    {
+      "dataset_product": "Credit card or prepaid card",
+      "dataset_issue": "Other features, terms, or problems",
+      "expected_dataset_category": "Card issue",
+      "current_predicted_category": "Loan or mortgage issue",
+      "count": 15
+    },
+    {
+      "dataset_product": "Checking or savings account",
+      "dataset_issue": "Problem with a lender or other company charging your account",
+      "expected_dataset_category": "Account issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 15
+    },
+    {
+      "dataset_product": "Debt collection",
+      "dataset_issue": "Improper contact or sharing of info",
+      "expected_dataset_category": "Debt collection issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 15
+    },
+    {
+      "dataset_product": "Payday loan, title loan, personal loan, or advance loan",
+      "dataset_issue": "Charged fees or interest you didn't expect",
+      "expected_dataset_category": "Loan or mortgage issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 14
+    },
+    {
+      "dataset_product": "Money transfer, virtual currency, or money service",
+      "dataset_issue": "Other service problem",
+      "expected_dataset_category": "Payment or transfer issue",
+      "current_predicted_category": "Card issue",
+      "count": 14
+    },
+    {
+      "dataset_product": "Debt collection",
+      "dataset_issue": "Taking/threatening an illegal action",
+      "expected_dataset_category": "Debt collection issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 13
+    },
+    {
+      "dataset_product": "Credit card",
+      "dataset_issue": "Other",
+      "expected_dataset_category": "Card issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 13
+    },
+    {
+      "dataset_product": "Credit card",
+      "dataset_issue": "Closing/Cancelling account",
+      "expected_dataset_category": "Card issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 13
+    },
+    {
+      "dataset_product": "Money transfer, virtual currency, or money service",
+      "dataset_issue": "Confusing or missing disclosures",
+      "expected_dataset_category": "Payment or transfer issue",
+      "current_predicted_category": "Card issue",
+      "count": 13
+    },
+    {
+      "dataset_product": "Payday loan, title loan, or personal loan",
+      "dataset_issue": "Getting the loan",
+      "expected_dataset_category": "Loan or mortgage issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 13
+    },
+    {
+      "dataset_product": "Payday loan, title loan, or personal loan",
+      "dataset_issue": "Problem when making payments",
+      "expected_dataset_category": "Loan or mortgage issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 13
+    },
+    {
+      "dataset_product": "Money transfer, virtual currency, or money service",
+      "dataset_issue": "Other service problem",
+      "expected_dataset_category": "Payment or transfer issue",
+      "current_predicted_category": "Account issue",
+      "count": 13
+    },
+    {
+      "dataset_product": "Bank account or service",
+      "dataset_issue": "Account opening, closing, or management",
+      "expected_dataset_category": "Account issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 12
+    },
+    {
+      "dataset_product": "Credit card",
+      "dataset_issue": "Other features, terms, or problems",
+      "expected_dataset_category": "Card issue",
+      "current_predicted_category": "Loan or mortgage issue",
+      "count": 12
+    },
+    {
+      "dataset_product": "Vehicle loan or lease",
+      "dataset_issue": "Problem with a company's investigation into an existing problem",
+      "expected_dataset_category": "Loan or mortgage issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 12
+    },
+    {
+      "dataset_product": "Credit card",
+      "dataset_issue": "Identity theft / Fraud / Embezzlement",
+      "expected_dataset_category": "Card issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 12
+    },
+    {
+      "dataset_product": "Money transfer, virtual currency, or money service",
+      "dataset_issue": "Trouble accessing funds in your mobile or digital wallet",
+      "expected_dataset_category": "Payment or transfer issue",
+      "current_predicted_category": "Account issue",
+      "count": 12
+    },
+    {
+      "dataset_product": "Checking or savings account",
+      "dataset_issue": "Problem with a lender or other company charging your account",
+      "expected_dataset_category": "Account issue",
+      "current_predicted_category": "Loan or mortgage issue",
+      "count": 12
+    },
+    {
+      "dataset_product": "Consumer Loan",
+      "dataset_issue": "Problems when you are unable to pay",
+      "expected_dataset_category": "Loan or mortgage issue",
+      "current_predicted_category": "General complaint",
+      "count": 12
+    },
+    {
+      "dataset_product": "Credit card",
+      "dataset_issue": "Credit determination",
+      "expected_dataset_category": "Card issue",
+      "current_predicted_category": "Credit reporting issue",
+      "count": 12
+    }
+  ]
+}

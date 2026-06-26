@@ -1,0 +1,10 @@
+signal,count,percentage_of_usable_narratives
+fraud_legal_count,1487552,39.35
+financial_harm_count,888539,23.5
+high_urgency_phrase_count,580595,15.36
+delay_count,495579,13.11
+timely_response_no_count,40358,1.07
+timely_no_plus_financial_harm_count,17103,0.45
+timely_no_plus_fraud_legal_count,11742,0.31
+timely_no_plus_delay_count,9309,0.25
+timely_no_plus_high_urgency_phrase_count,5508,0.15
