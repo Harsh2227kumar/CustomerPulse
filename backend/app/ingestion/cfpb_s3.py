@@ -5,7 +5,7 @@ import re
 import tempfile
 import time
 import zipfile
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 from datetime import UTC, date, datetime
 from io import TextIOWrapper
@@ -224,7 +224,7 @@ class CfpbS3IngestionService:
         return value
 
     @contextmanager
-    def _csv_stream(self) -> Iterator[TextIO]:
+    def _csv_stream(self) -> Generator[TextIO, None, None]:
         key_lower = self.key.lower()
         try:
             if key_lower.endswith(".zip"):
