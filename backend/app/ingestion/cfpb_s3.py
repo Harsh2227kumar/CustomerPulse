@@ -12,7 +12,7 @@ from io import TextIOWrapper
 from typing import Any, Iterator, TextIO
 
 import boto3
-from botocore.exceptions import BotoCoreError, ClientError, NoCredentialsError, EndpointConnectionError
+from botocore.exceptions import BotoCoreError, ClientError, EndpointConnectionError, NoCredentialsError, PartialCredentialsError
 from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -32,27 +32,32 @@ from app.schemas.ingestion import (
 
 
 class S3IngestionError(RuntimeError):
-    pass
+    code = "source_unavailable"
+
+    def __init__(self, message: str, code: str | None = None) -> None:
+        super().__init__(message)
+        if code is not None:
+            self.code = code
 
 
 class S3QueryModeRequiredError(S3IngestionError):
-    pass
+    code = "large_csv_requires_athena"
 
 
 class S3CredentialsMissingError(S3IngestionError):
-    pass
+    code = "credentials_missing"
 
 
 class AthenaTimeoutError(S3IngestionError):
-    pass
+    code = "athena_timeout"
 
 
 class AthenaTableMissingError(S3IngestionError):
-    pass
+    code = "table_missing"
 
 
 class NoMatchingRowsError(S3IngestionError):
-    pass
+    code = "no_matching_rows"
 
 
 class S3SourceUnavailableError(S3IngestionError):
@@ -190,7 +195,10 @@ def _matches(row: dict[str, Any], filters: S3ComplaintImportFilters) -> bool:
 class CfpbS3IngestionService:
     def __init__(self, settings: Settings):
         if not settings.s3_bucket_name or not settings.cfpb_s3_key:
-            raise S3IngestionError("S3_BUCKET_NAME and CFPB_S3_KEY must be configured.")
+            raise S3IngestionError(
+                "S3_BUCKET_NAME and CFPB_S3_KEY must be configured before importing complaints.",
+                "credentials_missing",
+            )
         self.bucket = settings.s3_bucket_name
         self.key = settings.cfpb_s3_key
         self.mode = settings.cfpb_ingestion_mode
@@ -199,14 +207,17 @@ class CfpbS3IngestionService:
             self.client = boto3.client("s3", region_name=settings.aws_region)
             if self.mode == "athena":
                 if not settings.athena_database or not settings.athena_table or not settings.athena_output_location:
-                    raise S3IngestionError("Athena ingestion settings are incomplete.")
+                    raise S3IngestionError(
+                        "ATHENA_DATABASE, ATHENA_TABLE, and ATHENA_OUTPUT_LOCATION are required for Athena imports.",
+                        "credentials_missing",
+                    )
                 self.athena_database = self._identifier(settings.athena_database)
                 self.athena_table = self._identifier(settings.athena_table)
                 self.athena_output_location = settings.athena_output_location
                 self.athena_workgroup = settings.athena_workgroup
                 self.athena_timeout_seconds = settings.athena_query_timeout_seconds
                 self.athena = boto3.client("athena", region_name=settings.aws_region)
-        except (NoCredentialsError, ClientError) as exc:
+        except (NoCredentialsError, PartialCredentialsError, ClientError) as exc:
             raise S3CredentialsMissingError(f"AWS configuration or credentials missing/invalid: {exc}") from exc
 
     @property
@@ -246,8 +257,8 @@ class CfpbS3IngestionService:
                     yield text
                 return
             raise S3IngestionError("CFPB_S3_KEY must reference a .csv or .zip object.")
-        except NoCredentialsError as exc:
-            raise S3CredentialsMissingError("AWS credentials are missing.") from exc
+        except (NoCredentialsError, PartialCredentialsError) as exc:
+            raise S3CredentialsMissingError("AWS credentials are missing or incomplete.") from exc
         except EndpointConnectionError as exc:
             raise S3SourceUnavailableError(f"S3 endpoint is unreachable: {exc}") from exc
         except ClientError as exc:
@@ -256,7 +267,7 @@ class CfpbS3IngestionService:
                 raise S3CredentialsMissingError(f"AWS credentials are invalid: {exc}") from exc
             if error_code in ("NoSuchBucket", "NoSuchKey"):
                 raise S3SourceUnavailableError(f"S3 bucket or key does not exist: {exc}") from exc
-            raise S3IngestionError(f"S3 Client Error: {exc}") from exc
+            raise S3IngestionError(f"S3 Client Error: {exc}", self._athena_failure_code(str(exc))) from exc
         except (BotoCoreError, OSError, zipfile.BadZipFile) as exc:
             raise S3IngestionError(f"Unable to read the CFPB object from S3: {exc}") from exc
 
@@ -319,13 +330,13 @@ class CfpbS3IngestionService:
                     break
                 if state in {"FAILED", "CANCELLED"}:
                     reason = status.get("StateChangeReason", state)
-                    reason_lower = reason.lower()
-                    if "table not found" in reason_lower or "does not exist" in reason_lower or "table missing" in reason_lower:
-                        raise AthenaTableMissingError(f"Athena table or database does not exist: {reason}")
-                    raise S3IngestionError(f"Athena query did not complete: {reason}")
+                    code = self._athena_failure_code(reason)
+                    if code == "table_missing":
+                        raise AthenaTableMissingError(f"Athena table or database does not exist: {reason}", code)
+                    raise S3IngestionError(f"Athena query did not complete: {reason}", code)
                 if time.monotonic() >= deadline:
                     self.athena.stop_query_execution(QueryExecutionId=execution_id)
-                    raise AthenaTimeoutError("Athena query timed out.")
+                    raise AthenaTimeoutError("Athena query timed out.", "athena_timeout")
                 time.sleep(0.2)
 
             output: list[dict[str, str | None]] = []
@@ -346,21 +357,38 @@ class CfpbS3IngestionService:
                 token = result.get("NextToken")
                 if not token:
                     return output
-        except AthenaTableMissingError:
+        except (AthenaTableMissingError, AthenaTimeoutError):
             raise
-        except AthenaTimeoutError:
-            raise
-        except NoCredentialsError as exc:
-            raise S3CredentialsMissingError("AWS credentials are missing for Athena.") from exc
+        except (NoCredentialsError, PartialCredentialsError) as exc:
+            raise S3CredentialsMissingError("AWS credentials are missing or incomplete for Athena.") from exc
         except EndpointConnectionError as exc:
             raise S3SourceUnavailableError(f"Athena endpoint is unreachable: {exc}") from exc
         except ClientError as exc:
-            error_code = exc.response.get("Error", {}).get("Code", "")
-            if error_code in ("InvalidAccessKeyId", "SignatureDoesNotMatch", "AuthFailure", "AccessDenied", "ExpiredToken"):
+            message = str(exc)
+            code = self._athena_failure_code(message)
+            if code == "credentials_missing":
                 raise S3CredentialsMissingError(f"AWS credentials are invalid for Athena: {exc}") from exc
-            raise S3IngestionError(f"Athena Client Error: {exc}") from exc
+            raise S3IngestionError(
+                f"Unable to query the CFPB data through Athena: {message}",
+                code,
+            ) from exc
         except (BotoCoreError, KeyError) as exc:
             raise S3IngestionError(f"Unable to query the CFPB data through Athena: {exc}") from exc
+
+    @staticmethod
+    def _athena_failure_code(reason: str) -> str:
+        normalized = reason.lower()
+        if "timed out" in normalized or "timeout" in normalized:
+            return "athena_timeout"
+        if "table" in normalized and ("not found" in normalized or "does not exist" in normalized):
+            return "table_missing"
+        if "database" in normalized and ("not found" in normalized or "does not exist" in normalized):
+            return "table_missing"
+        if "unable to verify/create output bucket" in normalized or "output location" in normalized:
+            return "credentials_missing"
+        if "access denied" in normalized or "not authorized" in normalized or "credentials" in normalized:
+            return "credentials_missing"
+        return "source_unavailable"
 
     def _athena_option_values(self, column: str) -> list[str]:
         rows = self._run_athena(
@@ -499,16 +527,29 @@ class CfpbS3IngestionService:
         )
         return [mapped for row in rows if (mapped := map_cfpb_csv_row(row)) is not None]
 
+    def _athena_match_count(self, filters: S3ComplaintImportFilters) -> int:
+        rows = self._run_athena(
+            f"SELECT count(*) AS matched_rows FROM {self._athena_source} "
+            f"WHERE {self._athena_where(filters)}"
+        )
+        if not rows:
+            return 0
+        try:
+            return int(rows[0].get("matched_rows") or 0)
+        except (TypeError, ValueError):
+            return 0
+
     def preview(self, filters: S3ComplaintImportFilters) -> S3ImportPreviewResponse:
         if self.query_mode == "athena":
+            matched = self._athena_match_count(filters)
             rows = self._athena_selected_rows(filters)
             return S3ImportPreviewResponse(
                 source=self.source,
                 query_mode="athena",
                 scanned_rows=0,
-                matched_rows=len(rows),
+                matched_rows=matched,
                 selected_rows=len(rows),
-                result_limited=len(rows) >= filters.max_records,
+                result_limited=matched > len(rows),
                 items=[
                     S3ComplaintPreviewItem(
                         complaint_id=row["source_complaint_id"],
@@ -562,8 +603,9 @@ class CfpbS3IngestionService:
         self, filters: S3ComplaintImportFilters
     ) -> tuple[int, int, int, list[dict[str, Any]]]:
         if self.query_mode == "athena":
+            matched = self._athena_match_count(filters)
             rows = self._athena_selected_rows(filters)
-            return 0, len(rows), 0, rows
+            return 0, matched, 0, rows
         scanned = 0
         matched = 0
         skipped = 0

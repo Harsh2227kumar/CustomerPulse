@@ -70,6 +70,8 @@ class AthenaFixtureService(CfpbS3IngestionService):
         self.queries.append(query)
         if "min(date_received)" in query:
             return [{"min_date": "2019-12-26", "max_date": "2026-02-01"}]
+        if "count(*) AS matched_rows" in query:
+            return [{"matched_rows": "4"}]
         if "DISTINCT product" in query:
             return [{"value": "Credit card or prepaid card"}]
         if "DISTINCT timely_response" in query:
@@ -155,6 +157,9 @@ class CfpbS3IngestionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(options.query_mode, "athena")
         self.assertEqual(options.products, ["Credit card or prepaid card"])
         self.assertEqual(options.timely_responses, [False, True])
+        self.assertEqual(preview.matched_rows, 4)
+        self.assertEqual(preview.selected_rows, 1)
+        self.assertTrue(preview.result_limited)
         self.assertEqual(preview.items[0].complaint_id, "101")
         product_option_query = next(query for query in service.queries if "DISTINCT product" in query)
         preview_query = next(query for query in service.queries if "LIMIT 1" in query)
@@ -262,6 +267,15 @@ class CfpbS3IngestionTests(unittest.IsolatedAsyncioTestCase):
                 }
             )
 
+
+    def test_import_filters_default_to_demo_limit_and_cap_batches(self) -> None:
+        default_filters = S3ComplaintImportFilters()
+        capped_filters = S3ComplaintImportFilters(max_records=50)
+
+        self.assertEqual(default_filters.max_records, 5)
+        self.assertEqual(capped_filters.max_records, 50)
+        with self.assertRaises(ValueError):
+            S3ComplaintImportFilters(max_records=51)
 
 
 if __name__ == "__main__":

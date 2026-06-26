@@ -33,35 +33,39 @@ router = APIRouter(prefix="/api/ingestion/s3", tags=["ingestion"])
 logger = logging.getLogger(__name__)
 
 
+def _error_detail(exc: S3IngestionError) -> dict[str, str]:
+    return {"code": exc.code, "message": str(exc)}
+
+
 def _service(settings: Settings) -> CfpbS3IngestionService:
     try:
         return CfpbS3IngestionService(settings)
     except S3CredentialsMissingError as exc:
         logger.warning("S3 ingestion credentials missing or invalid: %s", exc)
-        raise HTTPException(status_code=424, detail="AWS credentials missing or invalid.") from exc
+        raise HTTPException(status_code=424, detail=_error_detail(exc)) from exc
     except S3IngestionError as exc:
         logger.warning("S3 ingestion is not configured: %s", exc)
-        raise HTTPException(status_code=503, detail="S3 complaint import is not configured.") from exc
+        raise HTTPException(status_code=503, detail=_error_detail(exc)) from exc
 
 
 def handle_ingestion_exception(exc: Exception):
     if isinstance(exc, HTTPException):
         raise exc
     if isinstance(exc, S3CredentialsMissingError):
-        raise HTTPException(status_code=424, detail="AWS credentials missing or invalid.")
+        raise HTTPException(status_code=424, detail=_error_detail(exc))
     if isinstance(exc, AthenaTimeoutError):
-        raise HTTPException(status_code=504, detail="Athena query timed out.")
+        raise HTTPException(status_code=504, detail=_error_detail(exc))
     if isinstance(exc, AthenaTableMissingError):
-        raise HTTPException(status_code=404, detail="Athena table or database does not exist.")
+        raise HTTPException(status_code=404, detail=_error_detail(exc))
     if isinstance(exc, S3SourceUnavailableError):
-        raise HTTPException(status_code=503, detail="Private complaint source is temporarily unavailable.")
+        raise HTTPException(status_code=503, detail=_error_detail(exc))
     if isinstance(exc, S3QueryModeRequiredError):
         raise HTTPException(
             status_code=409,
-            detail="This large CSV requires Athena setup before filter values can be loaded.",
+            detail=_error_detail(exc),
         )
     if isinstance(exc, S3IngestionError):
-        raise HTTPException(status_code=502, detail=str(exc))
+        raise HTTPException(status_code=502, detail=_error_detail(exc))
     raise exc
 
 
