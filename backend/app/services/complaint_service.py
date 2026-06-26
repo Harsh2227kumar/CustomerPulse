@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta, timezone
 from sqlalchemy import Select, asc, desc, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -92,6 +93,21 @@ class ComplaintService:
             ],
         )
 
+    async def assign_agent(self, db: AsyncSession, complaint_id: str, agent_id: str) -> ComplaintDetail | None:
+        complaint = (
+            await db.execute(
+                select(Complaint).where(
+                    or_(Complaint.source_complaint_id == complaint_id, Complaint.id == complaint_id)
+                )
+            )
+        ).scalar_one_or_none()
+        if complaint is None:
+            return None
+        complaint.reviewer = agent_id
+        await db.commit()
+        await db.refresh(complaint)
+        return await self.get_detail(db, complaint_id)
+
     def _apply_filters(self, stmt: Select, filters: ComplaintFilters) -> Select:
         if filters.sentiment:
             stmt = stmt.where(Complaint.sentiment == filters.sentiment.value)
@@ -139,6 +155,25 @@ class ComplaintService:
             SimilarCaseEvidence.model_validate(item)
             for item in (complaint.similar_case_evidence or [])
         ]
+        base_time = complaint.date_received or complaint.created_at
+        sla_deadline = None
+        sla_status = None
+        if base_time:
+            hours = 24 if (complaint.urgency_score or 0) >= 70 else 48 if (complaint.urgency_score or 0) >= 40 else 72
+            sla_deadline = base_time + timedelta(hours=hours)
+            is_resolved = complaint.timely_response is not None or complaint.processed_at is not None or complaint.ai_status == "completed" or complaint.reviewed_at is not None
+            now = datetime.now(timezone.utc)
+            if base_time.tzinfo is None:
+                now = datetime.now()
+            if is_resolved:
+                sla_status = "Resolved"
+            elif now > sla_deadline:
+                sla_status = "Breached"
+            elif now + timedelta(hours=4) > sla_deadline:
+                sla_status = "At Risk"
+            else:
+                sla_status = "On Track"
+
         return ComplaintListItem(
             complaint_id=complaint.source_complaint_id or complaint.id,
             narrative=complaint.narrative,
@@ -157,6 +192,9 @@ class ComplaintService:
             human_review_reason=complaint.human_review_reason,
             human_review_created_at=complaint.human_review_created_at,
             similar_cases=evidence,
+            sla_deadline=sla_deadline,
+            sla_status=sla_status,
+            assigned_agent_id=complaint.reviewer,
         )
 
     def _format_timely_response(self, value: bool | None) -> str | None:

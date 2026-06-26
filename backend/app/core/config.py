@@ -53,6 +53,7 @@ class Settings(BaseSettings):
     embedding_backfill_limit: int = Field(default=100, ge=1, le=500)
     job_worker_poll_seconds: float = Field(default=1.0, gt=0, le=30)
     auth_principals_json: str = "{}"
+    auth_users_json: str = "[]"
 
     @property
     def parsed_cors_origins(self) -> list[str]:

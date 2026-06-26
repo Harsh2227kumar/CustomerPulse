@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.analytics.router import router as analytics_router
-from app.api import complaints, health, ingestion, jobs, process, review, websocket
+from app.api import auth, complaints, health, ingestion, jobs, process, review, websocket
 from app.core.config import get_settings
 from app.core.logging import configure_logging
 from app.db.setup import run_startup_checks
@@ -55,6 +55,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth.router)
 app.include_router(health.router)
 app.include_router(process.router)
 app.include_router(complaints.router)

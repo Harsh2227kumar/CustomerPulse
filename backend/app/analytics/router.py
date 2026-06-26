@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
@@ -5,11 +6,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.analytics.repository import (
     get_complaint_trends,
+    get_complaint_volume_insights,
     get_high_urgency,
     get_human_review_trends,
     get_product_summary,
 )
 from app.analytics.schemas import (
+    ComplaintVolumeGroupItem,
+    ComplaintVolumeHeatmapItem,
+    ComplaintVolumeInsightsResponse,
+    ComplaintVolumeMixItem,
+    ComplaintVolumeSampleItem,
+    ComplaintVolumeSummary,
+    ComplaintVolumeTimelineItem,
     HighUrgencyItem,
     HighUrgencyResponse,
     ProductSummaryResponse,
@@ -22,6 +31,98 @@ from app.db.session import get_db_session
 router = APIRouter(prefix="/api/analytics", tags=["analytics"])
 
 Granularity = Literal["day", "week", "month"]
+
+
+
+VolumeGroupBy = Literal["product", "channel", "category", "sentiment", "churn_risk", "ai_status"]
+
+
+@router.get("/complaint-volume-insights", response_model=ComplaintVolumeInsightsResponse)
+async def complaint_volume_insights(
+    granularity: Granularity = Query(default="week"),
+    group_by: VolumeGroupBy = Query(default="product"),
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+    limit: int = Query(default=12, ge=3, le=50),
+    db: AsyncSession = Depends(get_db_session),
+) -> ComplaintVolumeInsightsResponse:
+    data = await get_complaint_volume_insights(
+        db,
+        granularity=granularity,
+        group_by=group_by,
+        date_from=date_from,
+        date_to=date_to,
+        limit=limit,
+    )
+    timeline_rows = data["timeline"]
+    total_count = sum(row["total"] for row in timeline_rows)
+    peak = max(timeline_rows, key=lambda row: row["total"], default=None)
+    avg_urgency_values = [float(row["avg_urgency"]) for row in timeline_rows if row["avg_urgency"] is not None]
+    avg_urgency = sum(avg_urgency_values) / len(avg_urgency_values) if avg_urgency_values else None
+
+    return ComplaintVolumeInsightsResponse(
+        granularity=granularity,
+        group_by=group_by,
+        summary=ComplaintVolumeSummary(
+            total_count=total_count,
+            avg_per_period=(total_count / len(timeline_rows)) if timeline_rows else 0,
+            peak_period=peak["period"].isoformat() if peak else None,
+            peak_count=peak["total"] if peak else 0,
+            high_urgency_count=sum(row["high_urgency"] for row in timeline_rows),
+            human_review_count=sum(row["human_review"] for row in timeline_rows),
+            negative_count=sum(row["negative"] for row in timeline_rows),
+            avg_urgency=avg_urgency,
+        ),
+        timeline=[
+            ComplaintVolumeTimelineItem(
+                period=row["period"].isoformat(),
+                total=row["total"],
+                high_urgency=row["high_urgency"],
+                human_review=row["human_review"],
+                negative=row["negative"],
+                timely=row["timely"],
+                untimely=row["untimely"],
+                avg_urgency=float(row["avg_urgency"]) if row["avg_urgency"] is not None else None,
+            )
+            for row in timeline_rows
+        ],
+        groups=[
+            ComplaintVolumeGroupItem(
+                group=row["group_value"],
+                count=row["count"],
+                avg_urgency=float(row["avg_urgency"]) if row["avg_urgency"] is not None else None,
+                high_urgency=row["high_urgency"],
+                negative=row["negative"],
+                human_review=row["human_review"],
+            )
+            for row in data["groups"]
+        ],
+        heatmap=[
+            ComplaintVolumeHeatmapItem(
+                product=row["product"],
+                channel=row["channel"],
+                count=row["count"],
+                avg_urgency=float(row["avg_urgency"]) if row["avg_urgency"] is not None else None,
+            )
+            for row in data["heatmap"]
+        ],
+        sentiment_mix=[ComplaintVolumeMixItem(label=row["label"], count=row["count"]) for row in data["sentiment_mix"]],
+        status_mix=[ComplaintVolumeMixItem(label=row["label"], count=row["count"]) for row in data["status_mix"]],
+        samples=[
+            ComplaintVolumeSampleItem(
+                complaint_id=row["complaint_id"],
+                product=row["product"],
+                channel=row["channel"],
+                category=row["category"],
+                sentiment=row["sentiment"],
+                ai_status=row["ai_status"],
+                urgency_score=row["urgency_score"],
+                date_received=row["date_received"],
+                narrative=row["narrative"],
+            )
+            for row in data["samples"]
+        ],
+    )
 
 
 @router.get("/complaint-trends", response_model=TrendResponse)

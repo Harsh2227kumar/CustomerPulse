@@ -72,6 +72,10 @@ class ComplaintFilters(Pagination):
         return self
 
 
+class ComplaintAssignRequest(BaseModel):
+    agent_id: str = Field(min_length=1, max_length=128)
+
+
 class ComplaintListItem(BaseModel):
     complaint_id: str
     narrative: str
@@ -90,6 +94,9 @@ class ComplaintListItem(BaseModel):
     human_review_reason: str | None = None
     human_review_created_at: datetime | None = None
     similar_cases: list[SimilarCaseEvidence] = Field(default_factory=list)
+    sla_deadline: datetime | None = None
+    sla_status: str | None = None
+    assigned_agent_id: str | None = None
 
 
 class ComplaintListResponse(BaseModel):
