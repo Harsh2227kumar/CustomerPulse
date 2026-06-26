@@ -179,3 +179,113 @@ class AnalyticsTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(trends.status_code, 200)
         self.assertEqual(urgency.status_code, 200)
+
+    async def test_trend_by_category(self) -> None:
+        with patch(
+            "app.analytics.router.get_complaint_trends_by_category",
+            AsyncMock(return_value=[(datetime(2026, 1, 1, tzinfo=timezone.utc), "billing", 5)]),
+        ):
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                res = await client.get("/api/analytics/trends/category")
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data["items"][0]["category"], "billing")
+        self.assertEqual(data["items"][0]["count"], 5)
+
+    async def test_trend_by_channel(self) -> None:
+        with patch(
+            "app.analytics.router.get_complaint_trends_by_channel",
+            AsyncMock(return_value=[(datetime(2026, 1, 1, tzinfo=timezone.utc), "web", 12)]),
+        ):
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                res = await client.get("/api/analytics/trends/channel")
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data["items"][0]["channel"], "web")
+        self.assertEqual(data["items"][0]["count"], 12)
+
+    async def test_bottlenecks(self) -> None:
+        metrics = {
+            "avg_intake_to_ai_hours": 0.5,
+            "avg_ai_to_review_hours": 2.5,
+            "avg_intake_to_review_hours": 3.0,
+            "processed_count": 100,
+            "reviewed_count": 40,
+        }
+        with patch(
+            "app.analytics.router.get_queue_bottlenecks",
+            AsyncMock(return_value=metrics),
+        ):
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                res = await client.get("/api/analytics/bottlenecks")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.json(), metrics)
+
+    async def test_root_causes_phrases(self) -> None:
+        with patch(
+            "app.analytics.router.get_recurring_phrases",
+            AsyncMock(return_value=[("Late fees charge", 15, "Credit card", "billing")]),
+        ):
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                res = await client.get("/api/analytics/root-causes/phrases")
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data["items"][0]["phrase"], "Late fees charge")
+        self.assertEqual(data["items"][0]["count"], 15)
+
+    async def test_root_causes_spikes(self) -> None:
+        spikes = [
+            {
+                "product": "Credit card",
+                "recent_count": 10,
+                "previous_count": 2,
+                "growth_rate": 4.0,
+                "spike_score": 40.0
+            }
+        ]
+        with patch(
+            "app.analytics.router.get_product_spikes",
+            AsyncMock(return_value=spikes),
+        ):
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                res = await client.get("/api/analytics/root-causes/spikes")
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data["items"][0]["product"], "Credit card")
+        self.assertEqual(data["items"][0]["spike_score"], 40.0)
+
+    async def test_root_causes_themes(self) -> None:
+        dt = datetime(2026, 1, 1, 12, 0, tzinfo=timezone.utc)
+        with patch(
+            "app.analytics.router.get_duplicate_themes",
+            AsyncMock(return_value=[("group-123", "Credit card", "billing", "Late fee", 5, dt)]),
+        ):
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                res = await client.get("/api/analytics/root-causes/themes")
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data["items"][0]["group_id"], "group-123")
+        self.assertEqual(data["items"][0]["member_count"], 5)
+
+    async def test_business_impact(self) -> None:
+        kpis = {
+            "auto_resolution_pct": 75.0,
+            "avg_ai_processing_time_sec": 45.0,
+            "avg_human_resolution_time_sec": 360.0,
+            "timely_response_pct": 98.2,
+            "current_breach_rate_pct": 1.8,
+            "previous_breach_rate_pct": 4.5,
+            "breach_reduction_rate_pct": 2.7,
+            "total_processed": 500,
+            "total_reviewed": 120,
+            "workload_saved_hours": 280.0,
+        }
+        with patch(
+            "app.analytics.router.get_business_impact_kpis",
+            AsyncMock(return_value=kpis),
+        ):
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                res = await client.get("/api/analytics/business-impact")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.json(), kpis)
+

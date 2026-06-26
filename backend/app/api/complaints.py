@@ -21,6 +21,10 @@ async def list_complaints(
     sentiment: Sentiment | None = None,
     channel: str | None = None,
     product: str | None = None,
+    sub_product: str | None = None,
+    sub_issue: str | None = None,
+    company: str | None = None,
+    category: str | None = None,
     churn_risk: ChurnRisk | None = None,
     urgency_min: int | None = Query(default=None, ge=0, le=100),
     urgency_max: int | None = Query(default=None, ge=0, le=100),
@@ -51,6 +55,10 @@ async def list_complaints(
             sentiment=sentiment,
             channel=channel,
             product=product,
+            sub_product=sub_product,
+            sub_issue=sub_issue,
+            company=company,
+            category=category,
             churn_risk=churn_risk,
             urgency_min=urgency_min,
             urgency_max=urgency_max,
@@ -69,6 +77,12 @@ async def list_complaints(
             detail="Invalid complaint filter or sorting combination.",
         ) from exc
     return await ComplaintService().list_complaints(db, filters)
+
+
+@router.get("/complaints/categories", response_model=list[str])
+async def get_complaint_categories() -> list[str]:
+    from app.ai.ml_models.classifier import STANDARD_CATEGORIES
+    return STANDARD_CATEGORIES
 
 
 @router.get("/complaints/{complaint_id}", response_model=ComplaintDetail)

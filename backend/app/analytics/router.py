@@ -7,9 +7,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.analytics.repository import (
     get_complaint_trends,
     get_complaint_volume_insights,
+    get_complaint_trends_by_category,
+    get_complaint_trends_by_channel,
     get_high_urgency,
     get_human_review_trends,
     get_product_summary,
+    get_queue_bottlenecks,
+    get_recurring_phrases,
+    get_product_spikes,
+    get_duplicate_themes,
+    get_business_impact_kpis,
 )
 from app.analytics.schemas import (
     ComplaintVolumeGroupItem,
@@ -25,6 +32,18 @@ from app.analytics.schemas import (
     ProductSummaryRow,
     TrendPoint,
     TrendResponse,
+    TrendByCategoryPoint,
+    TrendByCategoryResponse,
+    TrendByChannelPoint,
+    TrendByChannelResponse,
+    BottleneckMetricsResponse,
+    RecurringIssuePhrase,
+    RecurringPhrasesResponse,
+    ProductSpikeItem,
+    ProductSpikesResponse,
+    DuplicateThemeItem,
+    DuplicateThemesResponse,
+    BusinessImpactKPIsResponse,
 )
 from app.db.session import get_db_session
 
@@ -192,3 +211,109 @@ async def high_urgency(
         limit=limit,
         offset=offset,
     )
+
+
+@router.get("/trends/category", response_model=TrendByCategoryResponse)
+async def trend_by_category(
+    granularity: Granularity = Query(default="day"),
+    db: AsyncSession = Depends(get_db_session),
+) -> TrendByCategoryResponse:
+    items = await get_complaint_trends_by_category(db, granularity)
+    return TrendByCategoryResponse(
+        items=[
+            TrendByCategoryPoint(
+                period=period.isoformat(),
+                category=category,
+                count=count
+            )
+            for period, category, count in items
+        ],
+        granularity=granularity,
+    )
+
+
+@router.get("/trends/channel", response_model=TrendByChannelResponse)
+async def trend_by_channel(
+    granularity: Granularity = Query(default="day"),
+    db: AsyncSession = Depends(get_db_session),
+) -> TrendByChannelResponse:
+    items = await get_complaint_trends_by_channel(db, granularity)
+    return TrendByChannelResponse(
+        items=[
+            TrendByChannelPoint(
+                period=period.isoformat(),
+                channel=channel,
+                count=count
+            )
+            for period, channel, count in items
+        ],
+        granularity=granularity,
+    )
+
+
+@router.get("/bottlenecks", response_model=BottleneckMetricsResponse)
+async def bottlenecks(
+    db: AsyncSession = Depends(get_db_session),
+) -> BottleneckMetricsResponse:
+    metrics = await get_queue_bottlenecks(db)
+    return BottleneckMetricsResponse(**metrics)
+
+
+@router.get("/root-causes/phrases", response_model=RecurringPhrasesResponse)
+async def root_causes_phrases(
+    limit: int = Query(default=10, ge=1, le=50),
+    db: AsyncSession = Depends(get_db_session),
+) -> RecurringPhrasesResponse:
+    items = await get_recurring_phrases(db, limit)
+    return RecurringPhrasesResponse(
+        items=[
+            RecurringIssuePhrase(
+                phrase=phrase,
+                count=count,
+                product=product,
+                category=category
+            )
+            for phrase, count, product, category in items
+        ]
+    )
+
+
+@router.get("/root-causes/spikes", response_model=ProductSpikesResponse)
+async def root_causes_spikes(
+    days_window: int = Query(default=7, ge=1, le=30),
+    db: AsyncSession = Depends(get_db_session),
+) -> ProductSpikesResponse:
+    items = await get_product_spikes(db, days_window)
+    return ProductSpikesResponse(
+        items=[ProductSpikeItem(**item) for item in items]
+    )
+
+
+@router.get("/root-causes/themes", response_model=DuplicateThemesResponse)
+async def root_causes_themes(
+    limit: int = Query(default=10, ge=1, le=50),
+    db: AsyncSession = Depends(get_db_session),
+) -> DuplicateThemesResponse:
+    items = await get_duplicate_themes(db, limit)
+    return DuplicateThemesResponse(
+        items=[
+            DuplicateThemeItem(
+                group_id=group_id,
+                product=product,
+                category=category,
+                issue=issue,
+                member_count=member_count,
+                created_at=created_at
+            )
+            for group_id, product, category, issue, member_count, created_at in items
+        ]
+    )
+
+
+@router.get("/business-impact", response_model=BusinessImpactKPIsResponse)
+async def business_impact(
+    db: AsyncSession = Depends(get_db_session),
+) -> BusinessImpactKPIsResponse:
+    kpis = await get_business_impact_kpis(db)
+    return BusinessImpactKPIsResponse(**kpis)
+

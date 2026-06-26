@@ -115,6 +115,16 @@ class ComplaintService:
             stmt = stmt.where(Complaint.channel == filters.channel)
         if filters.product:
             stmt = stmt.where(Complaint.product == filters.product)
+        if filters.sub_product:
+            stmt = stmt.where(Complaint.sub_product == filters.sub_product)
+        if filters.issue:
+            stmt = stmt.where(Complaint.issue == filters.issue)
+        if filters.sub_issue:
+            stmt = stmt.where(Complaint.sub_issue == filters.sub_issue)
+        if filters.company:
+            stmt = stmt.where(Complaint.company == filters.company)
+        if filters.category:
+            stmt = stmt.where(Complaint.category == filters.category)
         if filters.churn_risk:
             stmt = stmt.where(Complaint.churn_risk == filters.churn_risk.value)
         if filters.urgency_min is not None:

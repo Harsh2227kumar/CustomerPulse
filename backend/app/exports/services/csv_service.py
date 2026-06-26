@@ -1,4 +1,5 @@
 import csv
+from decimal import Decimal
 import io
 import logging
 from collections.abc import AsyncIterable, AsyncIterator, Iterable
@@ -44,6 +45,34 @@ class CSVExportService:
         "processed_at",
         "created_at",
     ]
+    REGULATORY_COLUMNS = [
+        "complaint_id",
+        "narrative",
+        "channel",
+        "product",
+        "sub_product",
+        "issue",
+        "sub_issue",
+        "company",
+        "company_response",
+        "timely_response",
+        "date_received",
+        "sentiment",
+        "category",
+        "urgency_score",
+        "churn_risk",
+        "draft_response",
+        "next_action",
+        "ai_confidence",
+        "ai_status",
+        "human_review_reason",
+        "reviewer",
+        "review_resolution",
+        "review_notes",
+        "reviewed_at",
+        "processed_at",
+        "created_at",
+    ]
     ANALYTICS_COLUMNS = [
         "product",
         "channel",
@@ -78,6 +107,17 @@ class CSVExportService:
         rows = self.repository.stream_complaints(db, filters)
         async for chunk in self._stream_csv_rows(self.COMPLAINT_COLUMNS, rows):
             yield chunk
+
+    async def stream_regulatory_csv(
+        self,
+        db: AsyncSession,
+        filters: ComplaintCSVExportQuery,
+    ) -> AsyncIterator[str]:
+        logger.info("Streaming regulatory complaints CSV export with limit=%s.", filters.limit)
+        rows = self.repository.stream_regulatory_complaints(db, filters)
+        async for chunk in self._stream_csv_rows(self.REGULATORY_COLUMNS, rows):
+            yield chunk
+
 
     async def stream_feedback_csv(
         self,
@@ -150,7 +190,7 @@ class CSVExportService:
             return "Yes" if bool(value) else "No"
         if isinstance(value, datetime):
             return self._format_datetime(value)
-        if isinstance(value, float):
+        if isinstance(value, (float, Decimal)):
             return f"{value:.2f}"
         return str(value)
 
