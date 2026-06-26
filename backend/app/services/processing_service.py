@@ -52,7 +52,10 @@ class ProcessingService:
     def __init__(self, settings: Settings):
         self.settings = settings
         self.pipeline = ComplaintAIPipeline(settings)
-        self.embeddings = EmbeddingService(settings.embedding_model)
+        self.embeddings = EmbeddingService(
+            settings.embedding_model,
+            local_files_only=settings.embedding_local_files_only,
+        )
         self.retrieval = SimilarComplaintService()
 
     def close(self) -> None:

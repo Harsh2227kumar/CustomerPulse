@@ -47,6 +47,7 @@ class Settings(BaseSettings):
     ai_timeout_seconds: float = Field(default=30.0, gt=0)
     embedding_model: str = Field(default="all-MiniLM-L6-v2", min_length=1)
     embedding_verify_on_startup: bool = Field(default=False)
+    embedding_local_files_only: bool = Field(default=False)
     similarity_threshold: float = Field(default=0.60, ge=0, le=1)
     similar_case_limit: int = Field(default=3, ge=1, le=10)
     batch_process_limit: int = Field(default=50, ge=1, le=200)
@@ -118,15 +119,6 @@ class Settings(BaseSettings):
     def validate_service_settings(self) -> "Settings":
         if not self.bedrock_api_key:
             raise ValueError("BEDROCK_API_KEY is required when AI_PROVIDER=bedrock")
-        if bool(self.s3_bucket_name) != bool(self.cfpb_s3_key):
-            raise ValueError("S3_BUCKET_NAME and CFPB_S3_KEY must be configured together")
-        if self.cfpb_ingestion_mode == "athena" and not all(
-            (self.athena_database, self.athena_table, self.athena_output_location)
-        ):
-            raise ValueError(
-                "ATHENA_DATABASE, ATHENA_TABLE, and ATHENA_OUTPUT_LOCATION "
-                "are required when CFPB_INGESTION_MODE=athena"
-            )
         try:
             principals = json.loads(self.auth_principals_json)
         except json.JSONDecodeError as exc:
