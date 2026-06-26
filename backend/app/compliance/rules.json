@@ -1,0 +1,223 @@
+[
+  {
+    "rule_id": "RBI-ACK-001",
+    "description": "Complaint acknowledgement must occur within three days of intake.",
+    "condition_type": "acknowledgement_overdue",
+    "severity": "medium",
+    "mandatory_action": true,
+    "action": {
+      "action_type": "acknowledge",
+      "owner": "agent",
+      "description": "Acknowledge the complaint and attach acknowledgement evidence.",
+      "deadline_days": 3
+    }
+  },
+  {
+    "rule_id": "RBI-FRAUD-001",
+    "description": "Fraud, unauthorized transaction, or identity theft complaints require escalation.",
+    "condition_type": "fraud_or_unauthorized_signal",
+    "severity": "high",
+    "mandatory_action": true,
+    "action": {
+      "action_type": "escalate",
+      "owner": "manager",
+      "description": "Escalate to fraud operations with complaint evidence and AI fraud signal.",
+      "deadline_days": 1
+    }
+  },
+  {
+    "rule_id": "RBI-LEGAL-001",
+    "description": "Legal or regulatory complaint language requires compliance officer review.",
+    "condition_type": "legal_or_regulatory_keyword",
+    "severity": "high",
+    "mandatory_action": true,
+    "action": {
+      "action_type": "escalate",
+      "owner": "compliance_officer",
+      "description": "Review legal or regulatory escalation language and preserve evidence for audit.",
+      "deadline_days": 1
+    }
+  },
+  {
+    "rule_id": "RBI-RESP-001",
+    "description": "AI complaint response must include required report-ready fields.",
+    "condition_type": "missing_required_response_fields",
+    "severity": "medium",
+    "mandatory_action": true,
+    "action": {
+      "action_type": "close_with_evidence",
+      "owner": "agent",
+      "description": "Complete missing AI response fields before the complaint can be treated as report-ready.",
+      "deadline_days": 0
+    }
+  },
+  {
+    "rule_id": "RBI-RES-030",
+    "description": "Complaints unresolved after 30 days require regulatory reporting review.",
+    "condition_type": "unresolved_over_30_days",
+    "severity": "critical",
+    "mandatory_action": true,
+    "action": {
+      "action_type": "notify_regulator",
+      "owner": "compliance_officer",
+      "description": "Prepare regulatory reporting packet for an unresolved aged complaint.",
+      "deadline_days": 30
+    }
+  },
+  {
+    "rule_id": "RBI-HV-001",
+    "description": "High-value transaction disputes with high urgency require stricter SLA handling.",
+    "condition_type": "high_value_high_urgency_dispute",
+    "severity": "high",
+    "mandatory_action": true,
+    "action": {
+      "action_type": "proactive_review",
+      "owner": "manager",
+      "description": "Review high-value dispute evidence and confirm accelerated handling path.",
+      "deadline_days": 2
+    }
+  },
+  {
+    "rule_id": "RBI-SLA-FRAUD-002",
+    "description": "SLA breach on fraud or unauthorized transaction complaints is a critical compliance risk.",
+    "condition_type": "fraud_sla_breach",
+    "severity": "critical",
+    "mandatory_action": true,
+    "action": {
+      "action_type": "escalate",
+      "owner": "compliance_officer",
+      "description": "Escalate breached fraud complaint for compliance officer review.",
+      "deadline_days": 0
+    }
+  },
+  {
+    "rule_id": "RBI-NEAR-HIGH-003",
+    "description": "Near-breach high-severity complaints require proactive compliance review.",
+    "condition_type": "near_breach_high_severity",
+    "severity": "medium",
+    "mandatory_action": false,
+    "action": {
+      "action_type": "proactive_review",
+      "owner": "manager",
+      "description": "Review near-breach high-severity complaint before the SLA deadline passes.",
+      "deadline_days": 1
+    }
+  },
+  {
+    "rule_id": "RBI-KYC-UPDATE-001",
+    "description": "Periodic customer KYC update must not be overdue.",
+    "condition_type": "kyc_update_overdue",
+    "severity": "high",
+    "mandatory_action": true,
+    "action": {
+      "action_type": "escalate",
+      "owner": "compliance_officer",
+      "description": "Review overdue KYC update and start remediation workflow.",
+      "deadline_days": 1
+    }
+  },
+  {
+    "rule_id": "RBI-KYC-MISSING-001",
+    "description": "Mandatory KYC information must be present on the customer record.",
+    "condition_type": "kyc_missing_information",
+    "severity": "high",
+    "mandatory_action": true,
+    "action": {
+      "action_type": "close_with_evidence",
+      "owner": "agent",
+      "description": "Collect missing KYC fields and attach completion evidence.",
+      "deadline_days": 2
+    }
+  },
+  {
+    "rule_id": "RBI-KYC-VERIFY-001",
+    "description": "Failed KYC verification requires compliance remediation.",
+    "condition_type": "kyc_verification_failure",
+    "severity": "critical",
+    "mandatory_action": true,
+    "action": {
+      "action_type": "escalate",
+      "owner": "compliance_officer",
+      "description": "Escalate failed KYC verification for compliance review.",
+      "deadline_days": 0
+    }
+  },
+  {
+    "rule_id": "RBI-CUST-NOTIFY-001",
+    "description": "Customer notification must occur within the configured customer protection timeline.",
+    "condition_type": "customer_notification_delay",
+    "severity": "medium",
+    "mandatory_action": true,
+    "action": {
+      "action_type": "proactive_review",
+      "owner": "manager",
+      "description": "Review delayed customer notification and document remediation.",
+      "deadline_days": 1
+    }
+  },
+  {
+    "rule_id": "RBI-CUST-UNRESOLVED-001",
+    "description": "Unresolved complaints beyond customer protection threshold require review.",
+    "condition_type": "customer_unresolved_beyond_threshold",
+    "severity": "high",
+    "mandatory_action": true,
+    "action": {
+      "action_type": "escalate",
+      "owner": "manager",
+      "description": "Escalate unresolved customer protection complaint for review.",
+      "deadline_days": 1
+    }
+  },
+  {
+    "rule_id": "RBI-CUST-SERVICE-001",
+    "description": "Customer service obligation breaches require compliance review.",
+    "condition_type": "customer_service_obligation_breach",
+    "severity": "critical",
+    "mandatory_action": true,
+    "action": {
+      "action_type": "escalate",
+      "owner": "compliance_officer",
+      "description": "Review breach of customer service obligations and preserve evidence.",
+      "deadline_days": 0
+    }
+  },
+  {
+    "rule_id": "RBI-DOC-MANDATORY-001",
+    "description": "Mandatory complaint documents must be present.",
+    "condition_type": "missing_mandatory_documents",
+    "severity": "high",
+    "mandatory_action": true,
+    "action": {
+      "action_type": "close_with_evidence",
+      "owner": "agent",
+      "description": "Collect missing mandatory documents before closure.",
+      "deadline_days": 2
+    }
+  },
+  {
+    "rule_id": "RBI-DOC-INCOMPLETE-001",
+    "description": "Complaint records must be complete and audit ready.",
+    "condition_type": "incomplete_complaint_record",
+    "severity": "medium",
+    "mandatory_action": true,
+    "action": {
+      "action_type": "close_with_evidence",
+      "owner": "agent",
+      "description": "Complete complaint record fields and attach audit-ready evidence.",
+      "deadline_days": 1
+    }
+  },
+  {
+    "rule_id": "RBI-DOC-EVIDENCE-001",
+    "description": "Complaint investigation evidence must be sufficient for audit review.",
+    "condition_type": "missing_investigation_evidence",
+    "severity": "high",
+    "mandatory_action": true,
+    "action": {
+      "action_type": "close_with_evidence",
+      "owner": "agent",
+      "description": "Attach missing investigation evidence before complaint closure.",
+      "deadline_days": 2
+    }
+  }
+]

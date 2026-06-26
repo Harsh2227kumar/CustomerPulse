@@ -12,6 +12,9 @@ from app.ai.pipelines.complaint_pipeline import (
 )
 from app.ai.preprocessing.cleaner import clean_complaint_text
 from app.ai.validators.review_router import review_reason_for
+from app.compliance.engine import ComplianceEngine
+from app.compliance.models import AIResponseFields, AISignals, ComplaintComplianceInput, SLAState
+from app.compliance.service import ComplianceEvidenceService
 from app.core.config import Settings
 from app.core.constants import (
     ChurnRisk,
@@ -138,6 +141,7 @@ class ProcessingService:
             await db.commit()
             await db.refresh(complaint)
             response = self._response(complaint, enrichment)
+            await self._store_compliance_evidence(db, complaint, enrichment, now)
 
             if reason:
                 await self._emit_event(
@@ -325,6 +329,83 @@ class ProcessingService:
         complaint.embedded_at = now
         complaint.processed_at = now
         complaint.error_message = None
+
+
+    async def _store_compliance_evidence(
+        self,
+        db: AsyncSession,
+        complaint: Complaint,
+        enrichment: AIEnrichment,
+        evaluated_at: datetime,
+    ) -> None:
+        try:
+            compliance_input = self._compliance_input(complaint, enrichment, evaluated_at)
+            result = ComplianceEngine().evaluate(compliance_input, evaluated_at=evaluated_at)
+            evidence_service = ComplianceEvidenceService()
+            _, existing_count = await evidence_service.list_records(
+                db,
+                limit=1,
+                offset=0,
+                complaint_id=result.complaint_id,
+            )
+            if existing_count:
+                return
+            await evidence_service.store_result(db, result, notes="auto-triggered-from-processing")
+        except Exception:
+            logger.exception(
+                "Unable to store compliance evidence for complaint %s.",
+                complaint.source_complaint_id or complaint.id,
+            )
+
+    def _compliance_input(
+        self,
+        complaint: Complaint,
+        enrichment: AIEnrichment,
+        evaluated_at: datetime,
+    ) -> ComplaintComplianceInput:
+        date_received = complaint.date_received or complaint.created_at or evaluated_at
+        days_elapsed = max((evaluated_at.date() - date_received.date()).days, 0)
+        resolved_at = complaint.processed_at if complaint.ai_status == ProcessingStatus.COMPLETED.value else None
+        days_to_deadline = 30 - days_elapsed
+        sla_breached = complaint.timely_response is False or (resolved_at is None and days_elapsed > 30)
+        breach_risk_level = "critical" if sla_breached else "high" if resolved_at is None and days_to_deadline <= 2 else "low"
+
+        return ComplaintComplianceInput(
+            complaint_id=complaint.id,
+            source_complaint_id=complaint.source_complaint_id,
+            product=complaint.product,
+            issue=complaint.issue,
+            sub_issue=complaint.sub_issue,
+            narrative=complaint.narrative,
+            channel=complaint.channel,
+            date_received=date_received,
+            acknowledged_at=complaint.processed_at,
+            resolved_at=resolved_at,
+            ai_signals=AISignals(
+                severity="high" if enrichment.urgency_score >= 70 else "medium",
+                urgency_score=enrichment.urgency_score,
+                key_issue=complaint.issue or enrichment.category,
+                confidence=enrichment.ai_confidence,
+            ),
+            response_fields=AIResponseFields(
+                category=enrichment.category,
+                urgency_score=enrichment.urgency_score,
+                draft_response=enrichment.draft_response,
+                resolution=(
+                    getattr(complaint, "approved_response", None)
+                    or getattr(complaint, "review_resolution", None)
+                    or enrichment.next_action
+                ),
+                next_action=enrichment.next_action,
+                ai_confidence=enrichment.ai_confidence,
+            ),
+            sla=SLAState(
+                is_breached=sla_breached,
+                breach_risk_level=breach_risk_level,
+                days_elapsed=days_elapsed,
+                days_to_deadline=days_to_deadline,
+            ),
+        )
 
     def _fallback_enrichment(self, local: LocalSignals, evidence: list) -> AIEnrichment:
         return AIEnrichment(

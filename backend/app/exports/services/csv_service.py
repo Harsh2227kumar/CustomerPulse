@@ -7,6 +7,9 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.compliance.reporting.filters import get_compliance_report_records
+from app.compliance.reporting.models import ComplianceReportFilter
+from app.compliance.reporting.serialiser import get_export_headers, serialise_records
 from app.exports.repositories.export_repository import ExportRepository
 from app.exports.schemas.export_schemas import (
     AnalyticsCSVExportQuery,
@@ -61,6 +64,7 @@ class CSVExportService:
         "similar_case_useful",
         "created_at",
     ]
+    COMPLIANCE_REPORT_COLUMNS = get_export_headers()
 
     def __init__(self, repository: ExportRepository | None = None) -> None:
         self.repository = repository or ExportRepository()
@@ -94,6 +98,20 @@ class CSVExportService:
         rows = await self.repository.get_analytics_export_rows(db, filters)
         async for chunk in self._stream_csv_rows(
             self.ANALYTICS_COLUMNS,
+            self._iterate_rows(rows),
+        ):
+            yield chunk
+
+    async def stream_compliance_report_csv(
+        self,
+        db: AsyncSession,
+        filters: ComplianceReportFilter,
+    ) -> AsyncIterator[str]:
+        logger.info("Streaming compliance report CSV export.")
+        records = await get_compliance_report_records(db, filters)
+        rows = serialise_records(records)
+        async for chunk in self._stream_csv_rows(
+            self.COMPLIANCE_REPORT_COLUMNS,
             self._iterate_rows(rows),
         ):
             yield chunk
@@ -146,4 +164,3 @@ class CSVExportService:
         if value.tzinfo is None:
             value = value.replace(tzinfo=UTC)
         return value.astimezone(UTC).isoformat().replace("+00:00", "Z")
-

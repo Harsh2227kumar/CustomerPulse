@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 
 from app.analytics.router import router as analytics_router
 from app.api import auth, complaints, health, ingestion, jobs, process, review, websocket
+from app.compliance import router as compliance_router
 from app.core.config import get_settings
 from app.core.logging import configure_logging
 from app.db.setup import run_startup_checks
@@ -65,6 +66,7 @@ app.include_router(jobs.router)
 app.include_router(feedback_router.router)
 app.include_router(duplicates_router.router)
 app.include_router(analytics_router)
+app.include_router(compliance_router.router)
 app.include_router(export_routes.router)
 app.include_router(sla_routes.router)
 app.include_router(websocket.router)
