@@ -126,7 +126,8 @@ class SLARepository:
             or_(Complaint.timely_response.is_(None), Complaint.timely_response.is_(False))
         )
         if churn_risk:
-            conditions.append(Complaint.churn_risk == churn_risk.value)
+            churn_risk_value = churn_risk.value if isinstance(churn_risk, ChurnRisk) else churn_risk
+            conditions.append(Complaint.churn_risk == churn_risk_value)
 
         complaint_id = func.coalesce(Complaint.source_complaint_id, Complaint.id).label("complaint_id")
         stmt = (

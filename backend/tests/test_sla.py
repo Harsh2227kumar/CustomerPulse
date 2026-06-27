@@ -12,6 +12,7 @@ os.environ.setdefault("BEDROCK_API_KEY", "test-key")
 
 from app.db.session import get_db_session
 from app.sla.api.routes import router
+from app.sla.repositories.sla_repository import SLARepository
 from app.sla.schemas.sla_schemas import (
     SLABreachRiskQuery,
     SLABreachRiskResponse,
@@ -72,6 +73,18 @@ class SLAServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result.items[0].period, "2026-01")
         self.assertEqual(result.items[0].timely_rate_pct, 84.88)
 
+    async def test_rejects_too_old_date_filters(self) -> None:
+        repository = SimpleNamespace(get_trend=AsyncMock(return_value=[]))
+
+        with self.assertRaisesRegex(ValueError, "1900-01-01"):
+            await SLAService(repository).get_trend(
+                db=object(),
+                filters=SLATrendQuery(
+                    granularity=SLATrendGranularity.WEEKLY,
+                    date_from=datetime(2, 1, 1),
+                ),
+            )
+
     async def test_breach_risk_returns_schema_response(self) -> None:
         repository = SimpleNamespace(
             get_breach_risk=AsyncMock(
@@ -104,6 +117,44 @@ class SLAServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result.items[0].complaint_id, "SRC-1")
 
 
+class SLARepositoryTests(unittest.TestCase):
+    def test_breach_risk_accepts_string_churn_risk(self) -> None:
+        captured = {}
+
+        class ScalarResult:
+            def scalar_one(self):
+                return 0
+
+        class MappingResult:
+            def mappings(self):
+                return SimpleNamespace(all=lambda: [])
+
+        class FakeDB:
+            calls = 0
+
+            async def execute(self, stmt):
+                FakeDB.calls += 1
+                if FakeDB.calls == 1:
+                    captured["where"] = str(stmt.whereclause)
+                    captured["params"] = stmt.compile().params
+                    return MappingResult()
+                return ScalarResult()
+
+        import asyncio
+        asyncio.run(
+            SLARepository().get_breach_risk(
+                FakeDB(),
+                urgency_threshold=70,
+                churn_risk="High",
+                limit=25,
+                offset=0,
+            )
+        )
+
+        self.assertIn("churn_risk", captured["where"])
+        self.assertIn("High", captured["params"].values())
+
+
 class SLARouterTests(unittest.TestCase):
     def setUp(self) -> None:
         app = FastAPI()
@@ -114,6 +165,11 @@ class SLARouterTests(unittest.TestCase):
 
         app.dependency_overrides[get_db_session] = override_get_db_session
         self.client = TestClient(app)
+
+    def test_too_old_trend_date_returns_422(self) -> None:
+        response = self.client.get("/api/sla/trend", params={"granularity": "weekly", "date_from": "0002-01-01"})
+        self.assertEqual(response.status_code, 422)
+        self.assertIn("1900-01-01", response.text)
 
     def test_invalid_granularity_returns_422(self) -> None:
         response = self.client.get("/api/sla/trend", params={"granularity": "daily"})

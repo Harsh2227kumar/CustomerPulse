@@ -15,7 +15,7 @@ def settings() -> Settings:
         database_url="postgresql+asyncpg://user:pass@localhost/customerpulse",
         bedrock_api_key="example-key",
         bedrock_base_url="https://bedrock.local",
-        auth_principals_json="{}",
+        auth_users_json="[]",
     )
 
 
