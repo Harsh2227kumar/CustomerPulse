@@ -32,12 +32,12 @@ def enrichment(**overrides) -> AIEnrichment:
     return AIEnrichment(**values)
 
 
-def settings(auth_json: str = "{}") -> Settings:
+def settings(auth_json: str = "[]") -> Settings:
     return Settings(
         _env_file=None,
         database_url="postgresql+asyncpg://user:pass@localhost/customerpulse",
         bedrock_api_key="example-key",
-        auth_principals_json=auth_json,
+        auth_users_json=auth_json,
     )
 
 
@@ -150,7 +150,7 @@ class ComplaintFilterTests(unittest.TestCase):
 class AuthorizationTests(unittest.TestCase):
     def test_configured_bearer_key_maps_to_principal(self) -> None:
         configured = settings(
-            '{"manager-key":{"actor":"harsh","role":"manager"}}'
+            '[{"username":"harsh","password":"secret","api_key":"manager-key","actor":"harsh","role":"manager"}]'
         )
         principal = get_current_principal(
             HTTPAuthorizationCredentials(scheme="Bearer", credentials="manager-key"),
@@ -169,7 +169,7 @@ class AuthorizationTests(unittest.TestCase):
 
     def test_invalid_auth_mapping_is_rejected(self) -> None:
         with self.assertRaises(ValueError):
-            settings('{"key":{"actor":"x","role":"owner"}}')
+            settings('[{"username":"x","password":"secret","api_key":"key","actor":"x","role":"owner"}]')
 
 
 if __name__ == "__main__":

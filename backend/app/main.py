@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse
 from app.analytics.router import router as analytics_router
 from app.api import auth, complaints, health, ingestion, jobs, process, review, websocket
 from app.compliance import router as compliance_router
-from app.communications import router as communications_router
+from app.communications.router import router as communications_router
 from app.escalations.router import complaints_escalations_router, escalations_router
 from app.core.config import get_settings
 from app.core.logging import configure_logging
@@ -89,3 +89,4 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
         status_code=500,
         content={"detail": "Internal server error", "path": str(request.url.path)},
     )
+

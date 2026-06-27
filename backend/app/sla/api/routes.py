@@ -1,6 +1,7 @@
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.constants import ChurnRisk
@@ -22,6 +23,10 @@ from app.sla.services.sla_service import SLAService
 router = APIRouter(prefix="/api/sla", tags=["SLA"])
 
 
+def _validation_error(exc: ValueError | ValidationError) -> HTTPException:
+    return HTTPException(status_code=422, detail=str(exc))
+
+
 @router.get("/summary", response_model=SLASummaryResponse)
 async def get_sla_summary(
     date_from: datetime | None = None,
@@ -30,13 +35,16 @@ async def get_sla_summary(
     channel: str | None = Query(default=None, max_length=64),
     db: AsyncSession = Depends(get_db_session),
 ) -> SLASummaryResponse:
-    filters = SLASummaryQuery(
-        date_from=date_from,
-        date_to=date_to,
-        product=product,
-        channel=channel,
-    )
-    return await SLAService().get_summary(db, filters)
+    try:
+        filters = SLASummaryQuery(
+            date_from=date_from,
+            date_to=date_to,
+            product=product,
+            channel=channel,
+        )
+        return await SLAService().get_summary(db, filters)
+    except (ValueError, ValidationError) as exc:
+        raise _validation_error(exc) from exc
 
 
 @router.get("/by-product", response_model=SLAGroupedResponse)
@@ -47,13 +55,16 @@ async def get_sla_by_product(
     sort_by: SLAGroupSortBy = Query(default=SLAGroupSortBy.TIMELY_RATE),
     db: AsyncSession = Depends(get_db_session),
 ) -> SLAGroupedResponse:
-    filters = SLAGroupedQuery(
-        date_from=date_from,
-        date_to=date_to,
-        limit=limit,
-        sort_by=sort_by,
-    )
-    return await SLAService().get_by_product(db, filters)
+    try:
+        filters = SLAGroupedQuery(
+            date_from=date_from,
+            date_to=date_to,
+            limit=limit,
+            sort_by=sort_by,
+        )
+        return await SLAService().get_by_product(db, filters)
+    except (ValueError, ValidationError) as exc:
+        raise _validation_error(exc) from exc
 
 
 @router.get("/by-channel", response_model=SLAGroupedResponse)
@@ -64,13 +75,16 @@ async def get_sla_by_channel(
     sort_by: SLAGroupSortBy = Query(default=SLAGroupSortBy.TIMELY_RATE),
     db: AsyncSession = Depends(get_db_session),
 ) -> SLAGroupedResponse:
-    filters = SLAGroupedQuery(
-        date_from=date_from,
-        date_to=date_to,
-        limit=limit,
-        sort_by=sort_by,
-    )
-    return await SLAService().get_by_channel(db, filters)
+    try:
+        filters = SLAGroupedQuery(
+            date_from=date_from,
+            date_to=date_to,
+            limit=limit,
+            sort_by=sort_by,
+        )
+        return await SLAService().get_by_channel(db, filters)
+    except (ValueError, ValidationError) as exc:
+        raise _validation_error(exc) from exc
 
 
 @router.get("/breach-risk", response_model=SLABreachRiskResponse)
@@ -81,13 +95,16 @@ async def get_sla_breach_risk(
     offset: int = Query(default=0, ge=0),
     db: AsyncSession = Depends(get_db_session),
 ) -> SLABreachRiskResponse:
-    filters = SLABreachRiskQuery(
-        urgency_threshold=urgency_threshold,
-        churn_risk=churn_risk,
-        limit=limit,
-        offset=offset,
-    )
-    return await SLAService().get_breach_risk(db, filters)
+    try:
+        filters = SLABreachRiskQuery(
+            urgency_threshold=urgency_threshold,
+            churn_risk=churn_risk,
+            limit=limit,
+            offset=offset,
+        )
+        return await SLAService().get_breach_risk(db, filters)
+    except (ValueError, ValidationError) as exc:
+        raise _validation_error(exc) from exc
 
 
 @router.get("/trend", response_model=SLATrendResponse)
@@ -98,10 +115,13 @@ async def get_sla_trend(
     product: str | None = Query(default=None, max_length=255),
     db: AsyncSession = Depends(get_db_session),
 ) -> SLATrendResponse:
-    filters = SLATrendQuery(
-        granularity=granularity,
-        date_from=date_from,
-        date_to=date_to,
-        product=product,
-    )
-    return await SLAService().get_trend(db, filters)
+    try:
+        filters = SLATrendQuery(
+            granularity=granularity,
+            date_from=date_from,
+            date_to=date_to,
+            product=product,
+        )
+        return await SLAService().get_trend(db, filters)
+    except (ValueError, ValidationError) as exc:
+        raise _validation_error(exc) from exc

@@ -17,6 +17,8 @@ from app.models import (  # noqa: F401
     AgentFeedback,
     CommunicationHistory,
     Complaint,
+    ComplianceEvidenceRecord,
+    ComplianceRuleRecord,
     ComplaintProcessingRun,
     DuplicateGroup,
     DuplicateMember,
@@ -24,6 +26,7 @@ from app.models import (  # noqa: F401
     ImportAuditLog,
     ProcessingJob,
     ProcessingJobItem,
+    ReasonCodeRecord,
 )
 from app.services.embedding_service import EmbeddingService
 
@@ -121,6 +124,9 @@ EXPECTED_COMPLAINT_COLUMNS: dict[str, str] = {
     "updated_at": "TIMESTAMP WITH TIME ZONE",
 }
 REQUIRED_TABLES = (
+    "reason_codes",
+    "compliance_rules",
+    "compliance_evidence_records",
     "communication_history",
     "complaint_processing_runs",
     "agent_feedback",

@@ -4,8 +4,7 @@ Auth API: username/password login → Bearer token lookup.
 Users are configured via AUTH_USERS_JSON in .env:
   [{"username": "admin", "password": "admin123", "role": "admin", "api_key": "..."}]
 
-The api_key must also appear in AUTH_PRINCIPALS_JSON so that the existing
-Bearer-key middleware continues to work unchanged.
+Each user api_key is also used as the bearer token for protected API routes.
 """
 
 from __future__ import annotations

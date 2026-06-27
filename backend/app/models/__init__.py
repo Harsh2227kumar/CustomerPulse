@@ -1,4 +1,5 @@
 from app.communications.models import CommunicationHistory
+from app.compliance.storage_models import ComplianceEvidenceRecord, ComplianceRuleRecord, ReasonCodeRecord
 from app.duplicates.models import DuplicateGroup, DuplicateMember
 from app.escalations.models import Escalation
 from app.feedback.models import AgentFeedback
@@ -9,6 +10,9 @@ from app.models.processing import ComplaintProcessingRun, ProcessingJob, Process
 __all__ = [
     "AgentFeedback",
     "CommunicationHistory",
+    "ComplianceEvidenceRecord",
+    "ComplianceRuleRecord",
+    "ReasonCodeRecord",
     "Complaint",
     "ComplaintProcessingRun",
     "DuplicateGroup",
