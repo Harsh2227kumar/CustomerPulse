@@ -13,16 +13,17 @@ class InvalidEmbeddingError(EmbeddingError):
     pass
 
 
-@lru_cache(maxsize=2)
-def _load_model(model_name: str):
+@lru_cache(maxsize=4)
+def _load_model(model_name: str, local_files_only: bool):
     from sentence_transformers import SentenceTransformer
 
-    return SentenceTransformer(model_name)
+    return SentenceTransformer(model_name, local_files_only=local_files_only)
 
 
 class EmbeddingService:
-    def __init__(self, model_name: str):
+    def __init__(self, model_name: str, *, local_files_only: bool = False):
         self.model_name = model_name
+        self.local_files_only = local_files_only
 
     async def ensure_ready(self) -> None:
         """Load the configured model and validate the database vector contract."""
@@ -52,5 +53,8 @@ class EmbeddingService:
             raise InvalidEmbeddingError("Embedding model returned non-finite vector values.")
 
     def _embed_sync(self, text: str) -> list[float]:
-        vector = _load_model(self.model_name).encode(text, normalize_embeddings=True)
+        vector = _load_model(self.model_name, self.local_files_only).encode(
+            text,
+            normalize_embeddings=True,
+        )
         return [float(value) for value in vector.tolist()]

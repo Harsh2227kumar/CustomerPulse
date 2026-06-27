@@ -87,6 +87,62 @@ class PDFExportServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(payload.startswith(b"%PDF-"))
 
 
+    async def test_regulatory_pdf_bytes_start_with_pdf_signature(self) -> None:
+        repository = SimpleNamespace(
+            get_regulatory_summary=AsyncMock(
+                return_value={
+                    "total_complaints": 25,
+                    "completed_count": 20,
+                    "reviewed_count": 10,
+                    "escalated_count": 4,
+                    "avg_urgency_score": 67.4,
+                    "timely_response_pct": 82.5,
+                }
+            ),
+            get_sentiment_distribution=AsyncMock(
+                return_value=[
+                    {"sentiment": "Positive", "count": 3, "percentage": 15.0},
+                    {"sentiment": "Neutral", "count": 7, "percentage": 35.0},
+                    {"sentiment": "Negative", "count": 10, "percentage": 50.0},
+                ]
+            ),
+            get_urgency_distribution=AsyncMock(
+                return_value=[
+                    {"bucket": "Low", "count": 2},
+                    {"bucket": "Medium", "count": 4},
+                    {"bucket": "High", "count": 8},
+                    {"bucket": "Critical", "count": 6},
+                ]
+            ),
+            get_regulatory_complaints_list=AsyncMock(
+                return_value=[
+                    {
+                        "complaint_id": "CP-12345",
+                        "product": "Credit card & prepaid card",
+                        "timely_response": True,
+                        "urgency_score": 75,
+                        "reviewer": "officer & auditor",
+                        "review_resolution": "approved with review > 2",
+                        "review_notes": "All checks <passed> & verified.",
+                        "reviewed_at": datetime(2026, 1, 15, tzinfo=UTC),
+                        "human_review_reason": "high_urgency & severity",
+                    }
+                ]
+            ),
+        )
+
+        payload = await PDFExportService(repository).build_regulatory_report_pdf(
+            db=object(),
+            filters=ComplaintPDFExportQuery(
+                date_from=datetime(2026, 1, 1, tzinfo=UTC),
+                date_to=datetime(2026, 1, 31, tzinfo=UTC),
+            ),
+        )
+
+        self.assertTrue(payload.startswith(b"%PDF-"))
+
+
+
 class ExportRouterTests(unittest.TestCase):
     def setUp(self) -> None:
         app = FastAPI()
@@ -155,6 +211,38 @@ class ExportRouterTests(unittest.TestCase):
         self.assertTrue(response.headers["content-type"].startswith("text/csv"))
         self.assertIn("Credit card", response.text)
 
+    def test_regulatory_csv_streams(self) -> None:
+        service = SimpleNamespace(
+            stream_regulatory_csv=lambda db, filters: _async_chunks(
+                [
+                    "complaint_id,narrative,channel,product,timely_response,sentiment,urgency_score,human_review_reason,reviewer,review_resolution\n",
+                    "CP-12345,Unauthorized fee,web,Credit card,Yes,Negative,85,high_urgency,auditor,approved\n",
+                ]
+            )
+        )
+
+        with patch("app.exports.api.routes.CSVExportService", return_value=service):
+            response = self.client.get("/api/exports/regulatory/csv")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.headers["content-type"].startswith("text/csv"))
+        self.assertIn("regulatory_report_", response.headers["content-disposition"])
+        self.assertIn("CP-12345", response.text)
+
+    def test_regulatory_pdf_streams(self) -> None:
+        service = SimpleNamespace(
+            build_regulatory_report_pdf=AsyncMock(return_value=b"%PDF-1.7\nmock-regulatory-pdf")
+        )
+
+        with patch("app.exports.api.routes.PDFExportService", return_value=service):
+            response = self.client.get("/api/exports/regulatory/pdf")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.headers["content-type"].startswith("application/pdf"))
+        self.assertIn("regulatory_report_", response.headers["content-disposition"])
+        self.assertTrue(response.content.startswith(b"%PDF-"))
+
 
 if __name__ == "__main__":
     unittest.main()
+

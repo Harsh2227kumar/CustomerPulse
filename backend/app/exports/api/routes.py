@@ -89,5 +89,41 @@ async def export_feedback_csv(
     )
 
 
+@router.get("/regulatory/csv")
+async def export_regulatory_csv(
+    filters: Annotated[ComplaintCSVExportQuery, Depends()],
+    _principal=Depends(require_roles(Role.MANAGER, Role.ADMIN)),
+    db: AsyncSession = Depends(get_db_session),
+) -> StreamingResponse:
+    timestamp = _build_timestamp()
+    headers = {
+        "Content-Disposition": f'attachment; filename="regulatory_report_{timestamp}.csv"',
+    }
+    return StreamingResponse(
+        CSVExportService().stream_regulatory_csv(db, filters),
+        media_type="text/csv",
+        headers=headers,
+    )
+
+
+@router.get("/regulatory/pdf")
+async def export_regulatory_pdf(
+    filters: Annotated[ComplaintPDFExportQuery, Depends()],
+    _principal=Depends(require_roles(Role.MANAGER, Role.ADMIN)),
+    db: AsyncSession = Depends(get_db_session),
+) -> StreamingResponse:
+    timestamp = _build_timestamp()
+    headers = {
+        "Content-Disposition": f'attachment; filename="regulatory_report_{timestamp}.pdf"',
+    }
+    pdf_bytes = await PDFExportService().build_regulatory_report_pdf(db, filters)
+    return StreamingResponse(
+        iter([pdf_bytes]),
+        media_type="application/pdf",
+        headers=headers,
+    )
+
+
 def _build_timestamp() -> str:
     return datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+

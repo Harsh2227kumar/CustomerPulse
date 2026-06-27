@@ -47,12 +47,13 @@ class Settings(BaseSettings):
     ai_timeout_seconds: float = Field(default=30.0, gt=0)
     embedding_model: str = Field(default="all-MiniLM-L6-v2", min_length=1)
     embedding_verify_on_startup: bool = Field(default=False)
+    embedding_local_files_only: bool = Field(default=False)
     similarity_threshold: float = Field(default=0.60, ge=0, le=1)
     similar_case_limit: int = Field(default=3, ge=1, le=10)
     batch_process_limit: int = Field(default=50, ge=1, le=200)
     embedding_backfill_limit: int = Field(default=100, ge=1, le=500)
     job_worker_poll_seconds: float = Field(default=1.0, gt=0, le=30)
-    auth_principals_json: str = "{}"
+    auth_users_json: str = "[]"
 
     @property
     def parsed_cors_origins(self) -> list[str]:
@@ -60,12 +61,14 @@ class Settings(BaseSettings):
 
     @property
     def auth_principals(self) -> dict[str, dict[str, str]]:
-        parsed: Any = json.loads(self.auth_principals_json)
+        parsed: Any = json.loads(self.auth_users_json)
         return {
-            key: {"actor": value["actor"], "role": value["role"]}
-            for key, value in parsed.items()
+            user["api_key"]: {
+                "actor": user.get("actor", user["username"]),
+                "role": user["role"],
+            }
+            for user in parsed
         }
-
     @property
     def s3_import_configured(self) -> bool:
         if not self.s3_bucket_name or not self.cfpb_s3_key:
@@ -117,28 +120,23 @@ class Settings(BaseSettings):
     def validate_service_settings(self) -> "Settings":
         if not self.bedrock_api_key:
             raise ValueError("BEDROCK_API_KEY is required when AI_PROVIDER=bedrock")
-        if bool(self.s3_bucket_name) != bool(self.cfpb_s3_key):
-            raise ValueError("S3_BUCKET_NAME and CFPB_S3_KEY must be configured together")
-        if self.cfpb_ingestion_mode == "athena" and not all(
-            (self.athena_database, self.athena_table, self.athena_output_location)
-        ):
-            raise ValueError(
-                "ATHENA_DATABASE, ATHENA_TABLE, and ATHENA_OUTPUT_LOCATION "
-                "are required when CFPB_INGESTION_MODE=athena"
-            )
         try:
-            principals = json.loads(self.auth_principals_json)
+            users = json.loads(self.auth_users_json)
         except json.JSONDecodeError as exc:
-            raise ValueError("AUTH_PRINCIPALS_JSON must contain valid JSON") from exc
-        if not isinstance(principals, dict):
-            raise ValueError("AUTH_PRINCIPALS_JSON must map bearer keys to principals")
-        for key, principal in principals.items():
-            if not isinstance(key, str) or not key.strip() or not isinstance(principal, dict):
-                raise ValueError("AUTH_PRINCIPALS_JSON includes an invalid principal entry")
-            if principal.get("role") not in {"agent", "manager", "admin"}:
-                raise ValueError("AUTH_PRINCIPALS_JSON roles must be agent, manager, or admin")
-            if not isinstance(principal.get("actor"), str) or not principal["actor"].strip():
-                raise ValueError("AUTH_PRINCIPALS_JSON principals must include an actor")
+            raise ValueError("AUTH_USERS_JSON must contain valid JSON") from exc
+        if not isinstance(users, list):
+            raise ValueError("AUTH_USERS_JSON must be a list of user objects")
+        for user in users:
+            if not isinstance(user, dict):
+                raise ValueError("AUTH_USERS_JSON includes an invalid user entry")
+            if user.get("role") not in {"agent", "manager", "admin"}:
+                raise ValueError("AUTH_USERS_JSON roles must be agent, manager, or admin")
+            for field in ("username", "password", "api_key"):
+                if not isinstance(user.get(field), str) or not user[field].strip():
+                    raise ValueError(f"AUTH_USERS_JSON users must include {field}")
+            actor = user.get("actor", user["username"])
+            if not isinstance(actor, str) or not actor.strip():
+                raise ValueError("AUTH_USERS_JSON users must include a valid actor")
         return self
 
 

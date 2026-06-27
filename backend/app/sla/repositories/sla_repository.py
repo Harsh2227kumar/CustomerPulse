@@ -126,7 +126,8 @@ class SLARepository:
             or_(Complaint.timely_response.is_(None), Complaint.timely_response.is_(False))
         )
         if churn_risk:
-            conditions.append(Complaint.churn_risk == churn_risk.value)
+            churn_risk_value = churn_risk.value if isinstance(churn_risk, ChurnRisk) else churn_risk
+            conditions.append(Complaint.churn_risk == churn_risk_value)
 
         complaint_id = func.coalesce(Complaint.source_complaint_id, Complaint.id).label("complaint_id")
         stmt = (
@@ -184,3 +185,20 @@ class SLARepository:
         )
         rows = (await db.execute(stmt)).mappings().all()
         return [dict(row) for row in rows]
+
+    async def is_breach_risk_for_complaint(
+        self,
+        db: AsyncSession,
+        complaint_pk: str,
+        *,
+        urgency_threshold: int = 70,
+    ) -> bool:
+        conditions = self._completed_conditions()
+        conditions.append(Complaint.id == complaint_pk)
+        conditions.append(Complaint.urgency_score >= urgency_threshold)
+        conditions.append(
+            or_(Complaint.timely_response.is_(None), Complaint.timely_response.is_(False))
+        )
+        count_stmt = select(func.count()).select_from(Complaint).where(*conditions)
+        total = (await db.execute(count_stmt)).scalar_one()
+        return total > 0

@@ -13,8 +13,14 @@ class ComplaintProcessRequest(BaseModel):
     narrative: str = Field(min_length=1)
     channel: str | None = Field(default=None, max_length=64)
     product: str | None = Field(default=None, max_length=255)
+    sub_product: str | None = Field(default=None, max_length=255)
     issue: str | None = Field(default=None, max_length=255)
+    sub_issue: str | None = Field(default=None, max_length=255)
     company: str | None = Field(default=None, max_length=255)
+    company_response: str | None = Field(default=None, max_length=255)
+    timely_response: bool | None = Field(default=None)
+    date_received: datetime | None = Field(default=None)
+    category: str | None = Field(default=None, max_length=255)
 
     @field_validator("complaint_id", "narrative")
     @classmethod
@@ -24,7 +30,7 @@ class ComplaintProcessRequest(BaseModel):
             raise ValueError("value must not be blank")
         return cleaned
 
-    @field_validator("channel", "product", "issue", "company")
+    @field_validator("channel", "product", "sub_product", "issue", "sub_issue", "company", "company_response", "category")
     @classmethod
     def clean_optional_strings(cls, value: str | None) -> str | None:
         if value is None:
@@ -37,6 +43,11 @@ class ComplaintFilters(Pagination):
     sentiment: Sentiment | None = None
     channel: str | None = None
     product: str | None = None
+    sub_product: str | None = Field(default=None, max_length=255)
+    issue: str | None = None
+    sub_issue: str | None = Field(default=None, max_length=255)
+    company: str | None = Field(default=None, max_length=255)
+    category: str | None = Field(default=None, max_length=255)
     churn_risk: ChurnRisk | None = None
     urgency_min: int | None = Field(default=None, ge=0, le=100)
     urgency_max: int | None = Field(default=None, ge=0, le=100)
@@ -72,6 +83,10 @@ class ComplaintFilters(Pagination):
         return self
 
 
+class ComplaintAssignRequest(BaseModel):
+    agent_id: str = Field(min_length=1, max_length=128)
+
+
 class ComplaintListItem(BaseModel):
     complaint_id: str
     narrative: str
@@ -90,6 +105,9 @@ class ComplaintListItem(BaseModel):
     human_review_reason: str | None = None
     human_review_created_at: datetime | None = None
     similar_cases: list[SimilarCaseEvidence] = Field(default_factory=list)
+    sla_deadline: datetime | None = None
+    sla_status: str | None = None
+    assigned_agent_id: str | None = None
 
 
 class ComplaintListResponse(BaseModel):

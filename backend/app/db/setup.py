@@ -15,12 +15,18 @@ from app.core.constants import EMBEDDING_DIMENSIONS
 from app.db.base import Base
 from app.models import (  # noqa: F401
     AgentFeedback,
+    CommunicationHistory,
     Complaint,
+    ComplianceEvidenceRecord,
+    ComplianceRuleRecord,
     ComplaintProcessingRun,
     DuplicateGroup,
     DuplicateMember,
+    Escalation,
+    ImportAuditLog,
     ProcessingJob,
     ProcessingJobItem,
+    ReasonCodeRecord,
 )
 from app.services.embedding_service import EmbeddingService
 
@@ -53,7 +59,7 @@ class DatabaseSetupStatus:
 
 
 def _make_engine(url: str, *, isolation_level: str | None = None) -> AsyncEngine:
-    kwargs = {"pool_pre_ping": True, "future": True}
+    kwargs: dict[str, bool | str] = {"pool_pre_ping": True, "future": True}
     if isolation_level:
         kwargs["isolation_level"] = isolation_level
     return create_async_engine(url, **kwargs)
@@ -118,12 +124,18 @@ EXPECTED_COMPLAINT_COLUMNS: dict[str, str] = {
     "updated_at": "TIMESTAMP WITH TIME ZONE",
 }
 REQUIRED_TABLES = (
+    "reason_codes",
+    "compliance_rules",
+    "compliance_evidence_records",
+    "communication_history",
     "complaint_processing_runs",
     "agent_feedback",
     "duplicate_groups",
     "duplicate_members",
+    "escalations",
     "processing_jobs",
     "processing_job_items",
+    "import_audit_logs",
 )
 
 
@@ -527,8 +539,14 @@ async def verify_permissions(settings: Settings) -> None:
             await conn.execute(
                 text(
                     """
-                    INSERT INTO complaints (id, source_complaint_id, narrative, ai_status)
-                    VALUES (:id, :source_complaint_id, :narrative, 'pending')
+                    INSERT INTO complaints (
+                        id,
+                        source_complaint_id,
+                        narrative,
+                        ai_status,
+                        retry_count
+                    )
+                    VALUES (:id, :source_complaint_id, :narrative, 'pending', 0)
                     """
                 ),
                 {
@@ -593,10 +611,13 @@ async def ensure_database_ready(settings: Settings, *, prompt: bool = True) -> D
 
 
 async def verify_bedrock_ready(settings: Settings) -> None:
+    client = BedrockClient(settings)
     try:
-        await BedrockClient(settings).check_connection()
+        await client.check_connection()
     except Exception as exc:
         raise SetupError(f"Bedrock connection check failed: {exc}") from exc
+    finally:
+        client.close()
 
 
 async def run_startup_checks(
@@ -614,7 +635,10 @@ async def run_startup_checks(
 
 
 async def verify_embedding_ready(settings: Settings) -> None:
-    await EmbeddingService(settings.embedding_model).ensure_ready()
+    await EmbeddingService(
+        settings.embedding_model,
+        local_files_only=settings.embedding_local_files_only,
+    ).ensure_ready()
     logger.info("Embedding model startup check passed: %s", settings.embedding_model)
 
 

@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 from typing import Any
 
@@ -72,10 +73,29 @@ AI_ENRICHMENT_SCHEMA: dict[str, Any] = {
 }
 
 
+BEDROCK_TOOL_NAME = "emit_ai_enrichment"
+
+
 class BedrockClient:
-    def __init__(self, settings: Settings):
+    def __init__(
+        self,
+        settings: Settings,
+        *,
+        client: httpx.Client | None = None,
+    ):
         self.settings = settings
-        self.client = httpx.Client(timeout=settings.ai_timeout_seconds, trust_env=False)
+        self.client = client or httpx.Client(timeout=settings.ai_timeout_seconds, trust_env=False)
+        self._owns_client = client is None
+
+    def close(self) -> None:
+        if self._owns_client:
+            self.client.close()
+
+    def __enter__(self) -> "BedrockClient":
+        return self
+
+    def __exit__(self, exc_type, exc, traceback) -> None:
+        self.close()
 
     @property
     def converse_url(self) -> str:
@@ -107,6 +127,35 @@ class BedrockClient:
             },
         )
 
+    def _structured_tool_config(self) -> dict[str, Any]:
+        return {
+            "tools": [
+                {
+                    "toolSpec": {
+                        "name": BEDROCK_TOOL_NAME,
+                        "description": (
+                            "Emit exactly one CustomerPulse AI enrichment JSON object "
+                            "that conforms to the supplied schema."
+                        ),
+                        "inputSchema": {"json": AI_ENRICHMENT_SCHEMA},
+                    }
+                }
+            ],
+            "toolChoice": {"tool": {"name": BEDROCK_TOOL_NAME}},
+        }
+
+    def _extract_response_payload(self, response: dict[str, Any]) -> str:
+        content_blocks = response.get("output", {}).get("message", {}).get("content", [])
+        for content in content_blocks:
+            tool_use = content.get("toolUse")
+            if isinstance(tool_use, dict) and tool_use.get("name") == BEDROCK_TOOL_NAME:
+                tool_input = tool_use.get("input")
+                if isinstance(tool_input, dict):
+                    return json.dumps(tool_input)
+
+        logger.error("Bedrock returned no structured tool output: %s", response)
+        raise ValueError("Bedrock returned no structured tool output")
+
     async def analyze_complaint(
         self,
         complaint_id: str,
@@ -132,16 +181,7 @@ class BedrockClient:
                 "system": [{"text": SYSTEM_PROMPT}],
                 "messages": [{"role": "user", "content": [{"text": prompt}]}],
                 "inferenceConfig": {"temperature": 0, "maxTokens": 1200},
+                "toolConfig": self._structured_tool_config(),
             },
         )
-
-        text_parts = [
-            content["text"]
-            for content in response.get("output", {}).get("message", {}).get("content", [])
-            if content.get("text")
-        ]
-        if text_parts:
-            return "".join(text_parts)
-
-        logger.error("Bedrock returned no text content: %s", response)
-        raise ValueError("Bedrock returned no text content")
+        return self._extract_response_payload(response)
