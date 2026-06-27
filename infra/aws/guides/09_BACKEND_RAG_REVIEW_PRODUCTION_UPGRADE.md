@@ -292,19 +292,12 @@ These values are secrets:
 
 - `DATABASE_URL` password.
 - `BEDROCK_API_KEY` while the API-key implementation remains in use.
-- `AUTH_PRINCIPALS_JSON` bearer keys.
+- `AUTH_USERS_JSON` user passwords and bearer API keys.
 
 Store them in Secrets Manager and inject them into the container environment at
-deployment time. Rotate all sample keys in documentation before a hosted demo.
+deployment time. Rotate all sample users, passwords, and API keys in documentation before a hosted demo.
 
-Use at least:
-
-```json
-{
-  "agent-key": {"actor": "demo-agent", "role": "agent"},
-  "manager-key": {"actor": "demo-manager", "role": "manager"}
-}
-```
+Use `AUTH_USERS_JSON` with at least agent and manager users, each containing `username`, `password`, `role`, `actor`, and `api_key`.
 
 Do not expose manager credentials in frontend source. The demo frontend may
 read public complaint views; protected writes must carry a bearer credential
