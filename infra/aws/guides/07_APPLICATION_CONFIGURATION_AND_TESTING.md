@@ -51,7 +51,7 @@ SIMILAR_CASE_LIMIT=3
 BATCH_PROCESS_LIMIT=50
 EMBEDDING_BACKFILL_LIMIT=100
 JOB_WORKER_POLL_SECONDS=1
-AUTH_PRINCIPALS_JSON={"replace-manager-key":{"actor":"demo-manager","role":"manager"},"replace-agent-key":{"actor":"demo-agent","role":"agent"}}
+AUTH_USERS_JSON=[{"username":"admin","password":"Admin@123","role":"admin","actor":"admin","api_key":"replace-admin-key","display_name":"Administrator"},{"username":"manager","password":"Manager@123","role":"manager","actor":"demo-manager","api_key":"replace-manager-key","display_name":"Manager"},{"username":"agent","password":"Agent@123","role":"agent","actor":"demo-agent","api_key":"replace-agent-key","display_name":"Agent"}]
 ```
 
 ## Local AWS Credentials
@@ -168,7 +168,7 @@ Verify the imported rows in the dashboard before selecting a larger amount.
    `/api/exports/complaints/csv`, `/api/exports/complaints/pdf`,
    `/api/feedback`, and `/api/duplicates/detect`.
 9. In the frontend, open **Operations**, save a manager/admin bearer key from
-   `AUTH_PRINCIPALS_JSON`, and verify:
+   `AUTH_USERS_JSON`, and verify:
    - complaint detail loads for a selected imported complaint,
    - review approve/resolve/rerun buttons call the backend,
    - process and embedding-backfill jobs create PostgreSQL job records,
