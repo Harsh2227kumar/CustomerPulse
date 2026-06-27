@@ -4,6 +4,9 @@ import logging
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.communications.repository import CommunicationRepository
+from app.escalations.service import EscalationService
+
 from app.ai.pipelines.complaint_pipeline import (
     BedrockUnavailableError,
     ComplaintAIPipeline,
@@ -12,6 +15,9 @@ from app.ai.pipelines.complaint_pipeline import (
 )
 from app.ai.preprocessing.cleaner import clean_complaint_text
 from app.ai.validators.review_router import review_reason_for
+from app.compliance.engine import ComplianceEngine
+from app.compliance.models import AIResponseFields, AISignals, ComplaintComplianceInput, SLAState
+from app.compliance.service import ComplianceEvidenceService
 from app.core.config import Settings
 from app.core.constants import (
     ChurnRisk,
@@ -46,8 +52,15 @@ class ProcessingService:
     def __init__(self, settings: Settings):
         self.settings = settings
         self.pipeline = ComplaintAIPipeline(settings)
-        self.embeddings = EmbeddingService(settings.embedding_model)
+        self.embeddings = EmbeddingService(
+            settings.embedding_model,
+            local_files_only=settings.embedding_local_files_only,
+        )
         self.retrieval = SimilarComplaintService()
+
+    def close(self) -> None:
+        self.pipeline.close()
+
 
     async def process_complaint(
         self,
@@ -68,10 +81,16 @@ class ProcessingService:
             complaint.error_message = None
             await db.flush()
             run = await self._start_processing_run(db, complaint, trigger, initiated_by)
+            await self._log_to_timeline(db, complaint.id, "processing_started", "Processing started")
 
             await self._emit_event(WebSocketEvent.PREPROCESSING, complaint_request.complaint_id)
             local = self.pipeline.run_local_layer(complaint_request)
             run.local_signals = self._local_signals_payload(local)
+            await self._log_to_timeline(
+                db, complaint.id, "local_ml",
+                f"Local ML signals computed: category={local.category}, urgency_score={local.urgency_score}",
+                {"category": local.category, "urgency_score": local.urgency_score},
+            )
             await self._emit_event(
                 WebSocketEvent.LOCAL_ML,
                 complaint_request.complaint_id,
@@ -105,11 +124,25 @@ class ProcessingService:
             except InvalidAIOutputError:
                 preset_reason = ReviewReason.INVALID_AI_OUTPUT
                 enrichment = self._fallback_enrichment(local, evidence)
+            bedrock_outcome = "fallback" if preset_reason else "bedrock"
+            await self._log_to_timeline(
+                db, complaint.id, "enrichment_resolved",
+                f"Enrichment resolved via {bedrock_outcome}",
+                {"method": bedrock_outcome, "reason": preset_reason.value if preset_reason else None},
+            )
+
+            if enrichment.source_metadata is None:
+                enrichment = self.pipeline.enrich_with_local_intelligence(
+                    complaint_request,
+                    enrichment,
+                    local=local,
+                    similar_cases=evidence,
+                )
 
             await self._emit_event(WebSocketEvent.VALIDATING, complaint_request.complaint_id)
             reason = preset_reason or review_reason_for(enrichment)
             now = datetime.now(UTC)
-            self._store_enrichment(complaint, enrichment, embedding, now)
+            self._store_enrichment(complaint, enrichment, embedding, now, complaint_request)
             complaint.ai_status = (
                 ProcessingStatus.HUMAN_REVIEW.value if reason else ProcessingStatus.COMPLETED.value
             )
@@ -123,9 +156,22 @@ class ProcessingService:
             run.ai_payload = enrichment.model_dump(mode="json")
             run.error_category = reason.value if reason else None
             run.finished_at = now
+            await self._log_to_timeline(
+                db, complaint.id, "status_finalized",
+                f"Processing finalized: ai_status={complaint.ai_status}"
+                + (f", human_review_reason={reason.value}" if reason else ""),
+                {"ai_status": complaint.ai_status, "human_review_reason": reason.value if reason else None},
+            )
             await db.commit()
             await db.refresh(complaint)
+
+            try:
+                await EscalationService().evaluate_auto_escalation(db, complaint)
+            except Exception:
+                logger.exception("Auto-escalation evaluation failed for %s.", complaint_request.complaint_id)
+
             response = self._response(complaint, enrichment)
+            await self._store_compliance_evidence(db, complaint, enrichment, now)
 
             if reason:
                 await self._emit_event(
@@ -173,6 +219,11 @@ class ProcessingService:
                 run.status_outcome = ProcessingStatus.FAILED.value
                 run.error_category = "unexpected_processing_failure"
                 run.finished_at = datetime.now(UTC)
+                await self._log_to_timeline(
+                    db, complaint.id, "processing_failed",
+                    "Complaint processing failed",
+                    {"ai_status": ProcessingStatus.FAILED.value},
+                )
                 await db.commit()
             except Exception:
                 await db.rollback()
@@ -249,16 +300,26 @@ class ProcessingService:
             complaint.narrative = complaint_request.narrative
             complaint.channel = complaint_request.channel
             complaint.product = complaint_request.product
+            complaint.sub_product = complaint_request.sub_product
             complaint.issue = complaint_request.issue
+            complaint.sub_issue = complaint_request.sub_issue
             complaint.company = complaint_request.company
+            complaint.company_response = complaint_request.company_response
+            complaint.timely_response = complaint_request.timely_response
+            complaint.date_received = complaint_request.date_received
             return complaint
         complaint = Complaint(
             source_complaint_id=complaint_request.complaint_id,
             narrative=complaint_request.narrative,
             channel=complaint_request.channel,
             product=complaint_request.product,
+            sub_product=complaint_request.sub_product,
             issue=complaint_request.issue,
+            sub_issue=complaint_request.sub_issue,
             company=complaint_request.company,
+            company_response=complaint_request.company_response,
+            timely_response=complaint_request.timely_response,
+            date_received=complaint_request.date_received,
         )
         db.add(complaint)
         return complaint
@@ -295,9 +356,13 @@ class ProcessingService:
         enrichment: AIEnrichment,
         embedding: list[float],
         now: datetime,
+        complaint_request: ComplaintProcessRequest | None = None,
     ) -> None:
         complaint.sentiment = enrichment.sentiment.value
-        complaint.category = enrichment.category
+        if complaint_request and complaint_request.category:
+            complaint.category = complaint_request.category
+        else:
+            complaint.category = enrichment.category
         complaint.urgency_score = enrichment.urgency_score
         complaint.churn_risk = enrichment.churn_risk.value
         complaint.draft_response = enrichment.draft_response
@@ -313,6 +378,83 @@ class ProcessingService:
         complaint.embedded_at = now
         complaint.processed_at = now
         complaint.error_message = None
+
+
+    async def _store_compliance_evidence(
+        self,
+        db: AsyncSession,
+        complaint: Complaint,
+        enrichment: AIEnrichment,
+        evaluated_at: datetime,
+    ) -> None:
+        try:
+            compliance_input = self._compliance_input(complaint, enrichment, evaluated_at)
+            result = ComplianceEngine().evaluate(compliance_input, evaluated_at=evaluated_at)
+            evidence_service = ComplianceEvidenceService()
+            _, existing_count = await evidence_service.list_records(
+                db,
+                limit=1,
+                offset=0,
+                complaint_id=result.complaint_id,
+            )
+            if existing_count:
+                return
+            await evidence_service.store_result(db, result, notes="auto-triggered-from-processing")
+        except Exception:
+            logger.exception(
+                "Unable to store compliance evidence for complaint %s.",
+                complaint.source_complaint_id or complaint.id,
+            )
+
+    def _compliance_input(
+        self,
+        complaint: Complaint,
+        enrichment: AIEnrichment,
+        evaluated_at: datetime,
+    ) -> ComplaintComplianceInput:
+        date_received = complaint.date_received or complaint.created_at or evaluated_at
+        days_elapsed = max((evaluated_at.date() - date_received.date()).days, 0)
+        resolved_at = complaint.processed_at if complaint.ai_status == ProcessingStatus.COMPLETED.value else None
+        days_to_deadline = 30 - days_elapsed
+        sla_breached = complaint.timely_response is False or (resolved_at is None and days_elapsed > 30)
+        breach_risk_level = "critical" if sla_breached else "high" if resolved_at is None and days_to_deadline <= 2 else "low"
+
+        return ComplaintComplianceInput(
+            complaint_id=complaint.id,
+            source_complaint_id=complaint.source_complaint_id,
+            product=complaint.product,
+            issue=complaint.issue,
+            sub_issue=complaint.sub_issue,
+            narrative=complaint.narrative,
+            channel=complaint.channel,
+            date_received=date_received,
+            acknowledged_at=complaint.processed_at,
+            resolved_at=resolved_at,
+            ai_signals=AISignals(
+                severity="high" if enrichment.urgency_score >= 70 else "medium",
+                urgency_score=enrichment.urgency_score,
+                key_issue=complaint.issue or enrichment.category,
+                confidence=enrichment.ai_confidence,
+            ),
+            response_fields=AIResponseFields(
+                category=enrichment.category,
+                urgency_score=enrichment.urgency_score,
+                draft_response=enrichment.draft_response,
+                resolution=(
+                    getattr(complaint, "approved_response", None)
+                    or getattr(complaint, "review_resolution", None)
+                    or enrichment.next_action
+                ),
+                next_action=enrichment.next_action,
+                ai_confidence=enrichment.ai_confidence,
+            ),
+            sla=SLAState(
+                is_breached=sla_breached,
+                breach_risk_level=breach_risk_level,
+                days_elapsed=days_elapsed,
+                days_to_deadline=days_to_deadline,
+            ),
+        )
 
     def _fallback_enrichment(self, local: LocalSignals, evidence: list) -> AIEnrichment:
         return AIEnrichment(
@@ -338,8 +480,14 @@ class ProcessingService:
             "sentiment_confidence": local.sentiment_confidence,
             "category": local.category,
             "category_confidence": local.category_confidence,
+            "category_reason_codes": local.category_reason_codes,
+            "category_conflict": local.category_conflict,
             "urgency_score": local.urgency_score,
             "urgency_confidence": local.urgency_confidence,
+            "urgency_reason_codes": local.urgency_reason_codes,
+            "urgency_level": local.urgency_level,
+            "urgency_reason": local.urgency_reason,
+            "sentiment_reason_codes": local.sentiment_reason_codes,
             "combined_confidence": local.combined_confidence,
         }
 
@@ -360,6 +508,31 @@ class ProcessingService:
             ),
             **enrichment.model_dump(),
         )
+
+    async def _log_to_timeline(
+        self,
+        db: AsyncSession,
+        complaint_pk: str,
+        event: str,
+        message: str,
+        context: dict | None = None,
+    ) -> None:
+        try:
+            await CommunicationRepository().create_entry(
+                db,
+                complaint_pk=complaint_pk,
+                entry_type="system",
+                event_code=event,
+                message=message,
+                actor="system",
+                context=context,
+            )
+        except Exception:
+            logger.exception(
+                "Timeline logging failed for event %s on complaint %s.",
+                event,
+                complaint_pk,
+            )
 
     async def _emit_event(
         self,

@@ -5,9 +5,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.constants import ChurnRisk, ProcessingStatus, ReviewReason, Sentiment
+from app.core.constants import ChurnRisk, ProcessingStatus, ReviewReason, Role, Sentiment
+from app.core.security import Principal, require_roles
 from app.db.session import get_db_session
-from app.schemas.complaint import ComplaintDetail, ComplaintFilters, ComplaintListResponse
+from app.schemas.complaint import ComplaintAssignRequest, ComplaintDetail, ComplaintFilters, ComplaintListResponse
 from app.services.complaint_service import ComplaintService
 
 router = APIRouter(prefix="/api", tags=["complaints"])
@@ -20,6 +21,10 @@ async def list_complaints(
     sentiment: Sentiment | None = None,
     channel: str | None = None,
     product: str | None = None,
+    sub_product: str | None = None,
+    sub_issue: str | None = None,
+    company: str | None = None,
+    category: str | None = None,
     churn_risk: ChurnRisk | None = None,
     urgency_min: int | None = Query(default=None, ge=0, le=100),
     urgency_max: int | None = Query(default=None, ge=0, le=100),
@@ -50,6 +55,10 @@ async def list_complaints(
             sentiment=sentiment,
             channel=channel,
             product=product,
+            sub_product=sub_product,
+            sub_issue=sub_issue,
+            company=company,
+            category=category,
             churn_risk=churn_risk,
             urgency_min=urgency_min,
             urgency_max=urgency_max,
@@ -70,12 +79,31 @@ async def list_complaints(
     return await ComplaintService().list_complaints(db, filters)
 
 
+@router.get("/complaints/categories", response_model=list[str])
+async def get_complaint_categories() -> list[str]:
+    from app.ai.ml_models.classifier import STANDARD_CATEGORIES
+    return STANDARD_CATEGORIES
+
+
 @router.get("/complaints/{complaint_id}", response_model=ComplaintDetail)
 async def get_complaint_detail(
     complaint_id: str,
     db: AsyncSession = Depends(get_db_session),
 ) -> ComplaintDetail:
     detail = await ComplaintService().get_detail(db, complaint_id)
+    if detail is None:
+        raise HTTPException(status_code=404, detail="Complaint not found.")
+    return detail
+
+
+@router.post("/complaints/{complaint_id}/assign", response_model=ComplaintDetail)
+async def assign_complaint(
+    complaint_id: str,
+    request: ComplaintAssignRequest,
+    db: AsyncSession = Depends(get_db_session),
+    principal: Principal = Depends(require_roles(Role.MANAGER, Role.ADMIN)),
+) -> ComplaintDetail:
+    detail = await ComplaintService().assign_agent(db, complaint_id, request.agent_id)
     if detail is None:
         raise HTTPException(status_code=404, detail="Complaint not found.")
     return detail

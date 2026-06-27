@@ -20,6 +20,7 @@ from app.models.processing import ProcessingJob, ProcessingJobItem
 from app.schemas.jobs import (
     JobCounts,
     JobItemResponse,
+    JobListResponse,
     ProcessingJobResponse,
 )
 from app.services.processing_service import ComplaintNotFoundError, ProcessingService
@@ -40,6 +41,9 @@ class JobService:
     def __init__(self, settings: Settings):
         self.settings = settings
         self.processing = ProcessingService(settings)
+
+    def close(self) -> None:
+        self.processing.close()
 
     async def create_processing_job(
         self, db: AsyncSession, complaint_ids: list[str], principal: Principal
@@ -115,6 +119,52 @@ class JobService:
             )
         ).scalars().all()
         return self._response(job, items)
+
+    async def list_jobs(
+        self,
+        db: AsyncSession,
+        *,
+        limit: int,
+        offset: int,
+        job_type: JobType | None = None,
+        status: JobStatus | None = None,
+    ) -> JobListResponse:
+        filters = []
+        if job_type is not None:
+            filters.append(ProcessingJob.job_type == job_type.value)
+        if status is not None:
+            filters.append(ProcessingJob.status == status.value)
+
+        total_count = (
+            await db.execute(select(func.count(ProcessingJob.id)).where(*filters))
+        ).scalar_one()
+        jobs = (
+            await db.execute(
+                select(ProcessingJob)
+                .where(*filters)
+                .order_by(ProcessingJob.created_at.desc(), ProcessingJob.id.desc())
+                .limit(limit)
+                .offset(offset)
+            )
+        ).scalars().all()
+
+        responses: list[ProcessingJobResponse] = []
+        for job in jobs:
+            items = (
+                await db.execute(
+                    select(ProcessingJobItem)
+                    .where(ProcessingJobItem.job_id == job.id)
+                    .order_by(ProcessingJobItem.id.asc())
+                )
+            ).scalars().all()
+            responses.append(self._response(job, items))
+
+        return JobListResponse(
+            items=responses,
+            total_count=total_count,
+            limit=limit,
+            offset=offset,
+        )
 
     async def retry_job(
         self, db: AsyncSession, job_id: str, principal: Principal
@@ -330,7 +380,11 @@ class ProcessingJobWorker:
         while not self._stopped.is_set():
             try:
                 async with AsyncSessionLocal() as db:
-                    handled = await JobService(self.settings).process_next_queued_job(db)
+                    service = JobService(self.settings)
+                    try:
+                        handled = await service.process_next_queued_job(db)
+                    finally:
+                        service.close()
             except Exception:
                 logger.exception("Background processing job worker failed.")
                 handled = False
