@@ -128,6 +128,9 @@ EXPECTED_COMPLAINT_COLUMNS: dict[str, str] = {
     "updated_at": "TIMESTAMP WITH TIME ZONE",
 }
 REQUIRED_TABLES = (
+    "departments",
+    "employees",
+    "audit_logs",
     "reason_codes",
     "compliance_rules",
     "compliance_evidence_records",
@@ -691,3 +694,4 @@ async def main(argv: list[str] | None = None) -> None:
 
 if __name__ == "__main__":
     asyncio.run(main())
+

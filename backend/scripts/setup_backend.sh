@@ -4,7 +4,7 @@ set -euo pipefail
 BACKEND_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$BACKEND_DIR"
 
-python -m venv .venv
+python3 -m venv .venv
 . .venv/bin/activate
 
 python -m pip install --upgrade pip

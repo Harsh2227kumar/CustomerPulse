@@ -72,6 +72,8 @@ class Role(StrEnum):
     AGENT = "agent"
     MANAGER = "manager"
     ADMIN = "admin"
+    SUPER_ADMIN = "super_admin"
+
 
 
 class JobType(StrEnum):

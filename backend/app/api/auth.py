@@ -1,22 +1,28 @@
 """
-Auth API: username/password login → Bearer token lookup.
+Auth API: username/password login -> Bearer token lookup.
 
 Users are configured via AUTH_USERS_JSON in .env:
   [{"username": "admin", "password": "admin123", "role": "admin", "api_key": "..."}]
 
-Each user api_key is also used as the bearer token for protected API routes.
+The same /api/auth/login endpoint also accepts employee email/password credentials
+and returns a JWT for the employee/admin tables.
 """
 
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime, timedelta
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings, get_settings
+from app.core.security import create_jwt_token
+from app.db.session import get_db_session
+from app.employees.service import AccountSuspendedError, EmployeeService, InvalidCredentialsError
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -29,7 +35,8 @@ bearer_scheme = HTTPBearer(auto_error=False)
 
 
 class LoginRequest(BaseModel):
-    username: str
+    username: str | None = None
+    email: str | None = None
     password: str
 
 
@@ -41,8 +48,12 @@ class UserProfile(BaseModel):
 
 
 class LoginResponse(BaseModel):
-    api_key: str
-    user: UserProfile
+    api_key: str | None = None
+    user: UserProfile | None = None
+    access_token: str | None = None
+    role: str | None = None
+    employee_id: str | None = None
+    must_change_password: bool | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -79,22 +90,52 @@ def _find_user_by_key(settings: Settings, api_key: str) -> dict[str, Any] | None
 async def login(
     body: LoginRequest,
     settings: Annotated[Settings, Depends(get_settings)],
+    db: AsyncSession = Depends(get_db_session),
 ) -> LoginResponse:
-    """Validate username + password; return the user's API key and profile."""
-    for user in _load_users(settings):
-        if user.get("username") == body.username and user.get("password") == body.password:
+    """Validate legacy or employee credentials and return a bearer credential."""
+    if body.username:
+        for user in _load_users(settings):
+            if user.get("username") == body.username and user.get("password") == body.password:
+                return LoginResponse(
+                    api_key=user["api_key"],
+                    user=UserProfile(
+                        username=user["username"],
+                        actor=user.get("actor", user["username"]),
+                        role=user["role"],
+                        display_name=user.get("display_name", user["username"].title()),
+                    ),
+                )
+
+    employee_email = body.email or body.username
+    if employee_email:
+        try:
+            employee = await EmployeeService().authenticate(db, employee_email, body.password)
+        except InvalidCredentialsError:
+            employee = None
+        except AccountSuspendedError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=str(exc),
+            ) from exc
+        if employee is not None:
+            payload = {
+                "sub": employee.employee_id,
+                "role": employee.role,
+                "exp": (
+                    datetime.now(UTC) + timedelta(hours=settings.jwt_expiry_hours)
+                ).timestamp(),
+            }
+            token = create_jwt_token(payload, settings.jwt_secret_key)
             return LoginResponse(
-                api_key=user["api_key"],
-                user=UserProfile(
-                    username=user["username"],
-                    actor=user.get("actor", user["username"]),
-                    role=user["role"],
-                    display_name=user.get("display_name", user["username"].title()),
-                ),
+                access_token=token,
+                role=employee.role,
+                employee_id=employee.employee_id,
+                must_change_password=employee.must_change_password,
             )
+
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Invalid username or password.",
+        detail="Invalid username/email or password.",
     )
 
 
