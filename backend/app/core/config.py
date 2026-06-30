@@ -55,6 +55,14 @@ class Settings(BaseSettings):
     job_worker_poll_seconds: float = Field(default=1.0, gt=0, le=30)
     auth_users_json: str = "[]"
 
+    # Email Intake Configuration
+    email_intake_enabled: bool = Field(default=False)
+    email_intake_imap_server: str = Field(default="imap.gmail.com")
+    email_intake_imap_port: int = Field(default=993, ge=1, le=65535)
+    email_intake_email: str = Field(default="support.customerpulse@gmail.com")
+    email_intake_password: str = Field(default="")
+    email_intake_poll_interval_seconds: int = Field(default=300, ge=10, le=86400)
+
     @property
     def parsed_cors_origins(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
@@ -137,7 +145,15 @@ class Settings(BaseSettings):
             actor = user.get("actor", user["username"])
             if not isinstance(actor, str) or not actor.strip():
                 raise ValueError("AUTH_USERS_JSON users must include a valid actor")
+
+        if self.email_intake_enabled:
+            if not self.email_intake_email or not self.email_intake_email.strip():
+                raise ValueError("EMAIL_INTAKE_EMAIL must be provided when EMAIL_INTAKE_ENABLED is true")
+            if not self.email_intake_password or not self.email_intake_password.strip():
+                raise ValueError("EMAIL_INTAKE_PASSWORD must be provided when EMAIL_INTAKE_ENABLED is true")
+
         return self
+
 
 
 @lru_cache

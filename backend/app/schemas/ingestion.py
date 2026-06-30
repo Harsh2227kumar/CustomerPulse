@@ -116,3 +116,13 @@ class ImportAuditLogListResponse(BaseModel):
     items: list[ImportAuditLogItem]
     count: int
 
+
+class EmailSyncResponse(BaseModel):
+    status: str
+    scanned_emails: int
+    imported_emails: int
+    skipped_emails: int
+    failed_emails: int
+    error_message: str | None = None
+
+
