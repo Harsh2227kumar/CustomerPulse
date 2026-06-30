@@ -58,6 +58,7 @@ class Settings(BaseSettings):
     # Kept as fallback for existing tests.
     auth_users_json: str = "[]"
 
+<<<<<<< HEAD
     # Email Intake Configuration
     email_intake_enabled: bool = Field(default=False)
     email_intake_imap_server: str = Field(default="imap.gmail.com")
@@ -69,6 +70,14 @@ class Settings(BaseSettings):
     jwt_secret_key: str = Field(default="placeholder_secret_key_must_be_32_chars_long", min_length=32)
     jwt_expiry_hours: int = 8
 
+=======
+
+    jwt_secret_key: str = Field(default="placeholder_secret_key_must_be_32_chars_long", min_length=32)
+
+    jwt_expiry_hours: int = 8
+
+
+>>>>>>> 28a6894 (Add member-3 changes: employees module, escalations, exports, and backend updates)
     @property
     def parsed_cors_origins(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]

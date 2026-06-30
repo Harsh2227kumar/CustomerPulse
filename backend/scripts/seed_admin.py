@@ -3,6 +3,10 @@ import os
 import sys
 
 from sqlalchemy import select
+<<<<<<< HEAD
+=======
+from sqlalchemy.ext.asyncio import AsyncSession
+>>>>>>> 28a6894 (Add member-3 changes: employees module, escalations, exports, and backend updates)
 
 # Ensure we can import app modules
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -15,6 +19,7 @@ from app.employees.service import hash_password
 
 async def seed_admin():
     async with AsyncSessionLocal() as db:
+<<<<<<< HEAD
         email = os.getenv("SEED_ADMIN_EMAIL", "superadmin@example.com")
         password = os.getenv("SEED_ADMIN_PASSWORD", "SuperAdmin@123")
         name = os.getenv("SEED_ADMIN_NAME", "System Super Admin")
@@ -36,10 +41,28 @@ async def seed_admin():
                 f"{email} with employee_id: {existing_admin.employee_id}"
             )
             return
+=======
+        # Check if any employee exists
+        result = await db.execute(select(Employee).limit(1))
+        existing = result.scalar_one_or_none()
+        
+        if existing:
+            print("Seed aborted: Employees table is not empty.")
+            return
+
+        email = os.getenv("SEED_ADMIN_EMAIL", "superadmin@example.com")
+        password = os.getenv("SEED_ADMIN_PASSWORD", "SuperAdmin@123")
+        name = os.getenv("SEED_ADMIN_NAME", "System Super Admin")
+>>>>>>> 28a6894 (Add member-3 changes: employees module, escalations, exports, and backend updates)
 
         print(f"Creating first super_admin: {email}")
 
         repo = EmployeeRepository()
+<<<<<<< HEAD
+=======
+        hashed = hash_password(password)
+        
+>>>>>>> 28a6894 (Add member-3 changes: employees module, escalations, exports, and backend updates)
         employee = await repo.create(
             db=db,
             name=name,
@@ -49,7 +72,11 @@ async def seed_admin():
             status="active",
             must_change_password=True,
         )
+<<<<<<< HEAD
 
+=======
+        
+>>>>>>> 28a6894 (Add member-3 changes: employees module, escalations, exports, and backend updates)
         await db.commit()
         print(f"Success! Created super_admin with employee_id: {employee.employee_id}")
 

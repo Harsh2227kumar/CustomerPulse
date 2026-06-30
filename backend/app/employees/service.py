@@ -1,13 +1,20 @@
 import asyncio
+<<<<<<< HEAD
 import base64
 import hashlib
 import hmac
+=======
+>>>>>>> 28a6894 (Add member-3 changes: employees module, escalations, exports, and backend updates)
 import secrets
 import string
 from collections import Counter
 from datetime import UTC, datetime, timedelta
 from typing import Any, Optional
 
+<<<<<<< HEAD
+=======
+import bcrypt
+>>>>>>> 28a6894 (Add member-3 changes: employees module, escalations, exports, and backend updates)
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.employees.models import Employee, Department
@@ -70,6 +77,7 @@ class DepartmentHasEmployeesError(ValueError):
 # ─── Password helpers ─────────────────────────────────────────────────────────
 
 def hash_password(password: str) -> str:
+<<<<<<< HEAD
     salt = secrets.token_bytes(16)
     iterations = 210_000
     digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iterations)
@@ -94,6 +102,15 @@ def verify_password(password: str, hashed: str) -> bool:
         return hmac.compare_digest(actual, expected)
     except (ValueError, TypeError):
         return False
+=======
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password.encode("utf-8"), salt)
+    return hashed.decode("utf-8")
+
+
+def verify_password(password: str, hashed: str) -> bool:
+    return bcrypt.checkpw(password.encode("utf-8"), hashed.encode("utf-8"))
+>>>>>>> 28a6894 (Add member-3 changes: employees module, escalations, exports, and backend updates)
 
 
 def generate_temp_password(length: int = 12) -> str:
@@ -950,5 +967,8 @@ class DepartmentService:
         except Exception:
             await db.rollback()
             raise
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> 28a6894 (Add member-3 changes: employees module, escalations, exports, and backend updates)
