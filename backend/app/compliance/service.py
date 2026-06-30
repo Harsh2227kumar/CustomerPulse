@@ -1,4 +1,6 @@
 from datetime import datetime, timezone
+from pathlib import Path
+import re
 
 from app.compliance.models import (
     ComplianceEvidenceRead,
@@ -11,9 +13,37 @@ from app.compliance.models import (
     ReasonCodeCreate,
     ReasonCodeListResponse,
     ReasonCodeRead,
+    RegulatoryDocumentCreate,
+    RegulatoryDocumentListResponse,
+    RegulatoryDocumentMarkdownFileRead,
+    RegulatoryDocumentPageRead,
+    RegulatoryChunkEmbeddingBackfillResult,
+    RegulatoryDocumentProcessResult,
+    RegulatoryDocumentRead,
+    RegulatoryDocumentStatus,
+    RegulatoryKnowledgeChunkRead,
+    RegulatoryKnowledgeSearchRequest,
+    RegulatoryKnowledgeSearchResponse,
+    RegulatoryKnowledgeSearchResult,
+)
+from app.compliance.rag.chunker import chunk_markdown_pages
+from app.compliance.rag.document_converter import (
+    RegulatoryDocumentConversionError,
+    clean_extracted_text,
+    convert_document_to_markdown,
+    split_markdown_pages,
 )
 from app.compliance.repository import ComplianceEvidenceRepository, ComplianceKnowledgeBaseRepository
-from app.compliance.storage_models import ComplianceEvidenceRecord, ComplianceRuleRecord, ReasonCodeRecord
+from app.services.embedding_service import EmbeddingService
+from app.compliance.storage_models import (
+    ComplianceEvidenceRecord,
+    ComplianceRuleRecord,
+    ReasonCodeRecord,
+    RegulatoryDocumentMarkdownFileRecord,
+    RegulatoryDocumentPageRecord,
+    RegulatoryDocumentRecord,
+    RegulatoryKnowledgeChunkRecord,
+)
 
 
 class ComplianceEvidenceNotFoundError(Exception):
@@ -29,6 +59,18 @@ class ComplianceRuleVersionConflictError(Exception):
 
 
 class ReasonCodeConflictError(Exception):
+    pass
+
+
+class RegulatoryDocumentConflictError(Exception):
+    pass
+
+
+class RegulatoryDocumentNotFoundError(Exception):
+    pass
+
+
+class RegulatoryDocumentProcessingError(Exception):
     pass
 
 
@@ -277,6 +319,389 @@ class ComplianceKnowledgeBaseService:
             description=record.description,
             severity=record.severity,
             status=record.status,
+            created_at=record.created_at,
+            updated_at=record.updated_at,
+        )
+
+    async def create_uploaded_regulatory_document(
+        self,
+        db,
+        *,
+        regulator: str,
+        document_title: str,
+        version: str,
+        source_filename: str,
+        file_bytes: bytes,
+        effective_from: datetime | None = None,
+        effective_to: datetime | None = None,
+        uploaded_by: str | None = None,
+    ) -> RegulatoryDocumentRead:
+        safe_name = self._safe_filename(source_filename)
+        suffix = Path(safe_name).suffix.lower()
+        document_type = self._document_type_from_suffix(suffix)
+        year = (effective_from or datetime.now(timezone.utc)).year
+        storage_path = (
+            Path("storage")
+            / "regulations"
+            / regulator
+            / str(year)
+            / "original"
+            / safe_name
+        )
+        absolute_path = self._resolve_storage_path(str(storage_path))
+        absolute_path.parent.mkdir(parents=True, exist_ok=True)
+        absolute_path.write_bytes(file_bytes)
+        payload = RegulatoryDocumentCreate(
+            regulator=regulator,
+            document_title=document_title,
+            document_type=document_type,
+            source_filename=safe_name,
+            source_url=None,
+            storage_path=str(storage_path),
+            version=version,
+            effective_from=effective_from,
+            effective_to=effective_to,
+            uploaded_by=uploaded_by,
+        )
+        return await self.create_regulatory_document(db, payload, uploaded_by=uploaded_by)
+
+    async def create_regulatory_document(
+        self,
+        db,
+        payload: RegulatoryDocumentCreate,
+        *,
+        uploaded_by: str | None = None,
+    ) -> RegulatoryDocumentRead:
+        existing = await self.repository.get_regulatory_document_by_identity(
+            db,
+            payload.regulator,
+            payload.document_title,
+            payload.version,
+        )
+        if existing is not None:
+            raise RegulatoryDocumentConflictError(payload.document_title)
+        values = payload.model_dump(mode="python")
+        if uploaded_by and not values.get("uploaded_by"):
+            values["uploaded_by"] = uploaded_by
+        record = await self.repository.create_regulatory_document(db, values)
+        return self._regulatory_document_to_read(record)
+
+    async def get_regulatory_document(self, db, document_id: str) -> RegulatoryDocumentRead:
+        record = await self.repository.get_regulatory_document(db, document_id)
+        if record is None:
+            raise RegulatoryDocumentNotFoundError(document_id)
+        return self._regulatory_document_to_read(record)
+
+    async def list_regulatory_documents(
+        self,
+        db,
+        limit: int,
+        offset: int,
+        regulator: str | None = None,
+        status: str | None = None,
+        document_type: str | None = None,
+    ) -> RegulatoryDocumentListResponse:
+        records, count = await self.repository.list_regulatory_documents(
+            db,
+            limit=limit,
+            offset=offset,
+            regulator=regulator,
+            status=status,
+            document_type=document_type,
+        )
+        return RegulatoryDocumentListResponse(
+            items=[self._regulatory_document_to_read(record) for record in records],
+            limit=limit,
+            offset=offset,
+            count=count,
+        )
+
+    async def mark_regulatory_document_processing(
+        self,
+        db,
+        document_id: str,
+    ) -> RegulatoryDocumentRead:
+        record = await self.repository.get_regulatory_document(db, document_id)
+        if record is None:
+            raise RegulatoryDocumentNotFoundError(document_id)
+        updated = await self.repository.update_regulatory_document_status(
+            db,
+            record,
+            RegulatoryDocumentStatus.PROCESSING.value,
+        )
+        return self._regulatory_document_to_read(updated)
+
+    async def process_regulatory_document(
+        self,
+        db,
+        document_id: str,
+    ) -> RegulatoryDocumentProcessResult:
+        record = await self.repository.get_regulatory_document(db, document_id)
+        if record is None:
+            raise RegulatoryDocumentNotFoundError(document_id)
+
+        await self.repository.update_regulatory_document_status(
+            db,
+            record,
+            RegulatoryDocumentStatus.PROCESSING.value,
+        )
+
+        try:
+            source_path = self._resolve_storage_path(record.storage_path)
+            converted = convert_document_to_markdown(source_path)
+            pages = split_markdown_pages(converted.markdown)
+            if not pages:
+                raise RegulatoryDocumentProcessingError("Converted document did not contain extractable text.")
+
+            markdown_path = self._markdown_path(source_path, record)
+            markdown_path.parent.mkdir(parents=True, exist_ok=True)
+            markdown_path.write_text(converted.markdown, encoding="utf-8")
+
+            page_records = await self.repository.create_regulatory_pages(
+                db,
+                [
+                    {
+                        "document_id": record.id,
+                        "page_number": index,
+                        "raw_text": page,
+                        "cleaned_text": clean_extracted_text(page),
+                        "markdown_text": page,
+                        "extraction_status": "extracted",
+                    }
+                    for index, page in enumerate(pages, start=1)
+                ],
+            )
+            markdown_record = await self.repository.create_regulatory_markdown_file(
+                db,
+                {
+                    "document_id": record.id,
+                    "markdown_path": str(markdown_path),
+                    "conversion_tool": converted.conversion_tool,
+                    "conversion_status": "converted",
+                    "conversion_warnings": converted.warnings,
+                },
+            )
+            chunks = chunk_markdown_pages(pages)
+            chunk_records = await self.repository.create_regulatory_chunks(
+                db,
+                [
+                    {
+                        "document_id": record.id,
+                        "chunk_index": chunk.chunk_index,
+                        "regulator": record.regulator,
+                        "domain": "unknown",
+                        "section_reference": chunk.section_reference,
+                        "page_start": chunk.page_start,
+                        "page_end": chunk.page_end,
+                        "chunk_text": chunk.chunk_text,
+                        "summary": None,
+                        "keywords": chunk.keywords,
+                        "effective_from": record.effective_from,
+                        "effective_to": record.effective_to,
+                        "status": "draft",
+                        "embedding_model": None,
+                        "embedding": None,
+                    }
+                    for chunk in chunks
+                ],
+            )
+            record.status = RegulatoryDocumentStatus.INDEXED.value
+            result = RegulatoryDocumentProcessResult(
+                document=self._regulatory_document_to_read(record),
+                markdown_file=self._markdown_file_to_read(markdown_record),
+                pages_created=len(page_records),
+                chunks_created=len(chunk_records),
+                warnings=converted.warnings,
+            )
+            await self.repository.commit_processing_outputs(db)
+            return result
+        except (OSError, RegulatoryDocumentConversionError, RegulatoryDocumentProcessingError) as exc:
+            await self.repository.update_regulatory_document_status(
+                db,
+                record,
+                RegulatoryDocumentStatus.FAILED.value,
+            )
+            raise RegulatoryDocumentProcessingError(str(exc)) from exc
+
+    async def embed_regulatory_chunks(
+        self,
+        db,
+        *,
+        settings,
+        document_id: str | None = None,
+        limit: int = 100,
+    ) -> RegulatoryChunkEmbeddingBackfillResult:
+        chunks = await self.repository.list_chunks_for_embedding(
+            db,
+            document_id=document_id,
+            limit=limit,
+        )
+        if not chunks:
+            return RegulatoryChunkEmbeddingBackfillResult(
+                document_id=document_id,
+                embedding_model=settings.embedding_model,
+                embedded_count=0,
+                skipped_count=0,
+            )
+        embeddings = await EmbeddingService(
+            settings.embedding_model,
+            local_files_only=settings.embedding_local_files_only,
+        ).embed_many([chunk.chunk_text for chunk in chunks])
+        for chunk, embedding in zip(chunks, embeddings, strict=True):
+            chunk.embedding = embedding
+            chunk.embedding_model = settings.embedding_model
+        await self.repository.commit_chunk_embeddings(db)
+        return RegulatoryChunkEmbeddingBackfillResult(
+            document_id=document_id,
+            embedding_model=settings.embedding_model,
+            embedded_count=len(chunks),
+            skipped_count=0,
+        )
+
+    async def search_regulatory_knowledge(
+        self,
+        db,
+        payload: RegulatoryKnowledgeSearchRequest,
+        *,
+        settings,
+    ) -> RegulatoryKnowledgeSearchResponse:
+        query_embedding = await EmbeddingService(
+            settings.embedding_model,
+            local_files_only=settings.embedding_local_files_only,
+        ).embed_text(payload.query)
+        rows = await self.repository.search_regulatory_chunks(
+            db,
+            query_embedding=query_embedding,
+            limit=payload.limit,
+            min_similarity=payload.min_similarity,
+            regulator=payload.regulator,
+            domain=payload.domain,
+            status=payload.status,
+            effective_on=payload.effective_on,
+        )
+        return RegulatoryKnowledgeSearchResponse(
+            query=payload.query,
+            embedding_model=settings.embedding_model,
+            results=[
+                RegulatoryKnowledgeSearchResult(
+                    chunk_id=chunk.id,
+                    document_id=chunk.document_id,
+                    document_title=document.document_title if document else None,
+                    regulator=chunk.regulator,
+                    domain=chunk.domain,
+                    section_reference=chunk.section_reference,
+                    page_start=chunk.page_start,
+                    page_end=chunk.page_end,
+                    similarity_score=round(max(0.0, min(1.0, score)), 4),
+                    chunk_text=chunk.chunk_text,
+                    keywords=chunk.keywords,
+                    effective_from=chunk.effective_from,
+                    effective_to=chunk.effective_to,
+                )
+                for chunk, document, score in rows
+            ],
+        )
+
+    def _resolve_storage_path(self, storage_path: str) -> Path:
+        path = Path(storage_path)
+        if path.is_absolute():
+            return path
+        return Path(__file__).resolve().parents[3] / storage_path
+
+    def _safe_filename(self, filename: str) -> str:
+        name = Path(filename).name.strip()
+        safe = re.sub(r"[^A-Za-z0-9._-]+", "_", name)
+        if not safe or safe in {".", ".."}:
+            raise RegulatoryDocumentProcessingError("Uploaded file name is invalid.")
+        return safe
+
+    def _document_type_from_suffix(self, suffix: str) -> str:
+        mapping = {
+            ".pdf": "pdf",
+            ".doc": "docx",
+            ".docx": "docx",
+            ".txt": "txt",
+            ".md": "markdown",
+        }
+        try:
+            return mapping[suffix.lower()]
+        except KeyError as exc:
+            raise RegulatoryDocumentProcessingError(
+                "Unsupported upload type. Use PDF, DOC, DOCX, TXT, or MD."
+            ) from exc
+
+    def _markdown_path(self, source_path: Path, record: RegulatoryDocumentRecord) -> Path:
+        if source_path.suffix.lower() == ".md":
+            return source_path
+        markdown_dir = source_path.parent.parent / "markdown"
+        return markdown_dir / f"{source_path.stem}_{record.version}.md"
+
+    def _regulatory_document_to_read(
+        self,
+        record: RegulatoryDocumentRecord,
+    ) -> RegulatoryDocumentRead:
+        return RegulatoryDocumentRead(
+            id=record.id,
+            regulator=record.regulator,
+            document_title=record.document_title,
+            document_type=record.document_type,
+            source_filename=record.source_filename,
+            source_url=record.source_url,
+            storage_path=record.storage_path,
+            version=record.version,
+            effective_from=record.effective_from,
+            effective_to=record.effective_to,
+            status=record.status,
+            uploaded_by=record.uploaded_by,
+            uploaded_at=record.uploaded_at,
+            created_at=record.created_at,
+            updated_at=record.updated_at,
+        )
+
+    def _page_to_read(self, record: RegulatoryDocumentPageRecord) -> RegulatoryDocumentPageRead:
+        return RegulatoryDocumentPageRead(
+            id=record.id,
+            document_id=record.document_id,
+            page_number=record.page_number,
+            raw_text=record.raw_text,
+            cleaned_text=record.cleaned_text,
+            markdown_text=record.markdown_text,
+            extraction_status=record.extraction_status,
+            created_at=record.created_at,
+        )
+
+    def _markdown_file_to_read(
+        self,
+        record: RegulatoryDocumentMarkdownFileRecord,
+    ) -> RegulatoryDocumentMarkdownFileRead:
+        return RegulatoryDocumentMarkdownFileRead(
+            id=record.id,
+            document_id=record.document_id,
+            markdown_path=record.markdown_path,
+            conversion_tool=record.conversion_tool,
+            conversion_status=record.conversion_status,
+            conversion_warnings=record.conversion_warnings,
+            created_at=record.created_at,
+            updated_at=record.updated_at,
+        )
+
+    def _chunk_to_read(self, record: RegulatoryKnowledgeChunkRecord) -> RegulatoryKnowledgeChunkRead:
+        return RegulatoryKnowledgeChunkRead(
+            id=record.id,
+            document_id=record.document_id,
+            chunk_index=record.chunk_index,
+            regulator=record.regulator,
+            domain=record.domain,
+            section_reference=record.section_reference,
+            page_start=record.page_start,
+            page_end=record.page_end,
+            chunk_text=record.chunk_text,
+            summary=record.summary,
+            keywords=record.keywords,
+            effective_from=record.effective_from,
+            effective_to=record.effective_to,
+            status=record.status,
+            embedding_model=record.embedding_model,
             created_at=record.created_at,
             updated_at=record.updated_at,
         )

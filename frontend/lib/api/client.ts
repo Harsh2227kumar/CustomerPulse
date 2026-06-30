@@ -112,3 +112,20 @@ export async function download(path: string): Promise<Blob> {
   }
   return response.blob();
 }
+
+export async function formRequest<T>(
+  path: string,
+  formData: FormData,
+  init?: RequestInit
+): Promise<T> {
+  const response = await fetch(`${apiBase()}${path}`, {
+    ...init,
+    method: init?.method ?? "POST",
+    headers: {
+      ...authHeaders(),
+      ...init?.headers,
+    },
+    body: formData,
+  });
+  return handleResponse<T>(response);
+}

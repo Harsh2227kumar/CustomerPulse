@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    await run_startup_checks(settings, prompt=True, verify_bedrock=True)
+    await run_startup_checks(settings, prompt=True, verify_bedrock=settings.bedrock_verify_on_startup)
     if settings.embedding_verify_on_startup:
         await EmbeddingService(
             settings.embedding_model,

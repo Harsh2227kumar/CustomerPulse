@@ -16,3 +16,28 @@ build/
 /scripts/*.exe
 .DS_Store
 collab/
+
+# Backup files
+*.bak
+
+# Local storage and cache
+storage/
+.web_crawler_cache/
+
+# Output and temporary assets
+outputs/
+.codex_*
+.coverage
+coverage.xml
+
+# Audit and prompt guidelines
+MCP_PROJECT_PROMPT.md
+PROJECT_BUILD_AUDIT.md
+Member2_RAG_Pipeline_Masterplan.md
+
+# Build and rendered doc assets
+docs/rendered_ai_logic/
+docs/rendered_ai_logic_word/
+docs/tmp/
+docs/*.docx
+docs/*.pdf

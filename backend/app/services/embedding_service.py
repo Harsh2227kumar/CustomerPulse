@@ -1,6 +1,8 @@
 import asyncio
+import hashlib
 from functools import lru_cache
 import math
+import re
 
 from app.core.constants import EMBEDDING_DIMENSIONS
 
@@ -53,8 +55,26 @@ class EmbeddingService:
             raise InvalidEmbeddingError("Embedding model returned non-finite vector values.")
 
     def _embed_sync(self, text: str) -> list[float]:
-        vector = _load_model(self.model_name, self.local_files_only).encode(
-            text,
-            normalize_embeddings=True,
-        )
-        return [float(value) for value in vector.tolist()]
+        model_key = (self.model_name, self.local_files_only)
+        if model_key not in _FAILED_MODELS:
+            try:
+                vector = _load_model(self.model_name, self.local_files_only).encode(
+                    text,
+                    normalize_embeddings=True,
+                )
+                return [float(value) for value in vector.tolist()]
+            except Exception:
+                _FAILED_MODELS.add(model_key)
+        return self._fallback_embedding(text)
+
+    def _fallback_embedding(self, text: str) -> list[float]:
+        vector = [0.0] * EMBEDDING_DIMENSIONS
+        tokens = re.findall(r"[a-z0-9]+", text.lower())
+        for token in tokens:
+            digest = hashlib.sha256(token.encode("utf-8")).digest()
+            index = int.from_bytes(digest[:4], "big") % EMBEDDING_DIMENSIONS
+            sign = 1.0 if digest[4] % 2 else -1.0
+            weight = 1.0 + min(len(token), 12) / 12.0
+            vector[index] += sign * weight
+        norm = math.sqrt(sum(value * value for value in vector)) or 1.0
+        return [value / norm for value in vector]
