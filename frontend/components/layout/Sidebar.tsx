@@ -10,6 +10,7 @@ import {
   Inbox,
   LayoutDashboard,
   LogOut,
+  ShieldCheck,
   Settings,
   Sparkles,
   Zap,
@@ -23,6 +24,10 @@ const navItems = [
   { href: "/import", label: "Data Import", icon: Database },
   { href: "/operations", label: "Operations", icon: Settings },
   { href: "/insights", label: "Insights", icon: BarChart3 },
+];
+
+const adminNavItems = [
+  { href: "/regulatory-rag", label: "Regulatory RAG", icon: ShieldCheck },
 ];
 
 export function Sidebar() {
@@ -51,7 +56,7 @@ export function Sidebar() {
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-sm px-sm" aria-label="Primary navigation">
         <div className="flex flex-col gap-xs">
-          {navItems.map(({ href, label, icon: Icon }) => {
+          {[...navItems, ...(user?.role === "admin" ? adminNavItems : [])].map(({ href, label, icon: Icon }) => {
             const isActive =
               href === "/dashboard"
                 ? pathname === "/dashboard" || pathname === "/"

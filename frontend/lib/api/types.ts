@@ -583,3 +583,63 @@ export interface WebSocketMessage {
   payload: Record<string, unknown>;
   timestamp: string;
 }
+
+// ── Regulatory RAG ─────────────────────────────────────────────────────────
+
+export type ComplianceRegulator = "RBI" | "NPCI" | "SEBI" | "IRDAI" | "BANK_INTERNAL";
+export type RegulatoryDocumentStatus = "uploaded" | "processing" | "indexed" | "review_required" | "active" | "archived" | "failed";
+
+export interface RegulatoryDocumentRead {
+  id: string;
+  regulator: ComplianceRegulator;
+  document_title: string;
+  document_type: string;
+  source_filename: string;
+  source_url: string | null;
+  storage_path: string;
+  version: string;
+  effective_from: string | null;
+  effective_to: string | null;
+  status: RegulatoryDocumentStatus;
+  uploaded_by: string | null;
+  uploaded_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RegulatoryDocumentProcessResult {
+  document: RegulatoryDocumentRead;
+  markdown_file: { id: string; document_id: string; markdown_path: string; conversion_tool: string; conversion_status: string; conversion_warnings: string[]; created_at: string; updated_at: string; } | null;
+  pages_created: number;
+  chunks_created: number;
+  warnings: string[];
+}
+
+export interface RegulatoryChunkEmbeddingBackfillResult {
+  document_id: string | null;
+  embedding_model: string;
+  embedded_count: number;
+  skipped_count: number;
+}
+
+export interface RegulatoryKnowledgeSearchResult {
+  chunk_id: string;
+  document_id: string;
+  document_title: string | null;
+  regulator: ComplianceRegulator;
+  domain: string;
+  section_reference: string | null;
+  page_start: number | null;
+  page_end: number | null;
+  similarity_score: number;
+  chunk_text: string;
+  keywords: string[];
+  effective_from: string | null;
+  effective_to: string | null;
+}
+
+export interface RegulatoryKnowledgeSearchResponse {
+  query: string;
+  embedding_model: string;
+  results: RegulatoryKnowledgeSearchResult[];
+}
