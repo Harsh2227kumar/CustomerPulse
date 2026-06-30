@@ -4,7 +4,7 @@ Integration branch for testing the CustomerPulse frontend, FastAPI backend, AWS 
 
 ## Integrated Services
 
-- `frontend/`: Next.js dashboard and controlled CFPB S3 import UI.
+- `frontend/`: React/Vite dashboard and controlled CFPB S3 import UI.
 - `backend/`: FastAPI service with PostgreSQL storage, Bedrock enrichment, pgvector RAG, human-review routing, persisted batch jobs, analytics, duplicates, feedback, exports, and SLA reporting.
 - `infra/`: Nginx routing and AWS/S3 deployment material.
 - `shared/schema/`: shared complaint response contract.
@@ -40,8 +40,8 @@ docker compose up --build
 
 Open the application through Nginx at `http://localhost`. Nginx serves the frontend and forwards `/api`, `/docs`, `/openapi.json`, and `/ws` to the backend.
 
-Backend writes and dashboard login use credentials configured through
-`AUTH_USERS_JSON`. See `backend/API_CONTRACT_PHASE2.md` for the frozen
+Backend Phase 2 writes require bearer credentials configured through
+`AUTH_PRINCIPALS_JSON`. See `backend/API_CONTRACT_PHASE2.md` for the frozen
 review, RAG, search, batch-job, analytics, duplicate, feedback, export, and
 SLA contract supplied to the frontend owner.
 
@@ -72,15 +72,17 @@ Feature branches are integrated into `dev` through a reviewed pull request. Afte
 Never commit `.env`, database passwords, Bedrock keys, AWS credentials, or generated dependency/build directories.
 The active deployment deliberately uses one backend instance for in-process
 WebSocket events and its PostgreSQL-backed job worker; Redis is not included.
-For local development without Docker, run the backend on port `8000` and the
-frontend on port `3000`:
 
-```bash
+
+
+
+Term 1: Run Backend
+
 cd backend
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-```
+.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
-```bash
+
+Term 2: Run Frontend
+bash
 cd frontend
 npm run dev
-```

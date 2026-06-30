@@ -158,6 +158,9 @@ class EscalationService:
 
         return self._to_read_schema(escalation, complaint)
 
+    async def count_by_status(self, db: AsyncSession) -> dict[str, int]:
+        return await self.repository.count_by_status(db)
+
     async def list_escalations(
         self,
         db: AsyncSession,

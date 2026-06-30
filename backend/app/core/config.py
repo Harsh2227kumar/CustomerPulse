@@ -53,7 +53,15 @@ class Settings(BaseSettings):
     batch_process_limit: int = Field(default=50, ge=1, le=200)
     embedding_backfill_limit: int = Field(default=100, ge=1, le=500)
     job_worker_poll_seconds: float = Field(default=1.0, gt=0, le=30)
+    # Deprecated: use employees database and JWT authentication instead.
+    # Kept as fallback for existing tests.
     auth_users_json: str = "[]"
+
+
+    jwt_secret_key: str = Field(default="placeholder_secret_key_must_be_32_chars_long", min_length=32)
+
+    jwt_expiry_hours: int = 8
+
 
     @property
     def parsed_cors_origins(self) -> list[str]:
@@ -118,8 +126,23 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_service_settings(self) -> "Settings":
+        import os
+
         if not self.bedrock_api_key:
             raise ValueError("BEDROCK_API_KEY is required when AI_PROVIDER=bedrock")
+
+        # Require a real JWT secret in non-development, non-test environments.
+        _PLACEHOLDER = "placeholder_secret_key_must_be_32_chars_long"
+        _is_dev_or_test = (
+            self.environment == "development"
+            or "PYTEST_CURRENT_TEST" in os.environ
+        )
+        if not _is_dev_or_test and self.jwt_secret_key == _PLACEHOLDER:
+            raise ValueError(
+                "JWT_SECRET_KEY must be set to a real secret (not the placeholder) "
+                "in non-development environments."
+            )
+
         try:
             users = json.loads(self.auth_users_json)
         except json.JSONDecodeError as exc:
@@ -138,6 +161,7 @@ class Settings(BaseSettings):
             if not isinstance(actor, str) or not actor.strip():
                 raise ValueError("AUTH_USERS_JSON users must include a valid actor")
         return self
+
 
 
 @lru_cache

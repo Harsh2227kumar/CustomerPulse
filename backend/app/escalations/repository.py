@@ -66,6 +66,11 @@ class EscalationRepository:
         
         return list(items), total
 
+    async def count_by_status(self, db: AsyncSession) -> dict[str, int]:
+        stmt = select(Escalation.status, func.count()).group_by(Escalation.status)
+        rows = (await db.execute(stmt)).all()
+        return {status: count for status, count in rows}
+
     async def resolve(
         self,
         db: AsyncSession,

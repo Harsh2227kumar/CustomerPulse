@@ -21,6 +21,7 @@ from app.duplicates import router as duplicates_router
 from app.exports.api import routes as export_routes
 from app.feedback import router as feedback_router
 from app.operations import router as operations_router
+from app.employees.router import auth_router as employees_auth_router, admin_router as employees_admin_router, me_router as employees_me_router
 from app.services.embedding_service import EmbeddingService
 from app.services.job_service import JobService, ProcessingJobWorker
 from app.sla.api import routes as sla_routes
@@ -62,6 +63,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# app.include_router(employees_auth_router)
+app.include_router(employees_admin_router)
+app.include_router(employees_me_router)
 app.include_router(auth.router)
 app.include_router(health.router)
 app.include_router(process.router)

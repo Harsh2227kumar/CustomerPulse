@@ -94,6 +94,23 @@ class CSVExportService:
         "created_at",
     ]
     COMPLIANCE_REPORT_COLUMNS = get_export_headers()
+    EMPLOYEE_PERFORMANCE_COLUMNS = [
+        "employee_id",
+        "name",
+        "role",
+        "department",
+        "complaints_handled",
+        "complaints_resolved",
+        "avg_resolution_time_hours",
+        "escalations_raised",
+    ]
+    DEPARTMENT_REPORT_COLUMNS = [
+        "department",
+        "employee_count",
+        "complaints_handled",
+        "avg_resolution_time_hours",
+        "sla_breach_count",
+    ]
 
     def __init__(self, repository: ExportRepository | None = None) -> None:
         self.repository = repository or ExportRepository()
@@ -154,6 +171,28 @@ class CSVExportService:
             self.COMPLIANCE_REPORT_COLUMNS,
             self._iterate_rows(rows),
         ):
+            yield chunk
+
+    async def stream_employee_performance_csv(
+        self,
+        db: AsyncSession,
+        date_from: datetime,
+        date_to: datetime,
+    ) -> AsyncIterator[str]:
+        logger.info("Streaming employee performance report CSV export.")
+        rows = self.repository.stream_employee_performance(db, date_from, date_to)
+        async for chunk in self._stream_csv_rows(self.EMPLOYEE_PERFORMANCE_COLUMNS, rows):
+            yield chunk
+
+    async def stream_department_report_csv(
+        self,
+        db: AsyncSession,
+        date_from: datetime,
+        date_to: datetime,
+    ) -> AsyncIterator[str]:
+        logger.info("Streaming department report CSV export.")
+        rows = self.repository.stream_department_report(db, date_from, date_to)
+        async for chunk in self._stream_csv_rows(self.DEPARTMENT_REPORT_COLUMNS, rows):
             yield chunk
 
     async def _stream_csv_rows(
