@@ -20,8 +20,9 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings, get_settings
-from app.core.security import create_jwt_token
+from app.core.security import create_jwt_token, decode_jwt_token
 from app.db.session import get_db_session
+from app.employees.repository import EmployeeRepository
 from app.employees.service import AccountSuspendedError, EmployeeService, InvalidCredentialsError
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -143,6 +144,7 @@ async def login(
 async def me(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
     settings: Annotated[Settings, Depends(get_settings)],
+    db: AsyncSession = Depends(get_db_session),
 ) -> UserProfile:
     """Return the profile of the currently authenticated user."""
     if credentials is None or credentials.scheme.lower() != "bearer":
@@ -151,7 +153,20 @@ async def me(
             detail="Bearer authentication required.",
         )
 
-    # Try the user table first (richer profile)
+    payload = decode_jwt_token(credentials.credentials, settings.jwt_secret_key)
+    if payload is not None:
+        employee_id = payload.get("sub")
+        if employee_id:
+            employee = await EmployeeRepository().get_by_employee_id(db, employee_id)
+            if employee is not None and employee.status == "active":
+                return UserProfile(
+                    username=employee.email,
+                    actor=employee.employee_id,
+                    role=employee.role,
+                    display_name=employee.name,
+                )
+
+    # Try the legacy user table first (richer profile)
     user = _find_user_by_key(settings, credentials.credentials)
     if user:
         return UserProfile(
@@ -175,3 +190,5 @@ async def me(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Invalid or expired credentials.",
     )
+
+

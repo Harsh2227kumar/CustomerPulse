@@ -35,8 +35,12 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
-  api_key: string;
-  user: UserProfile;
+  api_key?: string | null;
+  user?: UserProfile | null;
+  access_token?: string | null;
+  role?: string | null;
+  employee_id?: string | null;
+  must_change_password?: boolean | null;
 }
 
 // ── Health ──────────────────────────────────────────────────────────────────
@@ -643,3 +647,4 @@ export interface RegulatoryKnowledgeSearchResponse {
   embedding_model: string;
   results: RegulatoryKnowledgeSearchResult[];
 }
+

@@ -56,7 +56,7 @@ export function Sidebar() {
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-sm px-sm" aria-label="Primary navigation">
         <div className="flex flex-col gap-xs">
-          {[...navItems, ...(user?.role === "admin" ? adminNavItems : [])].map(({ href, label, icon: Icon }) => {
+          {[...navItems, ...((user?.role === "admin" || user?.role === "super_admin") ? adminNavItems : [])].map(({ href, label, icon: Icon }) => {
             const isActive =
               href === "/dashboard"
                 ? pathname === "/dashboard" || pathname === "/"
@@ -122,3 +122,4 @@ export function Sidebar() {
     </aside>
   );
 }
+
