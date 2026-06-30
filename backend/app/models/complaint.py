@@ -3,7 +3,7 @@ from typing import Any
 from uuid import uuid4
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import CheckConstraint, Computed, DateTime, Float, Index, Integer, String, Text, func
+from sqlalchemy import CheckConstraint, Computed, DateTime, Float, Index, Integer, String, Text, func, or_
 from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -99,3 +99,17 @@ Index(
     postgresql_ops={"embedding": "vector_cosine_ops"},
 )
 Index("ix_complaints_search_vector_gin", Complaint.search_vector, postgresql_using="gin")
+Index("ix_complaints_created_at_id", Complaint.created_at.desc(), Complaint.id)
+Index("ix_complaints_completed_date", Complaint.ai_status, Complaint.date_received)
+Index("ix_complaints_completed_product_date", Complaint.ai_status, Complaint.product, Complaint.date_received)
+Index("ix_complaints_completed_channel_date", Complaint.ai_status, Complaint.channel, Complaint.date_received)
+Index("ix_complaints_urgency_created", Complaint.urgency_score.desc(), Complaint.created_at.desc())
+Index(
+    "ix_complaints_ops_queue_priority",
+    Complaint.urgency_score.desc(),
+    Complaint.created_at.asc(),
+    postgresql_where=or_(
+        Complaint.ai_status == "human_review",
+        Complaint.urgency_score >= 70,
+    ),
+)
