@@ -24,6 +24,7 @@ from app.sla.schemas.sla_schemas import (
 logger = logging.getLogger(__name__)
 
 HIGH_URGENCY_THRESHOLD = 70
+MIN_SUPPORTED_FILTER_DATE = datetime(1900, 1, 1)
 
 
 class SLAService:
@@ -173,6 +174,10 @@ class SLAService:
         date_from: datetime | None,
         date_to: datetime | None,
     ) -> None:
+        if date_from and date_from.replace(tzinfo=None) < MIN_SUPPORTED_FILTER_DATE:
+            raise ValueError("date_from must be on or after 1900-01-01")
+        if date_to and date_to.replace(tzinfo=None) < MIN_SUPPORTED_FILTER_DATE:
+            raise ValueError("date_to must be on or after 1900-01-01")
         if date_from and date_to and date_from > date_to:
             raise ValueError("date_from must be less than or equal to date_to")
 
@@ -209,3 +214,8 @@ class SLAService:
         if value is None:
             return None
         return round(float(value), 2)
+
+    async def is_breach_risk(self, db: AsyncSession, complaint_pk: str) -> bool:
+        return await self.repository.is_breach_risk_for_complaint(
+            db, complaint_pk, urgency_threshold=HIGH_URGENCY_THRESHOLD
+        )

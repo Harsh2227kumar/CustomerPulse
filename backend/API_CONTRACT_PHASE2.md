@@ -7,7 +7,7 @@ API field name; it must be presented as case risk for CFPB records.
 ## Authentication
 
 Protected writes use `Authorization: Bearer <key>`. Keys are configured only
-through `AUTH_PRINCIPALS_JSON`.
+through `AUTH_USERS_JSON`.
 
 | Role | Permitted Actions |
 | --- | --- |

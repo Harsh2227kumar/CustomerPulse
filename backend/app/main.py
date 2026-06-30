@@ -9,7 +9,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.analytics.router import router as analytics_router
-from app.api import complaints, health, ingestion, jobs, process, review, websocket
+from app.api import auth, complaints, health, ingestion, jobs, process, review, websocket
+from app.compliance import router as compliance_router
+from app.communications.router import router as communications_router
+from app.escalations.router import complaints_escalations_router, escalations_router
 from app.core.config import get_settings
 from app.core.logging import configure_logging
 from app.db.setup import run_startup_checks
@@ -17,6 +20,7 @@ from app.db.session import AsyncSessionLocal
 from app.duplicates import router as duplicates_router
 from app.exports.api import routes as export_routes
 from app.feedback import router as feedback_router
+from app.operations import router as operations_router
 from app.services.embedding_service import EmbeddingService
 from app.services.job_service import JobService, ProcessingJobWorker
 from app.sla.api import routes as sla_routes
@@ -31,7 +35,10 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     await run_startup_checks(settings, prompt=True, verify_bedrock=True)
     if settings.embedding_verify_on_startup:
-        await EmbeddingService(settings.embedding_model).ensure_ready()
+        await EmbeddingService(
+            settings.embedding_model,
+            local_files_only=settings.embedding_local_files_only,
+        ).ensure_ready()
     async with AsyncSessionLocal() as db:
         await JobService(settings).recover_abandoned_jobs(db)
     worker = ProcessingJobWorker(settings)
@@ -55,17 +62,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth.router)
 app.include_router(health.router)
 app.include_router(process.router)
 app.include_router(complaints.router)
+app.include_router(communications_router)
+app.include_router(escalations_router)
+app.include_router(complaints_escalations_router)
 app.include_router(ingestion.router)
 app.include_router(review.router)
 app.include_router(jobs.router)
 app.include_router(feedback_router.router)
 app.include_router(duplicates_router.router)
 app.include_router(analytics_router)
+app.include_router(compliance_router.router)
 app.include_router(export_routes.router)
 app.include_router(sla_routes.router)
+app.include_router(operations_router)
 app.include_router(websocket.router)
 
 
@@ -76,3 +89,4 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
         status_code=500,
         content={"detail": "Internal server error", "path": str(request.url.path)},
     )
+

@@ -1,22 +1,33 @@
-FROM node:24-alpine AS build
-
+FROM node:20-alpine AS builder
 WORKDIR /app
 
-ARG VITE_API_BASE_URL
-ARG VITE_WS_BASE_URL
-ENV VITE_API_BASE_URL=$VITE_API_BASE_URL \
-    VITE_WS_BASE_URL=$VITE_WS_BASE_URL
-
 COPY package.json package-lock.json* ./
-RUN npm install
+RUN npm ci
 
-COPY index.html tsconfig.json vite.config.ts ./
-COPY src ./src
+COPY . .
+ARG NEXT_PUBLIC_API_BASE_URL=""
+ARG NEXT_PUBLIC_WS_BASE_URL=""
+ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
+ENV NEXT_PUBLIC_WS_BASE_URL=$NEXT_PUBLIC_WS_BASE_URL
+
 RUN npm run build
 
-FROM nginx:1.27-alpine
+# ── Production runtime ────────────────────────────────────────────────────────
+FROM node:20-alpine AS runner
+WORKDIR /app
 
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=build /app/dist /usr/share/nginx/html
+ENV NODE_ENV=production
+ENV PORT=3000
 
-EXPOSE 80
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+USER nextjs
+
+EXPOSE 3000
+
+CMD ["node", "server.js"]

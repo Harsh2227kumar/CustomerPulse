@@ -1,4 +1,5 @@
 import csv
+from decimal import Decimal
 import io
 import logging
 from collections.abc import AsyncIterable, AsyncIterator, Iterable
@@ -7,6 +8,9 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.compliance.reporting.filters import get_compliance_report_records
+from app.compliance.reporting.models import ComplianceReportFilter
+from app.compliance.reporting.serialiser import get_export_headers, serialise_records
 from app.exports.repositories.export_repository import ExportRepository
 from app.exports.schemas.export_schemas import (
     AnalyticsCSVExportQuery,
@@ -41,6 +45,34 @@ class CSVExportService:
         "processed_at",
         "created_at",
     ]
+    REGULATORY_COLUMNS = [
+        "complaint_id",
+        "narrative",
+        "channel",
+        "product",
+        "sub_product",
+        "issue",
+        "sub_issue",
+        "company",
+        "company_response",
+        "timely_response",
+        "date_received",
+        "sentiment",
+        "category",
+        "urgency_score",
+        "churn_risk",
+        "draft_response",
+        "next_action",
+        "ai_confidence",
+        "ai_status",
+        "human_review_reason",
+        "reviewer",
+        "review_resolution",
+        "review_notes",
+        "reviewed_at",
+        "processed_at",
+        "created_at",
+    ]
     ANALYTICS_COLUMNS = [
         "product",
         "channel",
@@ -61,6 +93,7 @@ class CSVExportService:
         "similar_case_useful",
         "created_at",
     ]
+    COMPLIANCE_REPORT_COLUMNS = get_export_headers()
 
     def __init__(self, repository: ExportRepository | None = None) -> None:
         self.repository = repository or ExportRepository()
@@ -74,6 +107,17 @@ class CSVExportService:
         rows = self.repository.stream_complaints(db, filters)
         async for chunk in self._stream_csv_rows(self.COMPLAINT_COLUMNS, rows):
             yield chunk
+
+    async def stream_regulatory_csv(
+        self,
+        db: AsyncSession,
+        filters: ComplaintCSVExportQuery,
+    ) -> AsyncIterator[str]:
+        logger.info("Streaming regulatory complaints CSV export with limit=%s.", filters.limit)
+        rows = self.repository.stream_regulatory_complaints(db, filters)
+        async for chunk in self._stream_csv_rows(self.REGULATORY_COLUMNS, rows):
+            yield chunk
+
 
     async def stream_feedback_csv(
         self,
@@ -94,6 +138,20 @@ class CSVExportService:
         rows = await self.repository.get_analytics_export_rows(db, filters)
         async for chunk in self._stream_csv_rows(
             self.ANALYTICS_COLUMNS,
+            self._iterate_rows(rows),
+        ):
+            yield chunk
+
+    async def stream_compliance_report_csv(
+        self,
+        db: AsyncSession,
+        filters: ComplianceReportFilter,
+    ) -> AsyncIterator[str]:
+        logger.info("Streaming compliance report CSV export.")
+        records = await get_compliance_report_records(db, filters)
+        rows = serialise_records(records)
+        async for chunk in self._stream_csv_rows(
+            self.COMPLIANCE_REPORT_COLUMNS,
             self._iterate_rows(rows),
         ):
             yield chunk
@@ -132,7 +190,7 @@ class CSVExportService:
             return "Yes" if bool(value) else "No"
         if isinstance(value, datetime):
             return self._format_datetime(value)
-        if isinstance(value, float):
+        if isinstance(value, (float, Decimal)):
             return f"{value:.2f}"
         return str(value)
 
@@ -146,4 +204,3 @@ class CSVExportService:
         if value.tzinfo is None:
             value = value.replace(tzinfo=UTC)
         return value.astimezone(UTC).isoformat().replace("+00:00", "Z")
-
