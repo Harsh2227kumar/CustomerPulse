@@ -64,6 +64,8 @@ class ProcessingTrigger(StrEnum):
     IMPORTED_REQUEST = "imported_request"
     REVIEW_RERUN = "review_rerun"
     BATCH_PROCESSING = "batch_processing"
+    EMAIL_INTAKE = "email_intake"
+
 
 
 class Role(StrEnum):

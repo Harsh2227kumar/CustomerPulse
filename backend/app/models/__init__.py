@@ -1,5 +1,13 @@
 from app.communications.models import CommunicationHistory
-from app.compliance.storage_models import ComplianceEvidenceRecord, ComplianceRuleRecord, ReasonCodeRecord
+from app.compliance.storage_models import (
+    ComplianceEvidenceRecord,
+    ComplianceRuleRecord,
+    ReasonCodeRecord,
+    RegulatoryDocumentMarkdownFileRecord,
+    RegulatoryDocumentPageRecord,
+    RegulatoryDocumentRecord,
+    RegulatoryKnowledgeChunkRecord,
+)
 from app.duplicates.models import DuplicateGroup, DuplicateMember
 from app.escalations.models import Escalation
 from app.feedback.models import AgentFeedback
@@ -13,6 +21,10 @@ __all__ = [
     "ComplianceEvidenceRecord",
     "ComplianceRuleRecord",
     "ReasonCodeRecord",
+    "RegulatoryDocumentMarkdownFileRecord",
+    "RegulatoryDocumentPageRecord",
+    "RegulatoryDocumentRecord",
+    "RegulatoryKnowledgeChunkRecord",
     "Complaint",
     "ComplaintProcessingRun",
     "DuplicateGroup",
