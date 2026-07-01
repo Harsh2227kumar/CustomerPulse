@@ -2,6 +2,7 @@ import { download, request } from "./client";
 import type {
   ApproveReviewRequest,
   ComplaintDetail,
+  ComplaintComplianceExplanationResponse,
   ComplaintFilters,
   ComplaintListResponse,
   ComplaintProcessRequest,
@@ -70,6 +71,14 @@ export function assignComplaint(
   );
 }
 
+export function getComplaintComplianceExplanation(
+  complaintId: string,
+  limit = 5
+): Promise<ComplaintComplianceExplanationResponse> {
+  return request<ComplaintComplianceExplanationResponse>(
+    `/api/complaints/${encodeURIComponent(complaintId)}/compliance-explanation?limit=${limit}`
+  );
+}
 // ── Complaint processing ─────────────────────────────────────────────────────
 
 /** Create and immediately process a new complaint (ticket). */
