@@ -10,6 +10,9 @@ import {
   ChevronUp,
   ClipboardCopy,
   Clock,
+  BookOpenCheck,
+  FileSearch,
+  Scale,
   Loader2,
   MessageSquare,
   RefreshCw,
@@ -22,6 +25,7 @@ import {
   approveReview,
   assignComplaint,
   getComplaintDetail,
+  getComplaintComplianceExplanation,
   rerunReview,
   resolveReview,
 } from "@/lib/api/complaints";
@@ -29,6 +33,7 @@ import { getFeedback, submitFeedback } from "@/lib/api/feedback";
 import type {
   AgentFeedbackUpsertRequest,
   ComplaintDetail,
+  ComplaintComplianceExplanationResponse,
   FeedbackRead,
 } from "@/lib/api/types";
 import { Badge } from "@/components/ui/Badge";
@@ -49,6 +54,8 @@ import {
 export default function ComplaintDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const [complaint, setComplaint] = useState<ComplaintDetail | null>(null);
+  const [compliance, setCompliance] = useState<ComplaintComplianceExplanationResponse | null>(null);
+  const [complianceError, setComplianceError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<FeedbackRead | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -98,13 +105,21 @@ export default function ComplaintDetailPage({ params }: { params: Promise<{ id: 
     setLoading(true);
     setError(null);
     try {
-      const [detail, fb] = await Promise.allSettled([
+      const [detail, fb, complianceResult] = await Promise.allSettled([
         getComplaintDetail(id),
         getFeedback(id),
+        getComplaintComplianceExplanation(id, 6),
       ]);
       if (detail.status === "fulfilled") setComplaint(detail.value);
       else throw new Error(detail.reason instanceof Error ? detail.reason.message : "Complaint not found");
       if (fb.status === "fulfilled") setFeedback(fb.value);
+      if (complianceResult.status === "fulfilled") {
+        setCompliance(complianceResult.value);
+        setComplianceError(null);
+      } else {
+        setCompliance(null);
+        setComplianceError(complianceResult.reason instanceof Error ? complianceResult.reason.message : "Compliance evidence unavailable");
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load complaint");
     } finally {
@@ -335,6 +350,8 @@ export default function ComplaintDetailPage({ params }: { params: Promise<{ id: 
             </div>
           </div>
 
+          <RegulatoryCompliancePanel compliance={compliance} error={complianceError} />
+
           {/* Similar Cases */}
           {complaint.similar_cases && complaint.similar_cases.length > 0 && (
             <div className="card">
@@ -524,6 +541,192 @@ export default function ComplaintDetailPage({ params }: { params: Promise<{ id: 
   );
 }
 
+function RegulatoryCompliancePanel({
+  compliance,
+  error,
+}: {
+  compliance: ComplaintComplianceExplanationResponse | null;
+  error: string | null;
+}) {
+  const explanation = compliance?.explanation_with_sources?.explanation;
+  const sources = compliance?.explanation_with_sources?.regulatory_sources ?? [];
+  const limitations = compliance?.explanation_with_sources?.limitations ?? [];
+  const query = compliance?.explanation_with_sources?.retrieval_query ?? "";
+  const risk = compliance?.risk_level ?? explanation?.risk_justification.overall_risk_level ?? "low";
+
+  return (
+    <div className="card" style={{ border: "1px solid color-mix(in oklch, var(--color-primary) 20%, var(--color-outline-variant))" }}>
+      <div className="card-header" style={{ alignItems: "flex-start", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <Scale size={16} style={{ color: "var(--color-primary)" }} />
+          <div>
+            <span style={{ fontWeight: 700, fontSize: "var(--text-headline-sm)" }}>Regulatory Compliance</span>
+            <p style={{ fontSize: 11, color: "var(--color-on-surface-variant)", marginTop: 2 }}>
+              Rule decision, complaint evidence, and RBI guideline citations for audit review.
+            </p>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <Badge variant={riskVariant(risk)}>{humanize(risk)} Risk</Badge>
+          {compliance?.regulatory_flag && <Badge variant="warning">Regulatory Flag</Badge>}
+        </div>
+      </div>
+
+      <div style={{ padding: "12px 16px", display: "grid", gap: 14 }}>
+        {error && (
+          <div className="alert-warning">
+            <AlertTriangle size={14} />
+            <div>
+              <strong style={{ fontSize: 12 }}>Compliance evidence could not be loaded</strong>
+              <p style={{ fontSize: 12, marginTop: 2 }}>{error}</p>
+            </div>
+          </div>
+        )}
+
+        {!error && compliance && !compliance.available && (
+          <div className="alert-warning">
+            <FileSearch size={14} />
+            <div>
+              <strong style={{ fontSize: 12 }}>No compliance evaluation stored yet</strong>
+              <p style={{ fontSize: 12, marginTop: 2 }}>{compliance.message}</p>
+            </div>
+          </div>
+        )}
+
+        {!error && compliance?.available && explanation && (
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10 }}>
+              <InfoTile label="Evidence Record" value={compliance.evidence_record_id ? compliance.evidence_record_id.slice(0, 8) + "..." : "-"} />
+              <InfoTile label="Required Action" value={compliance.required_action ? humanize(compliance.required_action) : "None"} />
+              <InfoTile label="Evaluated" value={formatDateTime(compliance.evaluated_at)} />
+              <InfoTile label="Source Citations" value={`${sources.length}`} />
+            </div>
+
+            <div style={{ background: "var(--color-surface-container-low)", border: "1px solid var(--color-outline-variant)", borderRadius: 8, padding: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                <Shield size={14} style={{ color: "var(--color-primary)" }} />
+                <strong style={{ fontSize: 13 }}>Risk Summary</strong>
+              </div>
+              <p style={{ fontSize: 13, lineHeight: 1.55 }}>{explanation.risk_justification.reason_summary}</p>
+              {explanation.risk_justification.contributing_factors.length > 0 && (
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+                  {explanation.risk_justification.contributing_factors.map((factor) => (
+                    <span key={factor} className="id-pill">{factor}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                <strong style={{ fontSize: 13 }}>Triggered Rules</strong>
+                <Badge variant="neutral">{explanation.rule_explanations.length}</Badge>
+              </div>
+              <div style={{ display: "grid", gap: 8 }}>
+                {explanation.rule_explanations.length === 0 ? (
+                  <p style={{ fontSize: 12, color: "var(--color-on-surface-variant)" }}>No regulatory rule was triggered for this complaint.</p>
+                ) : explanation.rule_explanations.map((rule) => (
+                  <div key={`${rule.rule_id}-${rule.triggered_at}`} style={{ border: "1px solid var(--color-outline-variant)", borderRadius: 8, padding: 10 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginBottom: 6 }}>
+                      <div>
+                        <strong style={{ fontSize: 13 }}>{rule.rule_id}</strong>
+                        <p style={{ fontSize: 12, color: "var(--color-on-surface-variant)", marginTop: 2 }}>{rule.rule_description}</p>
+                      </div>
+                      <Badge variant={confidenceBadge(rule.confidence)}>{humanize(rule.confidence)}</Badge>
+                    </div>
+                    <p style={{ fontSize: 12, lineHeight: 1.55 }}>{rule.why_triggered}</p>
+                    {rule.evidence_snippets.length > 0 && (
+                      <div style={{ marginTop: 8, display: "grid", gap: 5 }}>
+                        {rule.evidence_snippets.slice(0, 3).map((snippet, index) => (
+                          <p key={index} style={{ fontSize: 11, color: "var(--color-on-surface-variant)", background: "var(--color-surface-container-low)", padding: "6px 8px", borderRadius: 6 }}>
+                            {snippet}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                  <BookOpenCheck size={14} style={{ color: "var(--color-primary)" }} />
+                  <strong style={{ fontSize: 13 }}>Regulatory Sources</strong>
+                </div>
+                <Badge variant={sources.length ? "info" : "neutral"}>{sources.length} matched</Badge>
+              </div>
+              {sources.length === 0 ? (
+                <div className="alert-warning">
+                  <FileSearch size={14} />
+                  <div>
+                    <strong style={{ fontSize: 12 }}>No guideline citation found</strong>
+                    <p style={{ fontSize: 12, marginTop: 2 }}>Backfill embeddings for regulatory documents, then refresh this complaint.</p>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: "grid", gap: 8 }}>
+                  {sources.map((source) => (
+                    <div key={source.chunk_id} style={{ border: "1px solid var(--color-outline-variant)", borderRadius: 8, padding: 10 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 10, marginBottom: 6 }}>
+                        <div style={{ minWidth: 0 }}>
+                          <strong style={{ fontSize: 13 }}>{source.document_title ?? "Regulatory document"}</strong>
+                          <p style={{ fontSize: 11, color: "var(--color-on-surface-variant)", marginTop: 2 }}>
+                            {source.regulator} / {source.domain} / {source.section_reference ?? "Unsectioned"} / pages {formatPageRange(source.page_start, source.page_end)}
+                          </p>
+                        </div>
+                        <Badge variant={source.similarity_score >= 0.75 ? "success" : source.similarity_score >= 0.5 ? "warning" : "neutral"}>
+                          {(source.similarity_score * 100).toFixed(1)}%
+                        </Badge>
+                      </div>
+                      <p style={{ fontSize: 12, lineHeight: 1.55 }}>{source.snippet}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div style={{ borderTop: "1px solid var(--color-outline-variant)", paddingTop: 10 }}>
+              <p className="form-label">Retrieval Query</p>
+              <p style={{ fontSize: 11, color: "var(--color-on-surface-variant)", lineHeight: 1.5 }}>{truncate(query || "-", 420)}</p>
+              {limitations.map((item) => (
+                <p key={item} style={{ fontSize: 11, color: "var(--color-on-surface-variant)", marginTop: 6 }}>{item}</p>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function InfoTile({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{ border: "1px solid var(--color-outline-variant)", borderRadius: 8, padding: 10, background: "var(--color-surface-container-low)" }}>
+      <p style={{ fontSize: 11, color: "var(--color-on-surface-variant)", fontWeight: 700, textTransform: "uppercase" }}>{label}</p>
+      <p style={{ fontSize: 13, fontWeight: 700, marginTop: 4 }}>{value}</p>
+    </div>
+  );
+}
+
+function riskVariant(value: string | null | undefined): "success" | "warning" | "danger" | "neutral" {
+  if (value === "critical" || value === "high") return "danger";
+  if (value === "medium") return "warning";
+  return "success";
+}
+
+function confidenceBadge(value: string): "success" | "warning" | "neutral" {
+  if (value === "high") return "success";
+  if (value === "medium") return "warning";
+  return "neutral";
+}
+
+function formatPageRange(start: number | null, end: number | null): string {
+  if (start == null && end == null) return "-";
+  if (start === end || end == null) return String(start ?? end);
+  return `${start}-${end}`;
+}
 // ── Review Actions Panel ──────────────────────────────────────────────────────
 
 function ReviewActionsPanel({

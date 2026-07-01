@@ -29,7 +29,7 @@ const EMPTY_FILTERS: S3ImportFilters = {
   product: null, sub_product: null, issue: null, company: null,
   channel: null, timely_response: null,
   date_received_min: null, date_received_max: null,
-  max_records: 100,
+  max_records: 50,
 };
 
 export default function ImportPage() {
@@ -363,3 +363,4 @@ export default function ImportPage() {
     </div>
   );
 }
+
