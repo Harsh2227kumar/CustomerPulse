@@ -237,6 +237,63 @@ export interface ComplaintListItem {
   assigned_agent_id?: string | null;
 }
 
+export interface RuleExplanation {
+  rule_id: string;
+  rule_description: string;
+  why_triggered: string;
+  complaint_fields_used: string[];
+  evidence_snippets: string[];
+  confidence: "high" | "medium" | "low";
+  triggered_at: string;
+}
+
+export interface RiskJustification {
+  overall_risk_level: "low" | "medium" | "high" | "critical";
+  reason_summary: string;
+  contributing_factors: string[];
+  dominant_rule_id: string;
+}
+
+export interface RegulatorySourceCitation {
+  chunk_id: string;
+  document_id: string;
+  document_title: string | null;
+  regulator: string;
+  domain: string;
+  section_reference: string | null;
+  page_start: number | null;
+  page_end: number | null;
+  similarity_score: number;
+  snippet: string;
+  supports_rule_ids: string[];
+}
+
+export interface ComplianceExplanation {
+  complaint_id: string;
+  evaluated_at: string;
+  rule_explanations: RuleExplanation[];
+  risk_justification: RiskJustification;
+  audit_metadata: Record<string, unknown>;
+}
+
+export interface ComplianceExplanationWithSources {
+  explanation: ComplianceExplanation;
+  regulatory_sources: RegulatorySourceCitation[];
+  retrieval_query: string;
+  limitations: string[];
+}
+
+export interface ComplaintComplianceExplanationResponse {
+  available: boolean;
+  message: string;
+  complaint_id: string;
+  evidence_record_id: string | null;
+  risk_level: string | null;
+  regulatory_flag: boolean | null;
+  required_action: string | null;
+  evaluated_at: string | null;
+  explanation_with_sources: ComplianceExplanationWithSources | null;
+}
 export interface ComplaintDetail extends ComplaintListItem {
   reviewed_at: string | null;
   reviewer: string | null;
@@ -331,11 +388,14 @@ export interface JobCounts {
 }
 
 export interface JobItemResponse {
+  job_id?: string | null;
   complaint_id: string;
   status: string;
   attempt_count: number;
   error_message: string | null;
   attempt_history: Record<string, unknown>[];
+  started_at?: string | null;
+  finished_at?: string | null;
 }
 
 export interface ProcessingJobResponse {
@@ -356,6 +416,16 @@ export interface JobListResponse {
   total_count: number;
   limit: number;
   offset: number;
+}
+
+export interface ContinuousProcessingStatus {
+  running: boolean;
+  stopping: boolean;
+  current_job_id: string | null;
+  current_complaint_id: string | null;
+  processed_count: number;
+  last_message: string | null;
+  history: JobItemResponse[];
 }
 
 export interface JobListResponse {
@@ -510,7 +580,7 @@ export interface SLABreachRiskItem {
   urgency_score: number | null;
   churn_risk: ChurnRisk | null;
   processed_at: string | null;
-  created_at: string;
+  created_at: string | null;
 }
 
 export interface SLABreachRiskResponse {
@@ -733,6 +803,39 @@ export interface RegulatoryDocumentListResponse {
   count: number;
 }
 
+export interface RegulatoryKnowledgeChunkRead {
+  id: string;
+  document_id: string;
+  chunk_index: number;
+  regulator: ComplianceRegulator;
+  domain: string;
+  section_reference: string | null;
+  page_start: number | null;
+  page_end: number | null;
+  chunk_text: string;
+  summary: string | null;
+  keywords: string[];
+  effective_from: string | null;
+  effective_to: string | null;
+  status: "draft" | "active" | "archived";
+  embedding_model: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RegulatoryKnowledgeChunkListResponse {
+  items: RegulatoryKnowledgeChunkRead[];
+  limit: number;
+  offset: number;
+  count: number;
+}
+
+export interface RegulatoryDocumentReviewResult {
+  document: RegulatoryDocumentRead;
+  chunks_updated: number;
+  chunk_status: "draft" | "active" | "archived";
+  notes: string | null;
+}
 export interface RegulatoryDocumentProcessResult {
   document: RegulatoryDocumentRead;
   markdown_file: { id: string; document_id: string; markdown_path: string; conversion_tool: string; conversion_status: string; conversion_warnings: string[]; created_at: string; updated_at: string; } | null;

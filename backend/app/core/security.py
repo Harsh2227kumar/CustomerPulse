@@ -121,11 +121,11 @@ def require_roles(*roles: Role) -> Callable[[Principal], Principal]:
     allowed = set(roles)
 
     def dependency(principal: Principal = Depends(get_current_principal)) -> Principal:
-        if principal.role not in allowed:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Insufficient role for this action.",
-            )
-        return principal
+        if principal.role == Role.SUPER_ADMIN or principal.role in allowed:
+            return principal
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Insufficient role for this action.",
+        )
 
     return dependency

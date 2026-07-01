@@ -1,5 +1,6 @@
 from datetime import datetime
 from enum import StrEnum
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -461,6 +462,33 @@ class RegulatoryKnowledgeChunkRead(ComplianceBaseModel):
     created_at: datetime
     updated_at: datetime
 
+
+
+class RegulatoryKnowledgeChunkListResponse(ComplianceBaseModel):
+    items: list[RegulatoryKnowledgeChunkRead]
+    limit: int
+    offset: int
+    count: int
+
+
+class RegulatoryDocumentReviewRequest(ComplianceBaseModel):
+    action: Literal["activate", "request_changes", "archive"]
+    notes: str | None = Field(default=None, max_length=2000)
+
+    @field_validator("notes")
+    @classmethod
+    def clean_notes(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        cleaned = value.strip()
+        return cleaned or None
+
+
+class RegulatoryDocumentReviewResult(ComplianceBaseModel):
+    document: RegulatoryDocumentRead
+    chunks_updated: int = Field(ge=0)
+    chunk_status: str
+    notes: str | None = None
 
 class RegulatoryDocumentProcessResult(ComplianceBaseModel):
     document: RegulatoryDocumentRead

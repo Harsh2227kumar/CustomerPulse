@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from datetime import datetime, timezone
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.compliance.storage_models import (
@@ -168,6 +168,19 @@ class ComplianceKnowledgeBaseRepository:
         await db.refresh(record)
         return record
 
+    async def delete_regulatory_document_outputs(
+        self,
+        db: AsyncSession,
+        document_id: str,
+    ) -> None:
+        for model in (
+            RegulatoryKnowledgeChunkRecord,
+            RegulatoryDocumentMarkdownFileRecord,
+            RegulatoryDocumentPageRecord,
+        ):
+            await db.execute(delete(model).where(model.document_id == document_id))
+        await db.flush()
+
     async def create_regulatory_pages(
         self,
         db: AsyncSession,
@@ -203,6 +216,47 @@ class ComplianceKnowledgeBaseRepository:
         db: AsyncSession,
     ) -> None:
         await db.commit()
+
+
+    async def list_regulatory_chunks(
+        self,
+        db: AsyncSession,
+        *,
+        document_id: str,
+        limit: int,
+        offset: int,
+        status: str | None = None,
+    ) -> tuple[Sequence[RegulatoryKnowledgeChunkRecord], int]:
+        stmt = select(RegulatoryKnowledgeChunkRecord).where(
+            RegulatoryKnowledgeChunkRecord.document_id == document_id
+        )
+        count_stmt = select(func.count()).select_from(RegulatoryKnowledgeChunkRecord).where(
+            RegulatoryKnowledgeChunkRecord.document_id == document_id
+        )
+        if status:
+            stmt = stmt.where(RegulatoryKnowledgeChunkRecord.status == status)
+            count_stmt = count_stmt.where(RegulatoryKnowledgeChunkRecord.status == status)
+        stmt = stmt.order_by(RegulatoryKnowledgeChunkRecord.chunk_index.asc()).limit(limit).offset(offset)
+        return (await db.execute(stmt)).scalars().all(), (await db.execute(count_stmt)).scalar_one()
+
+    async def update_regulatory_chunk_statuses(
+        self,
+        db: AsyncSession,
+        *,
+        document_id: str,
+        status: str,
+    ) -> int:
+        chunks = (
+            await db.execute(
+                select(RegulatoryKnowledgeChunkRecord).where(
+                    RegulatoryKnowledgeChunkRecord.document_id == document_id
+                )
+            )
+        ).scalars().all()
+        for chunk in chunks:
+            chunk.status = status
+        await db.flush()
+        return len(chunks)
 
     async def list_chunks_for_embedding(
         self,

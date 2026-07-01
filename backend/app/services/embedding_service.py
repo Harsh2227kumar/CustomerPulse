@@ -45,7 +45,12 @@ class EmbeddingService:
     async def embed_many(self, texts: list[str]) -> list[list[float]]:
         if not texts:
             return []
-        embeddings = await asyncio.gather(*(self.embed_text(text) for text in texts))
+        cleaned_texts = [text.strip() for text in texts]
+        if any(not text for text in cleaned_texts):
+            raise InvalidEmbeddingError("Cannot embed empty regulatory knowledge chunks.")
+        embeddings = await asyncio.to_thread(self._embed_many_sync, cleaned_texts)
+        for embedding in embeddings:
+            self._validate_embedding(embedding)
         return embeddings
 
     def _validate_embedding(self, embedding: list[float]) -> None:
@@ -69,6 +74,20 @@ class EmbeddingService:
             except Exception:
                 _FAILED_MODELS.add(model_key)
         return self._fallback_embedding(text)
+
+    def _embed_many_sync(self, texts: list[str]) -> list[list[float]]:
+        model_key = (self.model_name, self.local_files_only)
+        if model_key not in _FAILED_MODELS:
+            try:
+                vectors = _load_model(self.model_name, self.local_files_only).encode(
+                    texts,
+                    batch_size=16,
+                    normalize_embeddings=True,
+                )
+                return [[float(value) for value in vector.tolist()] for vector in vectors]
+            except Exception:
+                _FAILED_MODELS.add(model_key)
+        return [self._fallback_embedding(text) for text in texts]
 
     def _fallback_embedding(self, text: str) -> list[float]:
         vector = [0.0] * EMBEDDING_DIMENSIONS

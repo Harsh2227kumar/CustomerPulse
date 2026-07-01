@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 import re
 
+from sqlalchemy.exc import SQLAlchemyError
 from app.compliance.models import (
     ComplianceEvidenceRead,
     ComplianceEvidenceStoreRequest,
@@ -22,6 +23,9 @@ from app.compliance.models import (
     RegulatoryDocumentRead,
     RegulatoryDocumentStatus,
     RegulatoryKnowledgeChunkRead,
+    RegulatoryKnowledgeChunkListResponse,
+    RegulatoryDocumentReviewRequest,
+    RegulatoryDocumentReviewResult,
     RegulatoryKnowledgeSearchRequest,
     RegulatoryKnowledgeSearchResponse,
     RegulatoryKnowledgeSearchResult,
@@ -454,6 +458,7 @@ class ComplianceKnowledgeBaseService:
                 raise RegulatoryDocumentProcessingError("Converted document did not contain extractable text.")
 
             markdown_path = self._markdown_path(source_path, record)
+            await self.repository.delete_regulatory_document_outputs(db, record.id)
             markdown_path.parent.mkdir(parents=True, exist_ok=True)
             markdown_path.write_text(converted.markdown, encoding="utf-8")
 
@@ -522,6 +527,80 @@ class ComplianceKnowledgeBaseService:
                 RegulatoryDocumentStatus.FAILED.value,
             )
             raise RegulatoryDocumentProcessingError(str(exc)) from exc
+        except SQLAlchemyError as exc:
+            await db.rollback()
+            failed_record = await self.repository.get_regulatory_document(db, document_id)
+            if failed_record is not None:
+                await self.repository.update_regulatory_document_status(
+                    db,
+                    failed_record,
+                    RegulatoryDocumentStatus.FAILED.value,
+                )
+            raise RegulatoryDocumentProcessingError(
+                "Unable to persist regulatory document processing outputs. "
+                "Retry processing after the backend has restarted with a backend-only reload directory."
+            ) from exc
+
+
+    async def list_regulatory_document_chunks(
+        self,
+        db,
+        document_id: str,
+        *,
+        limit: int,
+        offset: int,
+        status: str | None = None,
+    ) -> RegulatoryKnowledgeChunkListResponse:
+        document = await self.repository.get_regulatory_document(db, document_id)
+        if document is None:
+            raise RegulatoryDocumentNotFoundError(document_id)
+        records, count = await self.repository.list_regulatory_chunks(
+            db,
+            document_id=document_id,
+            limit=limit,
+            offset=offset,
+            status=status,
+        )
+        return RegulatoryKnowledgeChunkListResponse(
+            items=[self._chunk_to_read(record) for record in records],
+            limit=limit,
+            offset=offset,
+            count=count,
+        )
+
+    async def review_regulatory_document(
+        self,
+        db,
+        document_id: str,
+        payload: RegulatoryDocumentReviewRequest,
+    ) -> RegulatoryDocumentReviewResult:
+        document = await self.repository.get_regulatory_document(db, document_id)
+        if document is None:
+            raise RegulatoryDocumentNotFoundError(document_id)
+        if payload.action == "activate":
+            document_status = RegulatoryDocumentStatus.ACTIVE.value
+            chunk_status = "active"
+        elif payload.action == "archive":
+            document_status = RegulatoryDocumentStatus.ARCHIVED.value
+            chunk_status = "archived"
+        else:
+            document_status = RegulatoryDocumentStatus.REVIEW_REQUIRED.value
+            chunk_status = "draft"
+
+        chunks_updated = await self.repository.update_regulatory_chunk_statuses(
+            db,
+            document_id=document_id,
+            status=chunk_status,
+        )
+        document.status = document_status
+        await db.commit()
+        await db.refresh(document)
+        return RegulatoryDocumentReviewResult(
+            document=self._regulatory_document_to_read(document),
+            chunks_updated=chunks_updated,
+            chunk_status=chunk_status,
+            notes=payload.notes,
+        )
 
     async def embed_regulatory_chunks(
         self,

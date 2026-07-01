@@ -68,18 +68,34 @@ def _plain_text_to_markdown(text: str) -> str:
 
 def convert_pdf_to_markdown(file_path: str | Path) -> ConvertedDocument:
     try:
-        import pymupdf4llm
+        import pymupdf
     except ImportError as exc:
         raise RegulatoryDocumentConversionError(
-            "PDF conversion requires pymupdf4llm; install backend requirements."
+            "PDF conversion requires PyMuPDF; install backend requirements."
         ) from exc
-    markdown = pymupdf4llm.to_markdown(str(file_path))
+
+    path = Path(file_path)
+    pages: list[str] = []
+    warnings: list[str] = []
+    try:
+        with pymupdf.open(path) as document:
+            for page_index, page in enumerate(document, start=1):
+                text = clean_extracted_text(page.get_text("text"))
+                if not text:
+                    warnings.append(f"Page {page_index} did not contain extractable text.")
+                    continue
+                pages.append(f"<!-- page:{page_index} -->\n\n{text}")
+    except Exception as exc:
+        raise RegulatoryDocumentConversionError(f"PDF conversion failed: {exc}") from exc
+
+    markdown = "\n\n".join(pages).strip()
+    if not markdown:
+        raise RegulatoryDocumentConversionError("PDF did not contain extractable text.")
     return ConvertedDocument(
         markdown=markdown,
-        conversion_tool="pymupdf4llm",
-        warnings=[],
+        conversion_tool="pymupdf-page-text",
+        warnings=warnings,
     )
-
 
 def convert_docx_to_markdown(file_path: str | Path) -> ConvertedDocument:
     try:

@@ -146,6 +146,24 @@ class RegulatoryDocumentConverterTests(unittest.TestCase):
         self.assertEqual(chunks[0].section_reference, "Section 1")
         self.assertIn("complaint", chunks[0].keywords)
 
+    def test_pdf_conversion_preserves_page_boundaries(self) -> None:
+        from reportlab.pdfgen import canvas
+
+        with TemporaryDirectory() as tmpdir:
+            source = Path(tmpdir) / "guideline.pdf"
+            pdf = canvas.Canvas(str(source))
+            pdf.drawString(72, 720, "Page one complaint handling text.")
+            pdf.showPage()
+            pdf.drawString(72, 720, "Page two evidence storage text.")
+            pdf.save()
+
+            converted = convert_document_to_markdown(source)
+            pages = split_markdown_pages(converted.markdown)
+
+        self.assertEqual(converted.conversion_tool, "pymupdf-page-text")
+        self.assertEqual(len(pages), 2)
+        self.assertIn("Page one", pages[0])
+        self.assertIn("Page two", pages[1])
     def test_pdf_converter_dependency_is_available(self) -> None:
         import pymupdf4llm
 
@@ -211,6 +229,7 @@ class RegulatoryDocumentServiceTests(unittest.IsolatedAsyncioTestCase):
             repository = SimpleNamespace(
                 get_regulatory_document=AsyncMock(return_value=record),
                 update_regulatory_document_status=AsyncMock(return_value=record),
+                delete_regulatory_document_outputs=AsyncMock(return_value=None),
                 create_regulatory_pages=AsyncMock(return_value=[page_record()]),
                 create_regulatory_markdown_file=AsyncMock(return_value=markdown_record()),
                 create_regulatory_chunks=AsyncMock(return_value=[chunk_record()]),
@@ -223,6 +242,8 @@ class RegulatoryDocumentServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result.document.status, "indexed")
         self.assertEqual(result.pages_created, 1)
         self.assertEqual(result.chunks_created, 1)
+        repository.delete_regulatory_document_outputs.assert_awaited_once()
+        self.assertEqual(repository.delete_regulatory_document_outputs.await_args.args[1], "document-1")
         repository.create_regulatory_pages.assert_awaited_once()
         repository.create_regulatory_markdown_file.assert_awaited_once()
         repository.create_regulatory_chunks.assert_awaited_once()

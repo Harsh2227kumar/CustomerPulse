@@ -5,7 +5,9 @@ import type {
   RegulatoryDocumentListResponse,
   RegulatoryDocumentProcessResult,
   RegulatoryDocumentRead,
+  RegulatoryDocumentReviewResult,
   RegulatoryDocumentStatus,
+  RegulatoryKnowledgeChunkListResponse,
   RegulatoryKnowledgeSearchResponse,
 } from "./types";
 
@@ -63,6 +65,16 @@ export function processRegulatoryDocument(documentId: string): Promise<Regulator
   return request<RegulatoryDocumentProcessResult>(`/api/compliance/regulatory-documents/${documentId}/process`, { method: "POST" });
 }
 
+export function listRegulatoryDocumentChunks(documentId: string, params: { limit?: number; offset?: number; status?: "draft" | "active" | "archived" | "" } = {}): Promise<RegulatoryKnowledgeChunkListResponse> {
+  return request<RegulatoryKnowledgeChunkListResponse>(`/api/compliance/regulatory-documents/${documentId}/chunks${queryString(params)}`);
+}
+
+export function reviewRegulatoryDocument(documentId: string, input: { action: "activate" | "request_changes" | "archive"; notes?: string | null }): Promise<RegulatoryDocumentReviewResult> {
+  return request<RegulatoryDocumentReviewResult>(`/api/compliance/regulatory-documents/${documentId}/review`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
 export function embedRegulatoryDocumentChunks(documentId: string, limit = 100): Promise<RegulatoryChunkEmbeddingBackfillResult> {
   return request<RegulatoryChunkEmbeddingBackfillResult>(`/api/compliance/regulatory-documents/${documentId}/embedding-backfill?limit=${limit}`, { method: "POST" });
 }
@@ -80,3 +92,4 @@ export function searchRegulatoryKnowledge(input: RegulatorySearchInput): Promise
     }),
   });
 }
+

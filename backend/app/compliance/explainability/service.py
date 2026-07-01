@@ -145,7 +145,7 @@ async def generate_explanation_with_sources(
             query=query,
             regulator=None,
             domain=None,
-            status="draft",
+            status=None,
             limit=limit,
             min_similarity=0.0,
         ),

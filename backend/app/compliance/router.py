@@ -34,6 +34,9 @@ from app.compliance.models import (
     RegulatoryDocumentStatus,
     RegulatoryDocumentType,
     RegulatoryKnowledgeSearchRequest,
+    RegulatoryKnowledgeChunkListResponse,
+    RegulatoryDocumentReviewRequest,
+    RegulatoryDocumentReviewResult,
     RegulatoryKnowledgeSearchResponse,
 )
 from app.compliance.service import (
@@ -373,6 +376,40 @@ async def process_regulatory_document(
         raise HTTPException(status_code=404, detail="Regulatory document not found.") from exc
     except RegulatoryDocumentProcessingError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.get("/regulatory-documents/{document_id}/chunks", response_model=RegulatoryKnowledgeChunkListResponse)
+async def list_regulatory_document_chunks(
+    document_id: str,
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    status: str | None = Query(default=None),
+    _principal: Principal = Depends(require_roles(Role.ADMIN, Role.SUPER_ADMIN)),
+    db: AsyncSession = Depends(get_db_session),
+) -> RegulatoryKnowledgeChunkListResponse:
+    try:
+        return await ComplianceKnowledgeBaseService().list_regulatory_document_chunks(
+            db,
+            document_id,
+            limit=limit,
+            offset=offset,
+            status=status,
+        )
+    except RegulatoryDocumentNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Regulatory document not found.") from exc
+
+
+@router.post("/regulatory-documents/{document_id}/review", response_model=RegulatoryDocumentReviewResult)
+async def review_regulatory_document(
+    document_id: str,
+    payload: RegulatoryDocumentReviewRequest,
+    _principal: Principal = Depends(require_roles(Role.ADMIN, Role.SUPER_ADMIN)),
+    db: AsyncSession = Depends(get_db_session),
+) -> RegulatoryDocumentReviewResult:
+    try:
+        return await ComplianceKnowledgeBaseService().review_regulatory_document(db, document_id, payload)
+    except RegulatoryDocumentNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Regulatory document not found.") from exc
 
 @router.post("/regulatory-documents/{document_id}/embedding-backfill", response_model=RegulatoryChunkEmbeddingBackfillResult)
 async def embed_regulatory_document_chunks(

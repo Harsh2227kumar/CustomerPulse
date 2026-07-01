@@ -6,6 +6,7 @@ import {
   BookOpen,
   CheckCircle2,
   DatabaseZap,
+  Eye,
   FileSearch,
   FileText,
   Filter,
@@ -20,8 +21,10 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import {
   embedRegulatoryDocumentChunks,
+  listRegulatoryDocumentChunks,
   listRegulatoryDocuments,
   processRegulatoryDocument,
+  reviewRegulatoryDocument,
   searchRegulatoryKnowledge,
   uploadRegulatoryDocument,
 } from "@/lib/api/regulatoryRag";
@@ -29,6 +32,7 @@ import type {
   ComplianceRegulator,
   RegulatoryDocumentRead,
   RegulatoryDocumentStatus,
+  RegulatoryKnowledgeChunkRead,
   RegulatoryKnowledgeSearchResult,
 } from "@/lib/api/types";
 import { Badge } from "@/components/ui/Badge";
@@ -59,6 +63,11 @@ export default function RegulatoryRagPage() {
   const [processing, setProcessing] = useState(false);
   const [embedding, setEmbedding] = useState(false);
   const [embeddingLimit, setEmbeddingLimit] = useState(100);
+  const [chunks, setChunks] = useState<RegulatoryKnowledgeChunkRead[]>([]);
+  const [chunkCount, setChunkCount] = useState(0);
+  const [loadingChunks, setLoadingChunks] = useState(false);
+  const [reviewing, setReviewing] = useState(false);
+  const [reviewNotes, setReviewNotes] = useState("");
 
   const [searching, setSearching] = useState(false);
   const [query, setQuery] = useState("");
@@ -76,6 +85,25 @@ export default function RegulatoryRagPage() {
     () => documents.find((doc) => doc.id === selectedDocumentId) ?? null,
     [documents, selectedDocumentId]
   );
+
+  const reloadChunks = useCallback(async () => {
+    if (!selectedDocumentId) {
+      setChunks([]);
+      setChunkCount(0);
+      return;
+    }
+    setLoadingChunks(true);
+    try {
+      const response = await listRegulatoryDocumentChunks(selectedDocumentId, { limit: 12, offset: 0 });
+      setChunks(response.items);
+      setChunkCount(response.count);
+    } catch {
+      setChunks([]);
+      setChunkCount(0);
+    } finally {
+      setLoadingChunks(false);
+    }
+  }, [selectedDocumentId]);
 
   const reloadDocuments = useCallback(async (soft = false) => {
     if (soft) setRefreshing(true); else setLoadingDocs(true);
@@ -100,6 +128,7 @@ export default function RegulatoryRagPage() {
   }, [docRegulator, docStatus]);
 
   useEffect(() => { void reloadDocuments(); }, [reloadDocuments]);
+  useEffect(() => { void reloadChunks(); }, [reloadChunks]);
 
   const canAdmin = user?.role === "admin" || user?.role === "super_admin";
   const canUpload = Boolean(file && regulator && documentTitle.trim() && version.trim() && !uploading);
@@ -147,6 +176,7 @@ export default function RegulatoryRagPage() {
       setStatusMessage(`Processed ${processed.pages_created} page(s) and ${processed.chunks_created} chunk(s).`);
       await reloadDocuments(true);
       setSelectedDocumentId(processed.document.id);
+      await reloadChunks();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Processing failed");
     } finally { setProcessing(false); }
@@ -159,11 +189,33 @@ export default function RegulatoryRagPage() {
       const result = await embedRegulatoryDocumentChunks(selectedDocument.id, embeddingLimit);
       setStatusMessage(`Embedded ${result.embedded_count} chunk(s); skipped ${result.skipped_count}. Model: ${result.embedding_model}`);
       await reloadDocuments(true);
+      await reloadChunks();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Embedding backfill failed");
     } finally { setEmbedding(false); }
   }
 
+
+  async function handleReview(action: "activate" | "request_changes" | "archive") {
+    if (!selectedDocument) return;
+    setReviewing(true); setError(null); setStatusMessage(null);
+    try {
+      const result = await reviewRegulatoryDocument(selectedDocument.id, { action, notes: reviewNotes });
+      setStatusMessage(
+        action === "activate"
+          ? `Activated ${result.chunks_updated} reviewed chunk(s) for RAG.`
+          : action === "request_changes"
+            ? `Marked ${result.chunks_updated} chunk(s) for changes.`
+            : `Archived ${result.chunks_updated} chunk(s).`
+      );
+      setReviewNotes("");
+      await reloadDocuments(true);
+      setSelectedDocumentId(result.document.id);
+      await reloadChunks();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Review action failed");
+    } finally { setReviewing(false); }
+  }
   async function handleSearch() {
     if (!query.trim()) return;
     setSearching(true); setError(null); setStatusMessage(null);
@@ -239,6 +291,17 @@ export default function RegulatoryRagPage() {
             onProcess={handleProcess}
             onEmbed={handleEmbed}
           />
+          <ReviewPanel
+            document={selectedDocument}
+            chunks={chunks}
+            chunkCount={chunkCount}
+            loading={loadingChunks}
+            reviewing={reviewing}
+            notes={reviewNotes}
+            setNotes={setReviewNotes}
+            onRefresh={reloadChunks}
+            onReview={handleReview}
+          />
           <SearchPanel
             query={query}
             setQuery={setQuery}
@@ -286,6 +349,17 @@ function ProcessingPanel({ document, processing, embedding, embeddingLimit, setE
   return <div className="card"><div className="card-header"><div style={{ display: "flex", alignItems: "center", gap: 8 }}><DatabaseZap size={16} /><strong>Processing Pipeline</strong></div>{document && <Badge variant={statusVariant(document.status)}>{humanize(document.status)}</Badge>}</div><div className="card-body" style={{ display: "grid", gap: 14 }}>{document ? <><div><h2 style={{ fontSize: 16, fontWeight: 800 }}>{document.document_title}</h2><p style={{ fontSize: 12, color: "var(--color-on-surface-variant)", marginTop: 4 }}>{document.source_filename} / uploaded by {document.uploaded_by ?? "unknown"}</p></div><div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}><Info label="Regulator" value={document.regulator} /><Info label="Version" value={document.version} /><Info label="Effective From" value={formatDateTime(document.effective_from)} /><Info label="Updated" value={formatDateTime(document.updated_at)} /></div><div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}><button className="btn-primary" onClick={onProcess} disabled={processing}>{processing ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}Process / Reprocess</button><select className="form-select" value={embeddingLimit} onChange={(e) => setEmbeddingLimit(Number(e.target.value))} style={{ width: 120 }}>{[50, 100, 250, 500].map((value) => <option key={value} value={value}>{value} chunks</option>)}</select><button className="btn-secondary" onClick={onEmbed} disabled={embedding}>{embedding ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}Backfill Embeddings</button></div></> : <EmptyState title="Select a document" description="Choose a document from the library or upload a new guideline to start processing." icon={<FileSearch size={28} />} />}</div></div>;
 }
 
+function ReviewPanel({ document, chunks, chunkCount, loading, reviewing, notes, setNotes, onRefresh, onReview }: { document: RegulatoryDocumentRead | null; chunks: RegulatoryKnowledgeChunkRead[]; chunkCount: number; loading: boolean; reviewing: boolean; notes: string; setNotes: (value: string) => void; onRefresh: () => void; onReview: (action: "activate" | "request_changes" | "archive") => void }) {
+  const draftCount = chunks.filter((chunk) => chunk.status === "draft").length;
+  const activeCount = chunks.filter((chunk) => chunk.status === "active").length;
+  const embeddedCount = chunks.filter((chunk) => Boolean(chunk.embedding_model)).length;
+  const pageCoverage = chunks.length
+    ? `${Math.min(...chunks.map((chunk) => chunk.page_start ?? chunk.page_end ?? 0).filter(Boolean)) || "-"}-${Math.max(...chunks.map((chunk) => chunk.page_end ?? chunk.page_start ?? 0).filter(Boolean)) || "-"}`
+    : "-";
+  const canReview = Boolean(document && chunkCount > 0 && !reviewing);
+
+  return <div className="card"><div className="card-header"><div style={{ display: "flex", alignItems: "center", gap: 8 }}><Eye size={16} /><strong>Human Review & Activation</strong></div>{document && <Badge variant={statusVariant(document.status)}>{humanize(document.status)}</Badge>}</div><div className="card-body" style={{ display: "grid", gap: 14 }}>{!document ? <EmptyState title="Select a document to review" description="After processing, extracted chunks will appear here for human approval before they are activated for RAG." icon={<Eye size={28} />} /> : document.status === "uploaded" ? <EmptyState title="Process this document first" description="Click Process / Reprocess to convert the guideline into page-aware chunks, then review and activate them here." icon={<FileSearch size={28} />} /> : <><div style={{ border: "1px solid var(--color-outline-variant)", borderRadius: 8, padding: 12, background: "var(--color-surface-container-low)", display: "grid", gap: 6 }}><strong style={{ fontSize: 13 }}>Review gate before knowledge base use</strong><p style={{ fontSize: 12, color: "var(--color-on-surface-variant)", lineHeight: 1.5 }}>Draft chunks are preview-only. When you approve them, the document and its chunks become active, so semantic search and complaint compliance explanations can cite this guideline.</p></div><div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 10 }}><Info label="Total Chunks" value={String(chunkCount)} /><Info label="Draft Preview" value={String(draftCount)} /><Info label="Active Preview" value={String(activeCount)} /><Info label="Embedded Here" value={String(embeddedCount)} /><Info label="Preview Pages" value={pageCoverage} /></div><Field label="Review Notes"><textarea className="form-input" value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Add reviewer notes, missing sections, or approval reason" rows={3} style={{ resize: "vertical" }} /></Field><div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}><button className="btn-secondary" onClick={onRefresh} disabled={loading}>{loading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}Refresh Preview</button><button className="btn-secondary" onClick={() => onReview("request_changes")} disabled={!canReview}>Request Changes</button><button className="btn-secondary" onClick={() => onReview("archive")} disabled={!canReview}>Archive</button><button className="btn-primary" onClick={() => onReview("activate")} disabled={!canReview}>{reviewing ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}Activate for RAG</button></div><div style={{ display: "grid", gap: 10 }}>{loading ? <LoadingSpinner label="Loading chunk preview..." /> : chunks.length ? chunks.map((chunk) => <div key={chunk.id} className="stat-card" style={{ gap: 8 }}><div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start" }}><div style={{ minWidth: 0 }}><p style={{ fontWeight: 800, fontSize: 13 }}>Chunk {chunk.chunk_index + 1} / pages {formatPageRange(chunk.page_start, chunk.page_end)}</p><p style={{ color: "var(--color-on-surface-variant)", fontSize: 12, marginTop: 2 }}>{chunk.domain ?? "General"} / {chunk.section_reference ?? "Unsectioned"}</p></div><div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}><Badge variant={statusVariant(chunk.status)}>{humanize(chunk.status)}</Badge><Badge variant={chunk.embedding_model ? "success" : "warning"}>{chunk.embedding_model ? "Embedded" : "Needs Embedding"}</Badge></div></div><p style={{ color: "var(--color-on-surface)", fontSize: 13, lineHeight: 1.55 }}>{truncateText(chunk.chunk_text, 620)}</p>{chunk.keywords.length > 0 && <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{chunk.keywords.slice(0, 10).map((keyword) => <span key={keyword} className="id-pill">{keyword}</span>)}</div>}</div>) : <EmptyState title="No chunks found" description="Run Process / Reprocess. If it already ran, refresh the preview to load the extracted chunks." icon={<FileText size={28} />} />}{chunkCount > chunks.length && <p style={{ fontSize: 12, color: "var(--color-on-surface-variant)", textAlign: "center" }}>Showing first {chunks.length} of {chunkCount} chunks for review.</p>}</div></>}</div></div>;
+}
 function SearchPanel(props: { query: string; setQuery: (value: string) => void; regulator: ComplianceRegulator | ""; setRegulator: (value: ComplianceRegulator | "") => void; domain: string; setDomain: (value: string) => void; status: "draft" | "active" | "archived" | ""; setStatus: (value: "draft" | "active" | "archived" | "") => void; limit: number; setLimit: (value: number) => void; minSimilarity: number; setMinSimilarity: (value: number) => void; searching: boolean; results: RegulatoryKnowledgeSearchResult[]; onSearch: () => void }) {
   return <div className="card"><div className="card-header"><div style={{ display: "flex", alignItems: "center", gap: 8 }}><Search size={16} /><strong>Retrieval Test</strong></div></div><div className="card-body" style={{ display: "grid", gap: 12 }}><div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", gap: 10 }}><input className="form-input" value={props.query} onChange={(e) => props.setQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") void props.onSearch(); }} placeholder="Enter regulatory search query" /><button className="btn-primary" onClick={props.onSearch} disabled={!props.query.trim() || props.searching}>{props.searching ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}Search</button></div><div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 8 }}><select className="form-select" value={props.regulator} onChange={(e) => props.setRegulator(e.target.value as ComplianceRegulator | "")}><option value="">All regulators</option>{REGULATORS.map((item) => <option key={item} value={item}>{item}</option>)}</select><input className="form-input" value={props.domain} onChange={(e) => props.setDomain(e.target.value)} placeholder="Domain filter" /><select className="form-select" value={props.status} onChange={(e) => props.setStatus(e.target.value as "draft" | "active" | "archived" | "")}><option value="">Any chunk status</option>{CHUNK_STATUSES.map((item) => <option key={item} value={item}>{humanize(item)}</option>)}</select><select className="form-select" value={props.limit} onChange={(e) => props.setLimit(Number(e.target.value))}>{[5, 8, 12, 20].map((value) => <option key={value} value={value}>{value} results</option>)}</select></div><label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12, color: "var(--color-on-surface-variant)", fontWeight: 700 }}>Min similarity {Math.round(props.minSimilarity * 100)}%<input type="range" min={0} max={0.9} step={0.05} value={props.minSimilarity} onChange={(e) => props.setMinSimilarity(Number(e.target.value))} style={{ width: 180 }} /></label><div style={{ display: "grid", gap: 10 }}>{props.results.map((result) => <div key={result.chunk_id} className="stat-card" style={{ gap: 8 }}><div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}><div style={{ minWidth: 0 }}><p style={{ fontWeight: 700, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{result.document_title ?? "Untitled regulatory document"}</p><p style={{ color: "var(--color-on-surface-variant)", fontSize: 12, marginTop: 2 }}>{result.regulator} / {result.domain} / {result.section_reference ?? "Unsectioned"} / pages {formatPageRange(result.page_start, result.page_end)}</p></div><Badge variant={result.similarity_score >= 0.75 ? "success" : result.similarity_score >= 0.5 ? "warning" : "neutral"}>{(result.similarity_score * 100).toFixed(1)}%</Badge></div><p style={{ color: "var(--color-on-surface)", fontSize: 13, lineHeight: 1.55 }}>{truncateText(result.chunk_text, 520)}</p>{result.keywords.length > 0 && <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{result.keywords.slice(0, 8).map((keyword) => <span key={keyword} className="id-pill">{keyword}</span>)}</div>}</div>)}{!props.searching && props.results.length === 0 && <EmptyState title="No retrieval results yet" description="Process and embed a document, then run a semantic search." icon={<Search size={28} />} />}</div></div></div>;
 }
@@ -302,3 +376,10 @@ function truncateText(value: string, maxLength: number): string { return value.l
 function statusToStep(status: RegulatoryDocumentStatus): number { if (status === "uploaded") return 0; if (status === "processing") return 1; if (status === "indexed" || status === "review_required") return 2; if (status === "active" || status === "archived") return 3; return 0; }
 function statusVariant(status: string): BadgeVariant { if (status === "active" || status === "indexed") return "success"; if (status === "processing" || status === "review_required" || status === "uploaded") return "warning"; if (status === "failed") return "danger"; return "neutral"; }
 function toApiDate(value: string): string | undefined { return value ? new Date(value).toISOString() : undefined; }
+
+
+
+
+
+
+
