@@ -12,6 +12,7 @@ import {
   LogOut,
   ShieldCheck,
   Settings,
+  Users,
   Sparkles,
   Zap,
 } from "lucide-react";
@@ -27,6 +28,7 @@ const navItems = [
 ];
 
 const adminNavItems = [
+  { href: "/admin", label: "Admin Console", icon: Users },
   { href: "/regulatory-rag", label: "Regulatory RAG", icon: ShieldCheck },
 ];
 
@@ -122,4 +124,5 @@ export function Sidebar() {
     </aside>
   );
 }
+
 

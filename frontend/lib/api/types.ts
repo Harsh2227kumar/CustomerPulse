@@ -43,6 +43,121 @@ export interface LoginResponse {
   must_change_password?: boolean | null;
 }
 
+
+// ── Admin / Employee Management ────────────────────────────────────────────
+
+export type EmployeeRole = "agent" | "manager" | "admin" | "super_admin";
+export type EmployeeStatus = "active" | "suspended" | "inactive";
+
+export interface EmployeeRead {
+  id: string;
+  employee_id: string;
+  name: string;
+  email: string;
+  role: EmployeeRole;
+  department_id: string | null;
+  reports_to: string | null;
+  status: EmployeeStatus;
+  must_change_password: boolean;
+  created_at: string;
+  created_by: string | null;
+  updated_at: string;
+}
+
+export interface EmployeeListResponse {
+  items: EmployeeRead[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface EmployeeCreateRequest {
+  name: string;
+  email: string;
+  password: string;
+  role: EmployeeRole;
+  department_id?: string | null;
+  reports_to?: string | null;
+}
+
+export interface EmployeeUpdateRequest {
+  name?: string;
+  email?: string;
+  role?: EmployeeRole;
+  department_id?: string | null;
+  reports_to?: string | null;
+}
+
+export interface DepartmentRead {
+  id: string;
+  name: string;
+  code: string;
+  created_at: string;
+  employee_count: number;
+}
+
+export interface DepartmentListResponse {
+  items: DepartmentRead[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface DepartmentCreateRequest {
+  name: string;
+  code: string;
+}
+
+export interface ResetPasswordResponse {
+  temporary_password: string;
+}
+
+export interface AdminDashboardResponse {
+  employee_counts: { total: number; active: number; suspended: number; inactive: number };
+  role_counts: Record<string, number>;
+  department_count: number;
+  recently_active_employees: number;
+  complaints_today: number;
+  open_complaints: number;
+  escalated_complaints: number;
+  sla_breaches_today: number;
+  generated_at: string;
+}
+
+export interface AuditLogEntry {
+  id: string;
+  actor_employee_id: string | null;
+  actor_name: string | null;
+  action: string;
+  target_type: string | null;
+  target_id: string | null;
+  details: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export interface AuditLogListResponse {
+  items: AuditLogEntry[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface LoginHistoryEntry {
+  id: string;
+  employee_id: string | null;
+  actor_name: string | null;
+  action: string;
+  created_at: string;
+  details: Record<string, unknown> | null;
+}
+
+export interface LoginHistoryListResponse {
+  items: LoginHistoryEntry[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
 // ── Health ──────────────────────────────────────────────────────────────────
 
 export interface HealthResponse {
@@ -647,4 +762,5 @@ export interface RegulatoryKnowledgeSearchResponse {
   embedding_model: string;
   results: RegulatoryKnowledgeSearchResult[];
 }
+
 
