@@ -74,7 +74,7 @@ export function searchRegulatoryKnowledge(input: RegulatorySearchInput): Promise
       query: input.query,
       regulator: input.regulator || null,
       domain: input.domain?.trim() || null,
-      status: input.status || "draft",
+      status: input.status || null,
       limit: input.limit ?? 8,
       min_similarity: input.minSimilarity ?? 0,
     }),

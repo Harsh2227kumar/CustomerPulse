@@ -481,7 +481,7 @@ class RegulatoryKnowledgeSearchRequest(ComplianceBaseModel):
     query: str = Field(min_length=1, max_length=2000)
     regulator: ComplianceRegulator | None = None
     domain: str | None = Field(default=None, max_length=128)
-    status: str = Field(default="draft", max_length=32)
+    status: str | None = Field(default=None, max_length=32)
     effective_on: datetime | None = None
     limit: int = Field(default=5, ge=1, le=20)
     min_similarity: float = Field(default=0.0, ge=0, le=1)
@@ -522,4 +522,3 @@ class RegulatoryKnowledgeSearchResponse(ComplianceBaseModel):
     query: str
     embedding_model: str
     results: list[RegulatoryKnowledgeSearchResult]
-

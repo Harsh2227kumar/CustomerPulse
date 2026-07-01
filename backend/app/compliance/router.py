@@ -287,7 +287,7 @@ async def create_reason_code(
 @router.post("/regulatory-documents/upload", response_model=RegulatoryDocumentRead, status_code=201)
 async def upload_regulatory_document(
     file: UploadFile = File(...),
-    regulator: ComplianceRegulator = Form(default=ComplianceRegulator.RBI),
+    regulator: ComplianceRegulator = Form(...),
     document_title: str = Form(...),
     version: str = Form(...),
     effective_from: datetime | None = Form(default=None),
@@ -402,4 +402,3 @@ async def search_regulatory_knowledge(
         payload,
         settings=settings,
     )
-
