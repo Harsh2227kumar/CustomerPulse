@@ -2,7 +2,9 @@
 set -euo pipefail
 
 PROJECT_DIR="${PROJECT_DIR:-$HOME/CustomerPulse}"
-BRANCH="${BRANCH:-main}"
+BRANCH="${BRANCH:-final-temp}"
+COMPOSE_COMMAND="${COMPOSE_COMMAND:-docker compose}"
+read -r -a COMPOSE <<< "$COMPOSE_COMMAND"
 
 if [ ! -d "$PROJECT_DIR/.git" ]; then
   echo "PROJECT_DIR must point to a cloned CustomerPulse repository: $PROJECT_DIR" >&2
@@ -10,8 +12,12 @@ if [ ! -d "$PROJECT_DIR/.git" ]; then
 fi
 
 cd "$PROJECT_DIR"
-git fetch origin "$BRANCH"
-git checkout "$BRANCH"
+git fetch --prune origin "$BRANCH"
+if git show-ref --verify --quiet "refs/heads/$BRANCH"; then
+  git switch "$BRANCH"
+else
+  git switch --track -c "$BRANCH" "origin/$BRANCH"
+fi
 git pull --ff-only origin "$BRANCH"
 
 if [ ! -f ".env" ]; then
@@ -19,7 +25,7 @@ if [ ! -f ".env" ]; then
   exit 1
 fi
 
-docker compose build
-docker compose run --rm backend python -m app.db.setup --yes --verify-embedding
-docker compose up -d
-docker compose ps
+"${COMPOSE[@]}" build
+"${COMPOSE[@]}" run --rm backend python -m app.db.setup --yes --verify-embedding
+"${COMPOSE[@]}" up -d
+"${COMPOSE[@]}" ps

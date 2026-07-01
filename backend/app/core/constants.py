@@ -64,12 +64,16 @@ class ProcessingTrigger(StrEnum):
     IMPORTED_REQUEST = "imported_request"
     REVIEW_RERUN = "review_rerun"
     BATCH_PROCESSING = "batch_processing"
+    EMAIL_INTAKE = "email_intake"
+
 
 
 class Role(StrEnum):
     AGENT = "agent"
     MANAGER = "manager"
     ADMIN = "admin"
+    SUPER_ADMIN = "super_admin"
+
 
 
 class JobType(StrEnum):

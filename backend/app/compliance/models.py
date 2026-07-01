@@ -1,5 +1,6 @@
 from datetime import datetime
 from enum import StrEnum
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -229,6 +230,24 @@ class ComplianceRegulator(StrEnum):
     BANK_INTERNAL = "BANK_INTERNAL"
 
 
+class RegulatoryDocumentType(StrEnum):
+    PDF = "pdf"
+    DOCX = "docx"
+    TXT = "txt"
+    MARKDOWN = "markdown"
+    HTML = "html"
+
+
+class RegulatoryDocumentStatus(StrEnum):
+    UPLOADED = "uploaded"
+    PROCESSING = "processing"
+    INDEXED = "indexed"
+    REVIEW_REQUIRED = "review_required"
+    ACTIVE = "active"
+    ARCHIVED = "archived"
+    FAILED = "failed"
+
+
 class ComplianceRuleStatus(StrEnum):
     DRAFT = "draft"
     ACTIVE = "active"
@@ -346,3 +365,188 @@ class ReasonCodeListResponse(ComplianceBaseModel):
     offset: int
     count: int
 
+
+class RegulatoryDocumentBase(ComplianceBaseModel):
+    regulator: ComplianceRegulator
+    document_title: str = Field(min_length=1, max_length=255)
+    document_type: RegulatoryDocumentType
+    source_filename: str = Field(min_length=1, max_length=255)
+    source_url: str | None = Field(default=None, max_length=1000)
+    storage_path: str = Field(min_length=1, max_length=1000)
+    version: str = Field(min_length=1, max_length=64)
+    effective_from: datetime | None = None
+    effective_to: datetime | None = None
+    status: RegulatoryDocumentStatus = RegulatoryDocumentStatus.UPLOADED
+    uploaded_by: str | None = Field(default=None, max_length=128)
+
+    @field_validator("document_title", "source_filename", "source_url", "storage_path", "version", "uploaded_by")
+    @classmethod
+    def clean_document_strings(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        cleaned = value.strip()
+        if not cleaned:
+            return None
+        return cleaned
+
+    @field_validator("version")
+    @classmethod
+    def require_document_version(cls, value: str | None) -> str:
+        if value is None:
+            raise ValueError("version must not be blank")
+        return value
+
+    @model_validator(mode="after")
+    def validate_effective_window(self) -> "RegulatoryDocumentBase":
+        if self.effective_to and self.effective_from and self.effective_to < self.effective_from:
+            raise ValueError("effective_to must be on or after effective_from")
+        return self
+
+
+class RegulatoryDocumentCreate(RegulatoryDocumentBase):
+    status: RegulatoryDocumentStatus = RegulatoryDocumentStatus.UPLOADED
+
+
+class RegulatoryDocumentRead(RegulatoryDocumentBase):
+    id: str
+    uploaded_at: datetime
+    created_at: datetime
+    updated_at: datetime
+
+
+class RegulatoryDocumentListResponse(ComplianceBaseModel):
+    items: list[RegulatoryDocumentRead]
+    limit: int
+    offset: int
+    count: int
+
+
+class RegulatoryDocumentPageRead(ComplianceBaseModel):
+    id: str
+    document_id: str
+    page_number: int
+    raw_text: str
+    cleaned_text: str
+    markdown_text: str
+    extraction_status: str
+    created_at: datetime
+
+
+class RegulatoryDocumentMarkdownFileRead(ComplianceBaseModel):
+    id: str
+    document_id: str
+    markdown_path: str
+    conversion_tool: str
+    conversion_status: str
+    conversion_warnings: list[str]
+    created_at: datetime
+    updated_at: datetime
+
+
+class RegulatoryKnowledgeChunkRead(ComplianceBaseModel):
+    id: str
+    document_id: str
+    chunk_index: int
+    regulator: ComplianceRegulator
+    domain: str
+    section_reference: str | None = None
+    page_start: int | None = None
+    page_end: int | None = None
+    chunk_text: str
+    summary: str | None = None
+    keywords: list[str]
+    effective_from: datetime | None = None
+    effective_to: datetime | None = None
+    status: str
+    embedding_model: str | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+
+class RegulatoryKnowledgeChunkListResponse(ComplianceBaseModel):
+    items: list[RegulatoryKnowledgeChunkRead]
+    limit: int
+    offset: int
+    count: int
+
+
+class RegulatoryDocumentReviewRequest(ComplianceBaseModel):
+    action: Literal["activate", "request_changes", "archive"]
+    notes: str | None = Field(default=None, max_length=2000)
+
+    @field_validator("notes")
+    @classmethod
+    def clean_notes(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        cleaned = value.strip()
+        return cleaned or None
+
+
+class RegulatoryDocumentReviewResult(ComplianceBaseModel):
+    document: RegulatoryDocumentRead
+    chunks_updated: int = Field(ge=0)
+    chunk_status: str
+    notes: str | None = None
+
+class RegulatoryDocumentProcessResult(ComplianceBaseModel):
+    document: RegulatoryDocumentRead
+    markdown_file: RegulatoryDocumentMarkdownFileRead | None = None
+    pages_created: int = Field(ge=0)
+    chunks_created: int = Field(ge=0)
+    warnings: list[str] = Field(default_factory=list)
+
+
+class RegulatoryChunkEmbeddingBackfillResult(ComplianceBaseModel):
+    document_id: str | None = None
+    embedding_model: str
+    embedded_count: int = Field(ge=0)
+    skipped_count: int = Field(ge=0)
+
+
+class RegulatoryKnowledgeSearchRequest(ComplianceBaseModel):
+    query: str = Field(min_length=1, max_length=2000)
+    regulator: ComplianceRegulator | None = None
+    domain: str | None = Field(default=None, max_length=128)
+    status: str | None = Field(default=None, max_length=32)
+    effective_on: datetime | None = None
+    limit: int = Field(default=5, ge=1, le=20)
+    min_similarity: float = Field(default=0.0, ge=0, le=1)
+
+    @field_validator("query", "domain", "status")
+    @classmethod
+    def clean_search_strings(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        cleaned = value.strip()
+        return cleaned or None
+
+    @field_validator("domain")
+    @classmethod
+    def normalize_search_domain(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        return value.strip().lower().replace(" ", "_")
+
+
+class RegulatoryKnowledgeSearchResult(ComplianceBaseModel):
+    chunk_id: str
+    document_id: str
+    document_title: str | None = None
+    regulator: ComplianceRegulator
+    domain: str
+    section_reference: str | None = None
+    page_start: int | None = None
+    page_end: int | None = None
+    similarity_score: float = Field(ge=0, le=1)
+    chunk_text: str
+    keywords: list[str] = Field(default_factory=list)
+    effective_from: datetime | None = None
+    effective_to: datetime | None = None
+
+
+class RegulatoryKnowledgeSearchResponse(ComplianceBaseModel):
+    query: str
+    embedding_model: str
+    results: list[RegulatoryKnowledgeSearchResult]

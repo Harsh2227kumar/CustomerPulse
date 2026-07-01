@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     bedrock_region: str = Field(default="us-east-1", min_length=1)
     bedrock_model: str = Field(default="global.anthropic.claude-sonnet-4-6", min_length=1)
     bedrock_base_url: str | None = None
+    bedrock_verify_on_startup: bool = Field(default=True)
     s3_bucket_name: str | None = None
     cfpb_s3_key: str | None = None
     aws_region: str = Field(default="ap-south-1", min_length=1)
@@ -53,7 +54,20 @@ class Settings(BaseSettings):
     batch_process_limit: int = Field(default=50, ge=1, le=200)
     embedding_backfill_limit: int = Field(default=100, ge=1, le=500)
     job_worker_poll_seconds: float = Field(default=1.0, gt=0, le=30)
+    # Deprecated: use employees database and JWT authentication instead.
+    # Kept as fallback for existing tests.
     auth_users_json: str = "[]"
+
+    # Email Intake Configuration
+    email_intake_enabled: bool = Field(default=False)
+    email_intake_imap_server: str = Field(default="imap.gmail.com")
+    email_intake_imap_port: int = Field(default=993, ge=1, le=65535)
+    email_intake_email: str = Field(default="support.customerpulse@gmail.com")
+    email_intake_password: str = Field(default="")
+    email_intake_poll_interval_seconds: int = Field(default=300, ge=10, le=86400)
+
+    jwt_secret_key: str = Field(default="placeholder_secret_key_must_be_32_chars_long", min_length=32)
+    jwt_expiry_hours: int = 8
 
     @property
     def parsed_cors_origins(self) -> list[str]:
@@ -118,8 +132,23 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_service_settings(self) -> "Settings":
+        import os
+
         if not self.bedrock_api_key:
             raise ValueError("BEDROCK_API_KEY is required when AI_PROVIDER=bedrock")
+
+        # Require a real JWT secret in non-development, non-test environments.
+        _PLACEHOLDER = "placeholder_secret_key_must_be_32_chars_long"
+        _is_dev_or_test = (
+            self.environment == "development"
+            or "PYTEST_CURRENT_TEST" in os.environ
+        )
+        if not _is_dev_or_test and self.jwt_secret_key == _PLACEHOLDER:
+            raise ValueError(
+                "JWT_SECRET_KEY must be set to a real secret (not the placeholder) "
+                "in non-development environments."
+            )
+
         try:
             users = json.loads(self.auth_users_json)
         except json.JSONDecodeError as exc:
@@ -137,7 +166,15 @@ class Settings(BaseSettings):
             actor = user.get("actor", user["username"])
             if not isinstance(actor, str) or not actor.strip():
                 raise ValueError("AUTH_USERS_JSON users must include a valid actor")
+
+        if self.email_intake_enabled:
+            if not self.email_intake_email or not self.email_intake_email.strip():
+                raise ValueError("EMAIL_INTAKE_EMAIL must be provided when EMAIL_INTAKE_ENABLED is true")
+            if not self.email_intake_password or not self.email_intake_password.strip():
+                raise ValueError("EMAIL_INTAKE_PASSWORD must be provided when EMAIL_INTAKE_ENABLED is true")
+
         return self
+
 
 
 @lru_cache
