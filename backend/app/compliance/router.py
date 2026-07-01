@@ -292,7 +292,7 @@ async def upload_regulatory_document(
     version: str = Form(...),
     effective_from: datetime | None = Form(default=None),
     effective_to: datetime | None = Form(default=None),
-    principal: Principal = Depends(require_roles(Role.ADMIN)),
+    principal: Principal = Depends(require_roles(Role.ADMIN, Role.SUPER_ADMIN)),
     db: AsyncSession = Depends(get_db_session),
 ) -> RegulatoryDocumentRead:
     try:
@@ -316,7 +316,7 @@ async def upload_regulatory_document(
 @router.post("/regulatory-documents", response_model=RegulatoryDocumentRead, status_code=201)
 async def create_regulatory_document(
     payload: RegulatoryDocumentCreate,
-    principal: Principal = Depends(require_roles(Role.ADMIN)),
+    principal: Principal = Depends(require_roles(Role.ADMIN, Role.SUPER_ADMIN)),
     db: AsyncSession = Depends(get_db_session),
 ) -> RegulatoryDocumentRead:
     try:
@@ -336,7 +336,7 @@ async def list_regulatory_documents(
     regulator: ComplianceRegulator | None = Query(default=None),
     status: RegulatoryDocumentStatus | None = Query(default=None),
     document_type: RegulatoryDocumentType | None = Query(default=None),
-    _principal: Principal = Depends(require_roles(Role.ADMIN)),
+    _principal: Principal = Depends(require_roles(Role.ADMIN, Role.SUPER_ADMIN)),
     db: AsyncSession = Depends(get_db_session),
 ) -> RegulatoryDocumentListResponse:
     return await ComplianceKnowledgeBaseService().list_regulatory_documents(
@@ -352,7 +352,7 @@ async def list_regulatory_documents(
 @router.get("/regulatory-documents/{document_id}", response_model=RegulatoryDocumentRead)
 async def get_regulatory_document(
     document_id: str,
-    _principal: Principal = Depends(require_roles(Role.ADMIN)),
+    _principal: Principal = Depends(require_roles(Role.ADMIN, Role.SUPER_ADMIN)),
     db: AsyncSession = Depends(get_db_session),
 ) -> RegulatoryDocumentRead:
     try:
@@ -364,7 +364,7 @@ async def get_regulatory_document(
 @router.post("/regulatory-documents/{document_id}/process", response_model=RegulatoryDocumentProcessResult)
 async def process_regulatory_document(
     document_id: str,
-    _principal: Principal = Depends(require_roles(Role.ADMIN)),
+    _principal: Principal = Depends(require_roles(Role.ADMIN, Role.SUPER_ADMIN)),
     db: AsyncSession = Depends(get_db_session),
 ) -> RegulatoryDocumentProcessResult:
     try:
@@ -378,7 +378,7 @@ async def process_regulatory_document(
 async def embed_regulatory_document_chunks(
     document_id: str,
     limit: int = Query(default=100, ge=1, le=500),
-    _principal: Principal = Depends(require_roles(Role.ADMIN)),
+    _principal: Principal = Depends(require_roles(Role.ADMIN, Role.SUPER_ADMIN)),
     db: AsyncSession = Depends(get_db_session),
     settings: Settings = Depends(get_settings),
 ) -> RegulatoryChunkEmbeddingBackfillResult:
@@ -393,7 +393,7 @@ async def embed_regulatory_document_chunks(
 @router.post("/regulatory-search", response_model=RegulatoryKnowledgeSearchResponse)
 async def search_regulatory_knowledge(
     payload: RegulatoryKnowledgeSearchRequest,
-    _principal: Principal = Depends(require_roles(Role.ADMIN)),
+    _principal: Principal = Depends(require_roles(Role.ADMIN, Role.SUPER_ADMIN)),
     db: AsyncSession = Depends(get_db_session),
     settings: Settings = Depends(get_settings),
 ) -> RegulatoryKnowledgeSearchResponse:
@@ -402,3 +402,4 @@ async def search_regulatory_knowledge(
         payload,
         settings=settings,
     )
+

@@ -15,6 +15,9 @@ class InvalidEmbeddingError(EmbeddingError):
     pass
 
 
+_FAILED_MODELS: set[tuple[str, bool]] = set()
+
+
 @lru_cache(maxsize=4)
 def _load_model(model_name: str, local_files_only: bool):
     from sentence_transformers import SentenceTransformer
@@ -78,3 +81,5 @@ class EmbeddingService:
             vector[index] += sign * weight
         norm = math.sqrt(sum(value * value for value in vector)) or 1.0
         return [value / norm for value in vector]
+
+

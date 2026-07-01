@@ -726,6 +726,13 @@ export interface RegulatoryDocumentRead {
   updated_at: string;
 }
 
+export interface RegulatoryDocumentListResponse {
+  items: RegulatoryDocumentRead[];
+  limit: number;
+  offset: number;
+  count: number;
+}
+
 export interface RegulatoryDocumentProcessResult {
   document: RegulatoryDocumentRead;
   markdown_file: { id: string; document_id: string; markdown_path: string; conversion_tool: string; conversion_status: string; conversion_warnings: string[]; created_at: string; updated_at: string; } | null;
@@ -762,5 +769,6 @@ export interface RegulatoryKnowledgeSearchResponse {
   embedding_model: string;
   results: RegulatoryKnowledgeSearchResult[];
 }
+
 
 
