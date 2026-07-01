@@ -4,9 +4,16 @@ from app.compliance.explainability.evidence_mapper import (
     DEFAULT_RULE_FIELD_DEPENDENCIES,
     map_evidence,
 )
-from app.compliance.explainability.models import ComplianceExplanation, RuleExplanation
+from app.compliance.explainability.models import (
+    ComplianceExplanation,
+    ComplianceExplanationWithSources,
+    RegulatorySourceCitation,
+    RuleExplanation,
+)
 from app.compliance.explainability.risk_justifier import justify_risk
 from app.compliance.explainability.rule_explainer import explain_rule
+from app.compliance.models import RegulatoryKnowledgeSearchRequest
+from app.compliance.service import ComplianceKnowledgeBaseService
 
 
 def _coerce_dict(value: object) -> dict:
@@ -111,3 +118,83 @@ def generate_explanation(
             "evaluated_at": evaluated_at,
         },
     )
+
+
+async def generate_explanation_with_sources(
+    db,
+    compliance_result: dict,
+    complaint: dict,
+    *,
+    settings,
+    limit: int = 5,
+) -> ComplianceExplanationWithSources:
+    explanation = generate_explanation(compliance_result, complaint)
+    result = _coerce_dict(compliance_result)
+    query = _source_query(result, _normalize_complaint_payload(_coerce_dict(complaint)))
+    if not query.strip():
+        return ComplianceExplanationWithSources(
+            explanation=explanation,
+            regulatory_sources=[],
+            retrieval_query=query,
+            limitations=["No triggered rule or complaint evidence was available for source retrieval."],
+        )
+
+    search_response = await ComplianceKnowledgeBaseService().search_regulatory_knowledge(
+        db,
+        RegulatoryKnowledgeSearchRequest(
+            query=query,
+            regulator=None,
+            domain=None,
+            status=None,
+            limit=limit,
+            min_similarity=0.0,
+        ),
+        settings=settings,
+    )
+    rule_ids = [str(rule.get("rule_id")) for rule in result.get("triggered_rules", []) if rule.get("rule_id")]
+    return ComplianceExplanationWithSources(
+        explanation=explanation,
+        regulatory_sources=[
+            RegulatorySourceCitation(
+                chunk_id=item.chunk_id,
+                document_id=item.document_id,
+                document_title=item.document_title,
+                regulator=item.regulator,
+                domain=item.domain,
+                section_reference=item.section_reference,
+                page_start=item.page_start,
+                page_end=item.page_end,
+                similarity_score=item.similarity_score,
+                snippet=_bounded_snippet(item.chunk_text),
+                supports_rule_ids=rule_ids,
+            )
+            for item in search_response.results
+        ],
+        retrieval_query=query,
+        limitations=[
+            "Regulatory sources provide citation context only; deterministic rules decide compliance outcome."
+        ],
+    )
+
+
+def _source_query(result: dict, complaint: dict) -> str:
+    parts: list[str] = []
+    for rule in result.get("triggered_rules", []):
+        raw_rule = _coerce_dict(rule)
+        parts.append(str(raw_rule.get("rule_id") or ""))
+        parts.append(str(raw_rule.get("description") or ""))
+        evidence = raw_rule.get("evidence") or []
+        if isinstance(evidence, list):
+            parts.extend(str(item) for item in evidence[:4])
+    for field in ("product", "issue", "category", "narrative", "key_issue"):
+        value = complaint.get(field)
+        if value:
+            parts.append(str(value))
+    return " ".join(part.strip() for part in parts if part and part.strip())[:2000]
+
+
+def _bounded_snippet(text: str, limit: int = 700) -> str:
+    cleaned = " ".join(text.split())
+    if len(cleaned) <= limit:
+        return cleaned
+    return cleaned[: limit - 3].rstrip() + "..."

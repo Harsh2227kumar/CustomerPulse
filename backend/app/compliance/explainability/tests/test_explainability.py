@@ -1,12 +1,14 @@
 from datetime import datetime, timezone
+from types import SimpleNamespace
+from unittest.mock import AsyncMock
 
 import pytest
 
 from app.compliance.explainability.evidence_mapper import map_evidence
-from app.compliance.explainability.models import ComplianceExplanation
+from app.compliance.explainability.models import ComplianceExplanation, ComplianceExplanationWithSources
 from app.compliance.explainability.risk_justifier import justify_risk
 from app.compliance.explainability.rule_explainer import explain_rule
-from app.compliance.explainability.service import generate_explanation
+from app.compliance.explainability.service import generate_explanation, generate_explanation_with_sources
 
 
 NOW = datetime(2026, 1, 10, tzinfo=timezone.utc)
@@ -141,3 +143,49 @@ def test_full_pipeline() -> None:
     assert result.risk_justification.overall_risk_level == "critical"
     assert result.risk_justification.dominant_rule_id == "RBI-SLA-FRAUD-002"
     assert result.audit_metadata["engine_version"] == "1.0"
+
+@pytest.mark.asyncio
+async def test_generate_explanation_with_sources_attaches_regulatory_citations(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.compliance.explainability import service
+
+    search_result = SimpleNamespace(
+        results=[
+            SimpleNamespace(
+                chunk_id="chunk-1",
+                document_id="document-1",
+                document_title="RBI Fraud Reporting Guideline",
+                regulator="RBI",
+                domain="fraud_reporting",
+                section_reference="Section 4.1",
+                page_start=37,
+                page_end=38,
+                similarity_score=0.91,
+                chunk_text="Fraud reporting must be completed within the required regulatory timeline.",
+                keywords=["fraud", "reporting"],
+                effective_from=None,
+                effective_to=None,
+            )
+        ]
+    )
+    kb_service = SimpleNamespace(search_regulatory_knowledge=AsyncMock(return_value=search_result))
+    monkeypatch.setattr(service, "ComplianceKnowledgeBaseService", lambda: kb_service)
+
+    result = await generate_explanation_with_sources(
+        object(),
+        {
+            "complaint_id": "complaint-1",
+            "compliance_risk_level": "high",
+            "triggered_rules": [triggered_rule("RBI-FRAUD-001")],
+            "evaluated_at": NOW,
+            "engine_version": "1.0",
+            "rule_set_version": "2026.1",
+        },
+        {"complaint_id": "complaint-1", "category": "fraud", "issue": "unauthorized transfer"},
+        settings=SimpleNamespace(embedding_model="all-MiniLM-L6-v2", embedding_local_files_only=True),
+    )
+
+    assert isinstance(result, ComplianceExplanationWithSources)
+    assert result.regulatory_sources[0].document_title == "RBI Fraud Reporting Guideline"
+    assert result.regulatory_sources[0].supports_rule_ids == ["RBI-FRAUD-001"]
+    assert "deterministic rules decide" in result.limitations[0]
+

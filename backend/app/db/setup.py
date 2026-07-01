@@ -19,6 +19,10 @@ from app.models import (  # noqa: F401
     Complaint,
     ComplianceEvidenceRecord,
     ComplianceRuleRecord,
+    RegulatoryDocumentMarkdownFileRecord,
+    RegulatoryDocumentPageRecord,
+    RegulatoryDocumentRecord,
+    RegulatoryKnowledgeChunkRecord,
     ComplaintProcessingRun,
     DuplicateGroup,
     DuplicateMember,
@@ -124,9 +128,16 @@ EXPECTED_COMPLAINT_COLUMNS: dict[str, str] = {
     "updated_at": "TIMESTAMP WITH TIME ZONE",
 }
 REQUIRED_TABLES = (
+    "departments",
+    "employees",
+    "audit_logs",
     "reason_codes",
     "compliance_rules",
     "compliance_evidence_records",
+    "regulatory_documents",
+    "regulatory_document_pages",
+    "regulatory_document_markdown_files",
+    "regulatory_knowledge_chunks",
     "communication_history",
     "complaint_processing_runs",
     "agent_feedback",
@@ -683,3 +694,4 @@ async def main(argv: list[str] | None = None) -> None:
 
 if __name__ == "__main__":
     asyncio.run(main())
+

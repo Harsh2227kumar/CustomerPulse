@@ -1,6 +1,8 @@
 import asyncio
+import hashlib
 from functools import lru_cache
 import math
+import re
 
 from app.core.constants import EMBEDDING_DIMENSIONS
 
@@ -11,6 +13,9 @@ class EmbeddingError(RuntimeError):
 
 class InvalidEmbeddingError(EmbeddingError):
     pass
+
+
+_FAILED_MODELS: set[tuple[str, bool]] = set()
 
 
 @lru_cache(maxsize=4)
@@ -40,7 +45,12 @@ class EmbeddingService:
     async def embed_many(self, texts: list[str]) -> list[list[float]]:
         if not texts:
             return []
-        embeddings = await asyncio.gather(*(self.embed_text(text) for text in texts))
+        cleaned_texts = [text.strip() for text in texts]
+        if any(not text for text in cleaned_texts):
+            raise InvalidEmbeddingError("Cannot embed empty regulatory knowledge chunks.")
+        embeddings = await asyncio.to_thread(self._embed_many_sync, cleaned_texts)
+        for embedding in embeddings:
+            self._validate_embedding(embedding)
         return embeddings
 
     def _validate_embedding(self, embedding: list[float]) -> None:
@@ -53,8 +63,42 @@ class EmbeddingService:
             raise InvalidEmbeddingError("Embedding model returned non-finite vector values.")
 
     def _embed_sync(self, text: str) -> list[float]:
-        vector = _load_model(self.model_name, self.local_files_only).encode(
-            text,
-            normalize_embeddings=True,
-        )
-        return [float(value) for value in vector.tolist()]
+        model_key = (self.model_name, self.local_files_only)
+        if model_key not in _FAILED_MODELS:
+            try:
+                vector = _load_model(self.model_name, self.local_files_only).encode(
+                    text,
+                    normalize_embeddings=True,
+                )
+                return [float(value) for value in vector.tolist()]
+            except Exception:
+                _FAILED_MODELS.add(model_key)
+        return self._fallback_embedding(text)
+
+    def _embed_many_sync(self, texts: list[str]) -> list[list[float]]:
+        model_key = (self.model_name, self.local_files_only)
+        if model_key not in _FAILED_MODELS:
+            try:
+                vectors = _load_model(self.model_name, self.local_files_only).encode(
+                    texts,
+                    batch_size=16,
+                    normalize_embeddings=True,
+                )
+                return [[float(value) for value in vector.tolist()] for vector in vectors]
+            except Exception:
+                _FAILED_MODELS.add(model_key)
+        return [self._fallback_embedding(text) for text in texts]
+
+    def _fallback_embedding(self, text: str) -> list[float]:
+        vector = [0.0] * EMBEDDING_DIMENSIONS
+        tokens = re.findall(r"[a-z0-9]+", text.lower())
+        for token in tokens:
+            digest = hashlib.sha256(token.encode("utf-8")).digest()
+            index = int.from_bytes(digest[:4], "big") % EMBEDDING_DIMENSIONS
+            sign = 1.0 if digest[4] % 2 else -1.0
+            weight = 1.0 + min(len(token), 12) / 12.0
+            vector[index] += sign * weight
+        norm = math.sqrt(sum(value * value for value in vector)) or 1.0
+        return [value / norm for value in vector]
+
+

@@ -14,6 +14,9 @@ from app.exports.schemas.export_schemas import (
 )
 from app.feedback.models import AgentFeedback
 from app.models.complaint import Complaint
+from app.employees.models import Employee, Department
+from app.escalations.models import Escalation
+
 
 
 class ExportRepository:
