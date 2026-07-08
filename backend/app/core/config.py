@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     bedrock_model: str = Field(default="global.anthropic.claude-sonnet-4-6", min_length=1)
     bedrock_base_url: str | None = None
     bedrock_verify_on_startup: bool = Field(default=True)
+    skip_db_checks_on_startup: bool = Field(default=False)
     s3_bucket_name: str | None = None
     cfpb_s3_key: str | None = None
     aws_region: str = Field(default="ap-south-1", min_length=1)

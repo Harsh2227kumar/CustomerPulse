@@ -37,7 +37,10 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    await run_startup_checks(settings, prompt=True, verify_bedrock=settings.bedrock_verify_on_startup)
+    if not settings.skip_db_checks_on_startup:
+        await run_startup_checks(settings, prompt=True, verify_bedrock=settings.bedrock_verify_on_startup)
+    else:
+        logger.warning('Skipping database startup checks (SKIP_DB_CHECKS_ON_STARTUP=true)')
     if settings.embedding_verify_on_startup:
         await EmbeddingService(
             settings.embedding_model,
