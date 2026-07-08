@@ -32,7 +32,7 @@ import {
 import { downloadExport, getComplaints } from "@/lib/api/complaints";
 import { detectDuplicates, getDuplicateChannelComparison, listDuplicates, mergeDuplicate, rejectDuplicate } from "@/lib/api/duplicates";
 import { listFeedback } from "@/lib/api/feedback";
-import { createEmbeddingBackfillJob, createProcessingJob, listJobs, retryJob } from "@/lib/api/jobs";
+import { createEmbeddingBackfillJob, createProcessingJob, getContinuousProcessingStatus, listJobs, retryJob, startContinuousProcessing, stopContinuousProcessing } from "@/lib/api/jobs";
 import { getSlaBreachRisk, getSlaByChannel, getSlaByProduct, getSlaSummary, getSlaTrend, type SLAGroupSortBy, type SLATrendGranularity } from "@/lib/api/sla";
 import type {
   ChurnRisk,
@@ -41,6 +41,7 @@ import type {
   DuplicateGroupSummary,
   FeedbackRead,
   ProcessingJobResponse,
+  ContinuousProcessingStatus,
   Sentiment,
   SLABreachRiskResponse,
   SLAGroupedItem,
@@ -1115,6 +1116,16 @@ function FeedbackTab() {
 
 // ── AI Jobs & Backfill Tab ──────────────────────────────────────────────────
 
+
+function InfoChip({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{ minWidth: 0, padding: 10, background: "var(--color-surface-container)", border: "1px solid var(--color-outline-variant)", borderRadius: 6 }}>
+      <div style={{ fontSize: 10, textTransform: "uppercase", fontWeight: 700, color: "var(--color-on-surface-variant)", marginBottom: 4 }}>{label}</div>
+      <div title={value} style={{ fontSize: 12, fontWeight: 700, color: "var(--color-on-background)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{value}</div>
+    </div>
+  );
+}
+
 function JobsTab() {
   const [dispatchMode, setDispatchMode] = useState<"filter" | "manual">("filter");
   const [filterProduct, setFilterProduct] = useState("");
@@ -1134,6 +1145,11 @@ function JobsTab() {
   const [jobsHistory, setJobsHistory] = useState<ProcessingJobResponse[]>([]);
   const [expandedJobs, setExpandedJobs] = useState<Record<string, boolean>>({});
   const [retryingJob, setRetryingJob] = useState<string | null>(null);
+  const [continuousStatus, setContinuousStatus] = useState<ContinuousProcessingStatus | null>(null);
+  const [continuousLoading, setContinuousLoading] = useState(false);
+  const [continuousHistoryStatus, setContinuousHistoryStatus] = useState("");
+  const [continuousHistorySearch, setContinuousHistorySearch] = useState("");
+  const [continuousHistoryWindow, setContinuousHistoryWindow] = useState<"all" | "active" | "done" | "attention">("all");
 
   useEffect(() => {
     getSlaByProduct({ limit: 50 }).then(r => setProductOptions((r.items || []).map(i => i.product).filter(Boolean) as string[])).catch(() => {});
@@ -1156,10 +1172,15 @@ function JobsTab() {
     }).catch(() => null);
   }, []);
 
+  const reloadContinuousStatus = useCallback(() => {
+    getContinuousProcessingStatus().then(setContinuousStatus).catch(() => null);
+  }, []);
+
   useEffect(() => {
-    const t = setTimeout(() => { reloadJobs(); }, 0);
-    return () => clearTimeout(t);
-  }, [reloadJobs]);
+    const t = setTimeout(() => { reloadJobs(); reloadContinuousStatus(); }, 0);
+    const interval = setInterval(() => { reloadJobs(); reloadContinuousStatus(); }, 4000);
+    return () => { clearTimeout(t); clearInterval(interval); };
+  }, [reloadJobs, reloadContinuousStatus]);
 
   async function previewMatchingComplaints() {
     setPreviewLoading(true);
@@ -1260,6 +1281,34 @@ function JobsTab() {
     finally { setBackfillLoading(false); }
   }
 
+  async function handleContinuousStart() {
+    setContinuousLoading(true);
+    setJobError(null);
+    try {
+      const status = await startContinuousProcessing();
+      setContinuousStatus(status);
+      reloadJobs();
+    } catch (e) {
+      setJobError(e instanceof Error ? e.message : "Failed to start continuous AI processing");
+    } finally {
+      setContinuousLoading(false);
+    }
+  }
+
+  async function handleContinuousStop() {
+    setContinuousLoading(true);
+    setJobError(null);
+    try {
+      const status = await stopContinuousProcessing();
+      setContinuousStatus(status);
+      reloadJobs();
+    } catch (e) {
+      setJobError(e instanceof Error ? e.message : "Failed to stop continuous AI processing");
+    } finally {
+      setContinuousLoading(false);
+    }
+  }
+
   async function handleRetryJob(jobId: string, e: React.MouseEvent) {
     e.stopPropagation();
     setRetryingJob(jobId);
@@ -1273,8 +1322,115 @@ function JobsTab() {
     }
   }
 
+  const continuousHistory = (continuousStatus?.history ?? [])
+    .filter((item) => {
+      if (continuousHistoryStatus && item.status !== continuousHistoryStatus) return false;
+      if (continuousHistorySearch.trim() && !item.complaint_id.toLowerCase().includes(continuousHistorySearch.trim().toLowerCase())) return false;
+      if (continuousHistoryWindow === "active") return item.status === "queued" || item.status === "running";
+      if (continuousHistoryWindow === "done") return item.status === "completed" || item.status === "human_review";
+      if (continuousHistoryWindow === "attention") return item.status === "failed" || Boolean(item.error_message);
+      return true;
+    })
+    .slice(0, 10);
+
+  const continuousCounts = (continuousStatus?.history ?? []).reduce((acc, item) => {
+    acc.total += 1;
+    if (item.status === "queued" || item.status === "running") acc.active += 1;
+    if (item.status === "completed" || item.status === "human_review") acc.done += 1;
+    if (item.status === "failed" || item.error_message) acc.attention += 1;
+    return acc;
+  }, { total: 0, active: 0, done: 0, attention: 0 });
+
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "minmax(360px, 1fr) minmax(460px, 1.4fr)", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div className="card">
+        <div className="card-header" style={{ justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Sparkles size={16} style={{ color: "var(--color-primary)" }} />
+            <div>
+              <span style={{ fontWeight: 800 }}>Continuous Important AI Processing</span>
+              <p style={{ fontSize: 11, color: "var(--color-on-surface-variant)", marginTop: 2 }}>Processes urgent pending complaints one by one until stopped.</p>
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <Badge variant={continuousStatus?.running ? continuousStatus.stopping ? "warning" : "success" : "neutral"}>
+              {continuousStatus?.running ? continuousStatus.stopping ? "Stopping" : "Running" : "Stopped"}
+            </Badge>
+            <button className="btn-primary" style={{ height: 32, fontSize: 12, padding: "0 14px" }} onClick={handleContinuousStart} disabled={continuousLoading || Boolean(continuousStatus?.running)}>
+              {continuousLoading && !continuousStatus?.running ? <Loader2 size={13} className="animate-spin" /> : <Play size={13} />}
+              Start
+            </button>
+            <button className="btn-secondary" style={{ height: 32, fontSize: 12, padding: "0 14px", borderColor: continuousStatus?.running ? "var(--color-breach)" : undefined, color: continuousStatus?.running ? "var(--color-breach)" : undefined }} onClick={handleContinuousStop} disabled={continuousLoading || !continuousStatus?.running}>
+              {continuousLoading && continuousStatus?.running ? <Loader2 size={13} className="animate-spin" /> : <XCircle size={13} />}
+              Stop
+            </button>
+          </div>
+        </div>
+        <div style={{ padding: 16, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 420px), 1fr))", gap: 16, alignItems: "start" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10 }}>
+              <InfoChip label="Current" value={continuousStatus?.current_complaint_id ?? "-"} />
+              <InfoChip label="Processed" value={String(continuousStatus?.processed_count ?? 0)} />
+            </div>
+            <InfoChip label="Last update" value={continuousStatus?.last_message ?? "Not started"} />
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(72px, 1fr))", gap: 8 }}>
+              <InfoChip label="Rows" value={String(continuousCounts.total)} />
+              <InfoChip label="Active" value={String(continuousCounts.active)} />
+              <InfoChip label="Done" value={String(continuousCounts.done)} />
+              <InfoChip label="Issues" value={String(continuousCounts.attention)} />
+            </div>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, minWidth: 0 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <div>
+                <span style={{ fontSize: 13, fontWeight: 800 }}>Detailed History</span>
+                <span style={{ fontSize: 11, color: "var(--color-on-surface-variant)", marginLeft: 8 }}>Showing top 10 complaints after filters</span>
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <input className="form-input" placeholder="Search complaint ID" value={continuousHistorySearch} onChange={(e) => setContinuousHistorySearch(e.target.value)} style={{ width: 180, height: 32, fontSize: 12 }} />
+                <select className="form-select" value={continuousHistoryStatus} onChange={(e) => setContinuousHistoryStatus(e.target.value)} style={{ width: 145, height: 32, fontSize: 12 }}>
+                  <option value="">All statuses</option>
+                  <option value="queued">Queued</option>
+                  <option value="running">Running</option>
+                  <option value="completed">Completed</option>
+                  <option value="human_review">Human review</option>
+                  <option value="failed">Failed</option>
+                </select>
+                <select className="form-select" value={continuousHistoryWindow} onChange={(e) => setContinuousHistoryWindow(e.target.value as "all" | "active" | "done" | "attention")} style={{ width: 145, height: 32, fontSize: 12 }}>
+                  <option value="all">All history</option>
+                  <option value="active">Active only</option>
+                  <option value="done">Done only</option>
+                  <option value="attention">Needs attention</option>
+                </select>
+              </div>
+            </div>
+            <div style={{ overflowX: "auto", border: "1px solid var(--color-outline-variant)", borderRadius: 6 }}>
+              <table className="data-table" style={{ margin: 0 }}>
+                <thead>
+                  <tr><th>Complaint</th><th>Status</th><th>Attempts</th><th>Started</th><th>Finished</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  {continuousHistory.length === 0 ? (
+                    <tr><td colSpan={6} style={{ textAlign: "center", padding: 18, color: "var(--color-on-surface-variant)" }}>No complaints match the selected filters.</td></tr>
+                  ) : continuousHistory.map((item, idx) => (
+                    <tr key={`${item.job_id}-${item.complaint_id}-${idx}`}>
+                      <td><Link href={`/queue/${item.complaint_id}`} className="id-pill" style={{ textDecoration: "none", color: "var(--color-on-background)" }}>{item.complaint_id}</Link></td>
+                      <td><Badge variant={item.status === "completed" ? "success" : item.status === "failed" ? "danger" : item.status === "human_review" ? "warning" : "info"}>{humanize(item.status)}</Badge></td>
+                      <td>{item.attempt_count}</td>
+                      <td style={{ fontSize: 11, color: "var(--color-on-surface-variant)", whiteSpace: "nowrap" }}>{item.started_at ? formatRelative(item.started_at) : "-"}</td>
+                      <td style={{ fontSize: 11, color: "var(--color-on-surface-variant)", whiteSpace: "nowrap" }}>{item.finished_at ? formatDateTime(item.finished_at) : "-"}</td>
+                      <td style={{ fontSize: 11, color: item.error_message ? "var(--color-breach)" : "var(--color-on-surface-variant)", maxWidth: 260 }}>{item.error_message || "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(360px, 1fr) minmax(460px, 1.4fr)", gap: 16 }}>
       {/* Left Column: Job Dispatchers */}
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <div className="card">
@@ -1638,6 +1794,7 @@ function JobsTab() {
           </table>
         </div>
       </div>
+    </div>
     </div>
   );
 }
