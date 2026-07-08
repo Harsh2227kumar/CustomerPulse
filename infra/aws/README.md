@@ -98,8 +98,11 @@ Put `BEDROCK_API_KEY` in managed deployment secret storage when possible.
 ## Deploy
 
 ```bash
-PROJECT_DIR=$HOME/CustomerPulse BRANCH=feature/s3-cross-account-setup bash infra/aws/deploy.sh
+PROJECT_DIR=$HOME/CustomerPulse BRANCH=final-temp bash infra/aws/deploy.sh
 ```
+
+`BRANCH` defaults to `final-temp`, so it can be omitted when deploying the
+current active repo branch.
 
 ## Smoke Checks
 

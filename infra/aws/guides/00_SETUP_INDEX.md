@@ -80,7 +80,7 @@ guide instead.
 | --- | --- |
 | Backend S3/Athena API and Glue/Athena code templates | `feature/cfpb-s3-import-api` |
 | Frontend S3 Complaint Import page | `feature/frontend-dashboard` |
-| AWS setup documentation and infrastructure templates | `feature/s3-cross-account-setup` |
+| AWS setup documentation and infrastructure templates | `final-temp` |
 
 ## Security Rules
 

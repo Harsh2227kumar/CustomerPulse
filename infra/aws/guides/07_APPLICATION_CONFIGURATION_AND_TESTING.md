@@ -9,10 +9,10 @@ frontend without loading all complaints into PostgreSQL.
 | --- | --- |
 | Backend filtered S3/Athena import API | `feature/cfpb-s3-import-api` |
 | Frontend dashboard, import, and Operations page | integrated from `feature/frontend-dashboard` into `feature/cfpb-s3-import-api` |
-| AWS guides/templates | `feature/s3-cross-account-setup` |
+| AWS guides/templates | `final-temp` |
 
-The backend and frontend changes must be present in the application integration
-branch before running the whole feature together.
+The backend, frontend, and AWS changes must be present in `final-temp` before
+running the whole feature together.
 
 ## Backend `.env` Settings
 

@@ -1,0 +1,103 @@
+{
+  "sla_cases": [
+    {
+      "case_id": "sla_29_days_pass",
+      "complaint_id": "sla-pass-29",
+      "allowed_sla_days": 30,
+      "resolution_days": 29,
+      "expected_result": "PASS",
+      "expected_triggered_rules": []
+    },
+    {
+      "case_id": "sla_30_days_boundary_pass",
+      "complaint_id": "sla-pass-30",
+      "allowed_sla_days": 30,
+      "resolution_days": 30,
+      "expected_result": "PASS",
+      "expected_triggered_rules": []
+    },
+    {
+      "case_id": "sla_31_days_fail",
+      "complaint_id": "sla-fail-31",
+      "allowed_sla_days": 30,
+      "resolution_days": null,
+      "days_elapsed": 31,
+      "expected_result": "FAIL",
+      "expected_triggered_rules": ["RBI-RES-030"]
+    },
+    {
+      "case_id": "sla_missing_resolution_review",
+      "complaint_id": "sla-review-missing-resolution",
+      "allowed_sla_days": 30,
+      "resolution_days": null,
+      "days_elapsed": 30,
+      "expected_result": "UNDER_REVIEW",
+      "expected_triggered_rules": []
+    }
+  ],
+  "fraud_cases": [
+    {
+      "case_id": "fraud_report_on_time",
+      "complaint_id": "fraud-pass-on-time",
+      "issue": "Unauthorized transaction",
+      "fraud_risk_score": 82,
+      "sla_breached": false,
+      "expected_result": "PASS",
+      "expected_triggered_rules": ["RBI-FRAUD-001"]
+    },
+    {
+      "case_id": "fraud_report_delayed",
+      "complaint_id": "fraud-fail-delayed",
+      "issue": "Unauthorized transaction and fraud claim",
+      "fraud_risk_score": 90,
+      "sla_breached": true,
+      "days_elapsed": 35,
+      "expected_result": "FAIL",
+      "expected_triggered_rules": ["RBI-FRAUD-001", "RBI-SLA-FRAUD-002"]
+    },
+    {
+      "case_id": "fraud_report_missing_information",
+      "complaint_id": "fraud-review-missing-info",
+      "issue": "Customer reports account problem",
+      "fraud_risk_score": null,
+      "sla_breached": false,
+      "expected_result": "UNDER_REVIEW",
+      "expected_triggered_rules": []
+    }
+  ],
+  "kyc_cases": [
+    {
+      "case_id": "kyc_valid_placeholder",
+      "expected_result": "PASS",
+      "implementation_status": "implemented_in_current_rule_registry"
+    },
+    {
+      "case_id": "kyc_overdue_placeholder",
+      "expected_result": "FAIL",
+      "implementation_status": "implemented_in_current_rule_registry"
+    },
+    {
+      "case_id": "kyc_missing_placeholder",
+      "expected_result": "UNDER_REVIEW",
+      "implementation_status": "implemented_in_current_rule_registry"
+    }
+  ],
+  "documentation_cases": [
+    {
+      "case_id": "documents_complete_placeholder",
+      "expected_result": "PASS",
+      "implementation_status": "implemented_in_current_rule_registry"
+    },
+    {
+      "case_id": "required_document_missing_placeholder",
+      "expected_result": "FAIL",
+      "implementation_status": "implemented_in_current_rule_registry"
+    },
+    {
+      "case_id": "evidence_package_incomplete_placeholder",
+      "expected_result": "FAIL",
+      "implementation_status": "implemented_in_current_rule_registry"
+    }
+  ]
+}
+
