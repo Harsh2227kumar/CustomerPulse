@@ -27,5 +27,6 @@ fi
 
 "${COMPOSE[@]}" build
 "${COMPOSE[@]}" run --rm backend python -m app.db.setup --yes --verify-embedding
+"${COMPOSE[@]}" run --rm backend python scripts/seed_admin.py
 "${COMPOSE[@]}" up -d
 "${COMPOSE[@]}" ps
