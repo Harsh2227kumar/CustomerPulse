@@ -3,12 +3,17 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import ValidationError
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.constants import ChurnRisk, ProcessingStatus, ReviewReason, Role, Sentiment
+from app.core.config import Settings, get_settings
 from app.core.security import Principal, require_roles
 from app.db.session import get_db_session
-from app.schemas.complaint import ComplaintAssignRequest, ComplaintDetail, ComplaintFilters, ComplaintListResponse
+from app.compliance.explainability.service import generate_explanation_with_sources
+from app.compliance.service import ComplianceEvidenceService
+from app.models.complaint import Complaint
+from app.schemas.complaint import ComplaintAssignRequest, ComplaintComplianceExplanationResponse, ComplaintDetail, ComplaintFilters, ComplaintListResponse
 from app.services.complaint_service import ComplaintService
 
 router = APIRouter(prefix="/api", tags=["complaints"])
@@ -84,6 +89,71 @@ async def get_complaint_categories() -> list[str]:
     from app.ai.ml_models.classifier import STANDARD_CATEGORIES
     return STANDARD_CATEGORIES
 
+
+
+@router.get("/complaints/{complaint_id}/compliance-explanation", response_model=ComplaintComplianceExplanationResponse)
+async def get_complaint_compliance_explanation(
+    complaint_id: str,
+    limit: int = Query(default=5, ge=1, le=20),
+    db: AsyncSession = Depends(get_db_session),
+    settings: Settings = Depends(get_settings),
+) -> ComplaintComplianceExplanationResponse:
+    complaint = (
+        await db.execute(
+            select(Complaint).where(
+                or_(Complaint.source_complaint_id == complaint_id, Complaint.id == complaint_id)
+            )
+        )
+    ).scalar_one_or_none()
+    if complaint is None:
+        raise HTTPException(status_code=404, detail="Complaint not found.")
+
+    evidence_service = ComplianceEvidenceService()
+    records, count = await evidence_service.list_records(
+        db,
+        limit=1,
+        offset=0,
+        complaint_id=complaint.id,
+    )
+    if not count and complaint.source_complaint_id:
+        records, count = await evidence_service.list_records(
+            db,
+            limit=1,
+            offset=0,
+            complaint_id=complaint.source_complaint_id,
+        )
+
+    if not count or not records:
+        return ComplaintComplianceExplanationResponse(
+            available=False,
+            message="No stored compliance evidence exists for this complaint yet. Process or re-run the complaint to trigger compliance evaluation.",
+            complaint_id=complaint.source_complaint_id or complaint.id,
+        )
+
+    evidence_record = records[0]
+    complaint_payload = {
+        key: value
+        for key, value in complaint.__dict__.items()
+        if not key.startswith("_")
+    }
+    explanation = await generate_explanation_with_sources(
+        db,
+        evidence_record.result.model_dump(mode="json"),
+        complaint_payload,
+        settings=settings,
+        limit=limit,
+    )
+    return ComplaintComplianceExplanationResponse(
+        available=True,
+        message="Compliance evidence and regulatory source citations are available for this complaint.",
+        complaint_id=complaint.source_complaint_id or complaint.id,
+        evidence_record_id=evidence_record.id,
+        risk_level=evidence_record.risk_level,
+        regulatory_flag=evidence_record.regulatory_flag,
+        required_action=evidence_record.required_action,
+        evaluated_at=evidence_record.evaluated_at,
+        explanation_with_sources=explanation,
+    )
 
 @router.get("/complaints/{complaint_id}", response_model=ComplaintDetail)
 async def get_complaint_detail(

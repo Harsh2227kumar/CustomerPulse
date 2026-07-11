@@ -31,3 +31,24 @@ class ComplianceExplanation(ExplainabilityBaseModel):
     rule_explanations: list[RuleExplanation]
     risk_justification: RiskJustification
     audit_metadata: dict[str, Any]
+
+
+class RegulatorySourceCitation(ExplainabilityBaseModel):
+    chunk_id: str = Field(min_length=1)
+    document_id: str = Field(min_length=1)
+    document_title: str | None = None
+    regulator: str = Field(min_length=1)
+    domain: str = Field(min_length=1)
+    section_reference: str | None = None
+    page_start: int | None = None
+    page_end: int | None = None
+    similarity_score: float = Field(ge=0, le=1)
+    snippet: str = Field(min_length=1)
+    supports_rule_ids: list[str] = Field(default_factory=list)
+
+
+class ComplianceExplanationWithSources(ExplainabilityBaseModel):
+    explanation: ComplianceExplanation
+    regulatory_sources: list[RegulatorySourceCitation]
+    retrieval_query: str
+    limitations: list[str] = Field(default_factory=list)

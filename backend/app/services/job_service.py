@@ -2,7 +2,7 @@ import asyncio
 from datetime import UTC, datetime
 import logging
 
-from sqlalchemy import func, or_, select, update
+from sqlalchemy import desc, func, nullslast, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings
@@ -22,6 +22,7 @@ from app.schemas.jobs import (
     JobItemResponse,
     JobListResponse,
     ProcessingJobResponse,
+    ContinuousProcessingStatus,
 )
 from app.services.processing_service import ComplaintNotFoundError, ProcessingService
 
@@ -360,15 +361,165 @@ class JobService:
             finished_at=job.finished_at,
             items=[
                 JobItemResponse(
+                    job_id=item.job_id,
                     complaint_id=item.complaint_id,
                     status=item.status,
                     attempt_count=item.attempt_count,
                     error_message=item.error_message,
                     attempt_history=item.attempt_history or [],
+                    started_at=item.started_at,
+                    finished_at=item.finished_at,
                 )
                 for item in items
             ],
         )
+
+
+class ContinuousAIProcessor:
+    _task: asyncio.Task[None] | None = None
+    _stop_requested = False
+    _current_job_id: str | None = None
+    _current_complaint_id: str | None = None
+    _processed_count = 0
+    _last_message: str | None = "Continuous AI processor is stopped."
+    _actor = "continuous_ai_processor"
+
+    @classmethod
+    async def start(cls, settings: Settings) -> ContinuousProcessingStatus:
+        if cls._task is not None and not cls._task.done():
+            return await cls.status()
+        cls._stop_requested = False
+        cls._processed_count = 0
+        cls._last_message = "Continuous AI processor started."
+        cls._task = asyncio.create_task(cls._run(settings))
+        return await cls.status()
+
+    @classmethod
+    async def stop(cls) -> ContinuousProcessingStatus:
+        cls._stop_requested = True
+        if cls._task is None or cls._task.done():
+            cls._last_message = "Continuous AI processor is stopped."
+        else:
+            cls._last_message = "Stop requested. Current complaint will finish before the processor stops."
+        return await cls.status()
+
+    @classmethod
+    async def status(cls) -> ContinuousProcessingStatus:
+        running = cls._task is not None and not cls._task.done()
+        async with AsyncSessionLocal() as db:
+            history = await cls._history(db)
+        return ContinuousProcessingStatus(
+            running=running,
+            stopping=cls._stop_requested and running,
+            current_job_id=cls._current_job_id if running else None,
+            current_complaint_id=cls._current_complaint_id if running else None,
+            processed_count=cls._processed_count,
+            last_message=cls._last_message,
+            history=history,
+        )
+
+    @classmethod
+    async def _run(cls, settings: Settings) -> None:
+        while not cls._stop_requested:
+            service = JobService(settings)
+            try:
+                async with AsyncSessionLocal() as db:
+                    complaint = await cls._next_important_complaint(db)
+                    if complaint is None:
+                        cls._last_message = "No important pending complaints are available."
+                        break
+                    identifier = complaint.source_complaint_id or complaint.id
+                    cls._current_complaint_id = identifier
+                    job = await service._create_job(
+                        db,
+                        JobType.PROCESS_COMPLAINTS,
+                        [identifier],
+                        cls._actor,
+                    )
+                    cls._current_job_id = job.job_id
+                    cls._last_message = f"Processing important complaint {identifier}."
+                await cls._wait_for_job(settings, cls._current_job_id)
+                cls._processed_count += 1
+            except Exception:
+                logger.exception("Continuous AI processor failed.")
+                cls._last_message = "Continuous AI processor failed; restart is available."
+                break
+            finally:
+                service.close()
+                cls._current_job_id = None
+                cls._current_complaint_id = None
+        if cls._stop_requested:
+            cls._last_message = "Continuous AI processor stopped."
+        cls._stop_requested = False
+
+    @classmethod
+    async def _next_important_complaint(cls, db: AsyncSession) -> Complaint | None:
+        active_identifiers = (
+            await db.execute(
+                select(ProcessingJobItem.complaint_id)
+                .join(ProcessingJob, ProcessingJob.id == ProcessingJobItem.job_id)
+                .where(
+                    ProcessingJob.job_type == JobType.PROCESS_COMPLAINTS.value,
+                    ProcessingJob.status.in_([JobStatus.QUEUED.value, JobStatus.RUNNING.value]),
+                )
+            )
+        ).scalars().all()
+        active = set(active_identifiers)
+        stmt = (
+            select(Complaint)
+            .where(Complaint.ai_status.in_([ProcessingStatus.PENDING.value, ProcessingStatus.FAILED.value]))
+            .order_by(nullslast(desc(Complaint.urgency_score)), desc(Complaint.created_at))
+            .limit(25)
+        )
+        candidates = (await db.execute(stmt)).scalars().all()
+        for complaint in candidates:
+            identifiers = {complaint.id}
+            if complaint.source_complaint_id:
+                identifiers.add(complaint.source_complaint_id)
+            if not identifiers.intersection(active):
+                return complaint
+        return None
+
+    @classmethod
+    async def _wait_for_job(cls, settings: Settings, job_id: str | None) -> None:
+        if job_id is None:
+            return
+        terminal = {
+            JobStatus.COMPLETED.value,
+            JobStatus.COMPLETED_WITH_ERRORS.value,
+            JobStatus.FAILED.value,
+        }
+        while True:
+            async with AsyncSessionLocal() as db:
+                job = await db.get(ProcessingJob, job_id)
+                if job is None or job.status in terminal:
+                    return
+            await asyncio.sleep(settings.job_worker_poll_seconds)
+
+    @classmethod
+    async def _history(cls, db: AsyncSession) -> list[JobItemResponse]:
+        items = (
+            await db.execute(
+                select(ProcessingJobItem)
+                .join(ProcessingJob, ProcessingJob.id == ProcessingJobItem.job_id)
+                .where(ProcessingJob.created_by == cls._actor)
+                .order_by(desc(ProcessingJob.created_at), desc(ProcessingJobItem.started_at), desc(ProcessingJobItem.id))
+                .limit(50)
+            )
+        ).scalars().all()
+        return [
+            JobItemResponse(
+                job_id=item.job_id,
+                complaint_id=item.complaint_id,
+                status=item.status,
+                attempt_count=item.attempt_count,
+                error_message=item.error_message,
+                attempt_history=item.attempt_history or [],
+                started_at=item.started_at,
+                finished_at=item.finished_at,
+            )
+            for item in items
+        ]
 
 
 class ProcessingJobWorker:
@@ -398,3 +549,4 @@ class ProcessingJobWorker:
 
     def stop(self) -> None:
         self._stopped.set()
+

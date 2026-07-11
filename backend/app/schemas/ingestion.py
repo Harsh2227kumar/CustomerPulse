@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -92,8 +92,6 @@ class S3ImportResponse(BaseModel):
     logs: list[S3ImportLog]
 
 
-from typing import Any
-
 class ImportAuditLogItem(BaseModel):
     id: str
     actor: str
@@ -115,4 +113,14 @@ class ImportAuditLogItem(BaseModel):
 class ImportAuditLogListResponse(BaseModel):
     items: list[ImportAuditLogItem]
     count: int
+
+
+class EmailSyncResponse(BaseModel):
+    status: str
+    scanned_emails: int
+    imported_emails: int
+    skipped_emails: int
+    failed_emails: int
+    error_message: str | None = None
+
 

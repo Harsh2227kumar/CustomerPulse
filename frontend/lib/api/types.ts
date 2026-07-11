@@ -35,8 +35,127 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
-  api_key: string;
-  user: UserProfile;
+  api_key?: string | null;
+  user?: UserProfile | null;
+  access_token?: string | null;
+  role?: string | null;
+  employee_id?: string | null;
+  must_change_password?: boolean | null;
+}
+
+
+// ── Admin / Employee Management ────────────────────────────────────────────
+
+export type EmployeeRole = "agent" | "manager" | "admin" | "super_admin";
+export type EmployeeStatus = "active" | "suspended" | "inactive";
+
+export interface EmployeeRead {
+  id: string;
+  employee_id: string;
+  name: string;
+  email: string;
+  role: EmployeeRole;
+  department_id: string | null;
+  reports_to: string | null;
+  status: EmployeeStatus;
+  must_change_password: boolean;
+  created_at: string;
+  created_by: string | null;
+  updated_at: string;
+}
+
+export interface EmployeeListResponse {
+  items: EmployeeRead[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface EmployeeCreateRequest {
+  name: string;
+  email: string;
+  password: string;
+  role: EmployeeRole;
+  department_id?: string | null;
+  reports_to?: string | null;
+}
+
+export interface EmployeeUpdateRequest {
+  name?: string;
+  email?: string;
+  role?: EmployeeRole;
+  department_id?: string | null;
+  reports_to?: string | null;
+}
+
+export interface DepartmentRead {
+  id: string;
+  name: string;
+  code: string;
+  created_at: string;
+  employee_count: number;
+}
+
+export interface DepartmentListResponse {
+  items: DepartmentRead[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface DepartmentCreateRequest {
+  name: string;
+  code: string;
+}
+
+export interface ResetPasswordResponse {
+  temporary_password: string;
+}
+
+export interface AdminDashboardResponse {
+  employee_counts: { total: number; active: number; suspended: number; inactive: number };
+  role_counts: Record<string, number>;
+  department_count: number;
+  recently_active_employees: number;
+  complaints_today: number;
+  open_complaints: number;
+  escalated_complaints: number;
+  sla_breaches_today: number;
+  generated_at: string;
+}
+
+export interface AuditLogEntry {
+  id: string;
+  actor_employee_id: string | null;
+  actor_name: string | null;
+  action: string;
+  target_type: string | null;
+  target_id: string | null;
+  details: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export interface AuditLogListResponse {
+  items: AuditLogEntry[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface LoginHistoryEntry {
+  id: string;
+  employee_id: string | null;
+  actor_name: string | null;
+  action: string;
+  created_at: string;
+  details: Record<string, unknown> | null;
+}
+
+export interface LoginHistoryListResponse {
+  items: LoginHistoryEntry[];
+  total: number;
+  limit: number;
+  offset: number;
 }
 
 // ── Health ──────────────────────────────────────────────────────────────────
@@ -118,6 +237,63 @@ export interface ComplaintListItem {
   assigned_agent_id?: string | null;
 }
 
+export interface RuleExplanation {
+  rule_id: string;
+  rule_description: string;
+  why_triggered: string;
+  complaint_fields_used: string[];
+  evidence_snippets: string[];
+  confidence: "high" | "medium" | "low";
+  triggered_at: string;
+}
+
+export interface RiskJustification {
+  overall_risk_level: "low" | "medium" | "high" | "critical";
+  reason_summary: string;
+  contributing_factors: string[];
+  dominant_rule_id: string;
+}
+
+export interface RegulatorySourceCitation {
+  chunk_id: string;
+  document_id: string;
+  document_title: string | null;
+  regulator: string;
+  domain: string;
+  section_reference: string | null;
+  page_start: number | null;
+  page_end: number | null;
+  similarity_score: number;
+  snippet: string;
+  supports_rule_ids: string[];
+}
+
+export interface ComplianceExplanation {
+  complaint_id: string;
+  evaluated_at: string;
+  rule_explanations: RuleExplanation[];
+  risk_justification: RiskJustification;
+  audit_metadata: Record<string, unknown>;
+}
+
+export interface ComplianceExplanationWithSources {
+  explanation: ComplianceExplanation;
+  regulatory_sources: RegulatorySourceCitation[];
+  retrieval_query: string;
+  limitations: string[];
+}
+
+export interface ComplaintComplianceExplanationResponse {
+  available: boolean;
+  message: string;
+  complaint_id: string;
+  evidence_record_id: string | null;
+  risk_level: string | null;
+  regulatory_flag: boolean | null;
+  required_action: string | null;
+  evaluated_at: string | null;
+  explanation_with_sources: ComplianceExplanationWithSources | null;
+}
 export interface ComplaintDetail extends ComplaintListItem {
   reviewed_at: string | null;
   reviewer: string | null;
@@ -212,11 +388,14 @@ export interface JobCounts {
 }
 
 export interface JobItemResponse {
+  job_id?: string | null;
   complaint_id: string;
   status: string;
   attempt_count: number;
   error_message: string | null;
   attempt_history: Record<string, unknown>[];
+  started_at?: string | null;
+  finished_at?: string | null;
 }
 
 export interface ProcessingJobResponse {
@@ -237,6 +416,16 @@ export interface JobListResponse {
   total_count: number;
   limit: number;
   offset: number;
+}
+
+export interface ContinuousProcessingStatus {
+  running: boolean;
+  stopping: boolean;
+  current_job_id: string | null;
+  current_complaint_id: string | null;
+  processed_count: number;
+  last_message: string | null;
+  history: JobItemResponse[];
 }
 
 export interface JobListResponse {
@@ -391,7 +580,7 @@ export interface SLABreachRiskItem {
   urgency_score: number | null;
   churn_risk: ChurnRisk | null;
   processed_at: string | null;
-  created_at: string;
+  created_at: string | null;
 }
 
 export interface SLABreachRiskResponse {
@@ -583,3 +772,106 @@ export interface WebSocketMessage {
   payload: Record<string, unknown>;
   timestamp: string;
 }
+
+// ── Regulatory RAG ─────────────────────────────────────────────────────────
+
+export type ComplianceRegulator = "RBI" | "NPCI" | "SEBI" | "IRDAI" | "BANK_INTERNAL";
+export type RegulatoryDocumentStatus = "uploaded" | "processing" | "indexed" | "review_required" | "active" | "archived" | "failed";
+
+export interface RegulatoryDocumentRead {
+  id: string;
+  regulator: ComplianceRegulator;
+  document_title: string;
+  document_type: string;
+  source_filename: string;
+  source_url: string | null;
+  storage_path: string;
+  version: string;
+  effective_from: string | null;
+  effective_to: string | null;
+  status: RegulatoryDocumentStatus;
+  uploaded_by: string | null;
+  uploaded_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RegulatoryDocumentListResponse {
+  items: RegulatoryDocumentRead[];
+  limit: number;
+  offset: number;
+  count: number;
+}
+
+export interface RegulatoryKnowledgeChunkRead {
+  id: string;
+  document_id: string;
+  chunk_index: number;
+  regulator: ComplianceRegulator;
+  domain: string;
+  section_reference: string | null;
+  page_start: number | null;
+  page_end: number | null;
+  chunk_text: string;
+  summary: string | null;
+  keywords: string[];
+  effective_from: string | null;
+  effective_to: string | null;
+  status: "draft" | "active" | "archived";
+  embedding_model: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RegulatoryKnowledgeChunkListResponse {
+  items: RegulatoryKnowledgeChunkRead[];
+  limit: number;
+  offset: number;
+  count: number;
+}
+
+export interface RegulatoryDocumentReviewResult {
+  document: RegulatoryDocumentRead;
+  chunks_updated: number;
+  chunk_status: "draft" | "active" | "archived";
+  notes: string | null;
+}
+export interface RegulatoryDocumentProcessResult {
+  document: RegulatoryDocumentRead;
+  markdown_file: { id: string; document_id: string; markdown_path: string; conversion_tool: string; conversion_status: string; conversion_warnings: string[]; created_at: string; updated_at: string; } | null;
+  pages_created: number;
+  chunks_created: number;
+  warnings: string[];
+}
+
+export interface RegulatoryChunkEmbeddingBackfillResult {
+  document_id: string | null;
+  embedding_model: string;
+  embedded_count: number;
+  skipped_count: number;
+}
+
+export interface RegulatoryKnowledgeSearchResult {
+  chunk_id: string;
+  document_id: string;
+  document_title: string | null;
+  regulator: ComplianceRegulator;
+  domain: string;
+  section_reference: string | null;
+  page_start: number | null;
+  page_end: number | null;
+  similarity_score: number;
+  chunk_text: string;
+  keywords: string[];
+  effective_from: string | null;
+  effective_to: string | null;
+}
+
+export interface RegulatoryKnowledgeSearchResponse {
+  query: string;
+  embedding_model: string;
+  results: RegulatoryKnowledgeSearchResult[];
+}
+
+
+

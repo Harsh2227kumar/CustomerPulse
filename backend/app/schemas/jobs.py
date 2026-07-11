@@ -16,11 +16,14 @@ class JobCounts(BaseModel):
 
 
 class JobItemResponse(BaseModel):
+    job_id: str | None = None
     complaint_id: str
     status: str
     attempt_count: int
     error_message: str | None = None
     attempt_history: list[dict] = Field(default_factory=list)
+    started_at: datetime | None = None
+    finished_at: datetime | None = None
 
 
 class ProcessingJobResponse(BaseModel):
@@ -41,5 +44,15 @@ class JobListResponse(BaseModel):
     total_count: int
     limit: int
     offset: int
+
+
+class ContinuousProcessingStatus(BaseModel):
+    running: bool
+    stopping: bool = False
+    current_job_id: str | None = None
+    current_complaint_id: str | None = None
+    processed_count: int = 0
+    last_message: str | None = None
+    history: list[JobItemResponse] = Field(default_factory=list)
 
 

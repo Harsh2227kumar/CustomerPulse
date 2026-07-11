@@ -1,5 +1,5 @@
 import { request } from "./client";
-import type { JobListResponse, ProcessingJobResponse } from "./types";
+import type { ContinuousProcessingStatus, JobListResponse, ProcessingJobResponse } from "./types";
 
 export interface JobListParams {
   limit?: number;
@@ -49,3 +49,20 @@ export function retryJob(jobId: string): Promise<ProcessingJobResponse> {
   );
 }
 
+
+
+export function getContinuousProcessingStatus(): Promise<ContinuousProcessingStatus> {
+  return request<ContinuousProcessingStatus>("/api/jobs/continuous/status");
+}
+
+export function startContinuousProcessing(): Promise<ContinuousProcessingStatus> {
+  return request<ContinuousProcessingStatus>("/api/jobs/continuous/start", {
+    method: "POST",
+  });
+}
+
+export function stopContinuousProcessing(): Promise<ContinuousProcessingStatus> {
+  return request<ContinuousProcessingStatus>("/api/jobs/continuous/stop", {
+    method: "POST",
+  });
+}

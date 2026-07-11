@@ -56,7 +56,11 @@ export default function LoginPage() {
 
     try {
       const response = await login({ username: username.trim(), password });
-      await auth.authenticate(response.api_key);
+      const bearer = response.api_key ?? response.access_token;
+      if (!bearer) {
+        throw new Error("Login succeeded but no bearer token was returned.");
+      }
+      await auth.authenticate(bearer);
       router.replace("/dashboard");
     } catch (err: unknown) {
       const message =

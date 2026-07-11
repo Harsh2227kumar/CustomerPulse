@@ -5,8 +5,8 @@ from app.core.config import Settings, get_settings
 from app.core.constants import JobStatus, JobType, Role
 from app.core.security import Principal, require_roles
 from app.db.session import get_db_session
-from app.schemas.jobs import CreateProcessingJobRequest, JobListResponse, ProcessingJobResponse
-from app.services.job_service import JobNotFoundError, JobRequestError, JobService
+from app.schemas.jobs import CreateProcessingJobRequest, JobListResponse, ProcessingJobResponse, ContinuousProcessingStatus
+from app.services.job_service import ContinuousAIProcessor, JobNotFoundError, JobRequestError, JobService
 
 
 router = APIRouter(prefix="/api/jobs", tags=["jobs"])
@@ -21,7 +21,7 @@ async def create_processing_job(
     request: CreateProcessingJobRequest,
     db: AsyncSession = Depends(get_db_session),
     settings: Settings = Depends(get_settings),
-    principal: Principal = Depends(require_roles(Role.MANAGER, Role.ADMIN)),
+    principal: Principal = Depends(require_roles(Role.AGENT, Role.MANAGER, Role.ADMIN)),
 ) -> ProcessingJobResponse:
     service = JobService(settings)
     try:
@@ -42,7 +42,7 @@ async def create_processing_job(
 async def create_embedding_backfill_job(
     db: AsyncSession = Depends(get_db_session),
     settings: Settings = Depends(get_settings),
-    principal: Principal = Depends(require_roles(Role.MANAGER, Role.ADMIN)),
+    principal: Principal = Depends(require_roles(Role.AGENT, Role.MANAGER, Role.ADMIN)),
 ) -> ProcessingJobResponse:
     service = JobService(settings)
     try:
@@ -53,13 +53,43 @@ async def create_embedding_backfill_job(
         service.close()
 
 
+@router.post(
+    "/continuous/start",
+    response_model=ContinuousProcessingStatus,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def start_continuous_processing(
+    settings: Settings = Depends(get_settings),
+    _principal: Principal = Depends(require_roles(Role.AGENT, Role.MANAGER, Role.ADMIN)),
+) -> ContinuousProcessingStatus:
+    return await ContinuousAIProcessor.start(settings)
+
+
+@router.post(
+    "/continuous/stop",
+    response_model=ContinuousProcessingStatus,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def stop_continuous_processing(
+    _principal: Principal = Depends(require_roles(Role.AGENT, Role.MANAGER, Role.ADMIN)),
+) -> ContinuousProcessingStatus:
+    return await ContinuousAIProcessor.stop()
+
+
+@router.get("/continuous/status", response_model=ContinuousProcessingStatus)
+async def get_continuous_processing_status(
+    _principal: Principal = Depends(require_roles(Role.AGENT, Role.MANAGER, Role.ADMIN)),
+) -> ContinuousProcessingStatus:
+    return await ContinuousAIProcessor.status()
+
+
 @router.get("", response_model=JobListResponse)
 async def list_jobs(
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
     job_type: JobType | None = Query(default=None),
     status: JobStatus | None = Query(default=None),
-    _principal: Principal = Depends(require_roles(Role.MANAGER, Role.ADMIN)),
+    _principal: Principal = Depends(require_roles(Role.AGENT, Role.MANAGER, Role.ADMIN)),
     db: AsyncSession = Depends(get_db_session),
     settings: Settings = Depends(get_settings),
 ) -> JobListResponse:
@@ -100,7 +130,7 @@ async def retry_job(
     job_id: str,
     db: AsyncSession = Depends(get_db_session),
     settings: Settings = Depends(get_settings),
-    principal: Principal = Depends(require_roles(Role.MANAGER, Role.ADMIN)),
+    principal: Principal = Depends(require_roles(Role.AGENT, Role.MANAGER, Role.ADMIN)),
 ) -> ProcessingJobResponse:
     service = JobService(settings)
     try:

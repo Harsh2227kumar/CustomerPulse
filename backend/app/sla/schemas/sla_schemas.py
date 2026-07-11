@@ -118,7 +118,7 @@ class SLABreachRiskItem(SLABaseSchema):
     urgency_score: int | None = None
     churn_risk: ChurnRisk | None = None
     processed_at: datetime | None = None
-    created_at: datetime
+    created_at: datetime | None = None
 
 
 class SLABreachRiskResponse(SLABaseSchema):

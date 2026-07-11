@@ -30,12 +30,8 @@ services:
       args:
         NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-}
         NEXT_PUBLIC_WS_BASE_URL: ${NEXT_PUBLIC_WS_BASE_URL:-}
-    environment:
-      BACKEND_URL: ${BACKEND_URL:-http://backend:8000}
     container_name: customerpulse-frontend
     restart: unless-stopped
-    expose:
-      - "3000"
     networks:
       - customerpulse
 

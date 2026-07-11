@@ -152,12 +152,14 @@ class AuthorizationTests(unittest.TestCase):
         configured = settings(
             '[{"username":"harsh","password":"secret","api_key":"manager-key","actor":"harsh","role":"manager"}]'
         )
-        principal = get_current_principal(
+        import asyncio
+        principal = asyncio.run(get_current_principal(
             HTTPAuthorizationCredentials(scheme="Bearer", credentials="manager-key"),
             configured,
-        )
+        ))
 
         self.assertEqual(principal, Principal(actor="harsh", role=Role.MANAGER))
+
 
     def test_agent_cannot_execute_manager_guard(self) -> None:
         manager_only = require_roles(Role.MANAGER, Role.ADMIN)

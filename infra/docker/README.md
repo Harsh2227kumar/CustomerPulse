@@ -3,7 +3,7 @@
 ## Services
 
 - `backend`: FastAPI app on container port `8000`.
-- `frontend`: Next.js application served through the reverse proxy.
+- `frontend`: React/Vite application served by Nginx.
 - `nginx`: Reverse proxy on port `80`.
 
 The backend runs one in-process job worker backed by PostgreSQL job tables and
@@ -39,11 +39,12 @@ Backend startup runs Phase 1 checks before serving traffic:
 The setup command installs Python requirements including `sentence-transformers`
 and `reportlab`, downloads/caches `all-MiniLM-L6-v2` in the
 `sentence-transformer-cache` Docker volume, and verifies the model returns
-384-dimensional embeddings. Configure login users and API keys with
-`AUTH_USERS_JSON`; protected processing, review, job, feedback-list,
+384-dimensional embeddings. Configure API-key roles with
+`AUTH_PRINCIPALS_JSON`; protected processing, review, job, feedback-list,
 duplicate-action, and export endpoints require bearer credentials. In the
 frontend, open **Operations** and save a bearer key locally in the browser
-before calling protected backend actions. Do not expose manager/admin credentials in frontend source or public build-time variables.
+before calling protected backend actions. Do not pass manager/admin keys as
+Vite build arguments because those values are embedded into static assets.
 
 When building an image in an environment that can access Hugging Face, the model
 can also be baked into the backend image:

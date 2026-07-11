@@ -451,6 +451,18 @@
     font-size: var(--text-body-sm);
   }
 
+  .alert-success {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--color-resolved-bg);
+    border: 1px solid color-mix(in oklch, var(--color-resolved) 30%, transparent);
+    border-radius: var(--radius-DEFAULT);
+    color: var(--color-resolved-text);
+    font-size: var(--text-body-sm);
+  }
+
   /* --- Page sections --- */
   .page-header {
     display: flex;
@@ -524,3 +536,4 @@
   .info-label { color: var(--color-on-surface-variant); font-weight: 500; flex-shrink: 0; margin-right: 8px; }
   .info-value { color: var(--color-on-surface); text-align: right; }
 }
+

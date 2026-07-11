@@ -4,6 +4,7 @@ from typing import Literal
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.core.constants import ChurnRisk, ProcessingStatus, ReviewReason, Sentiment
+from app.compliance.explainability.models import ComplianceExplanationWithSources
 from app.schemas.ai_response import ConfidenceScores, SimilarCaseEvidence
 from app.schemas.common import Pagination
 
@@ -109,6 +110,18 @@ class ComplaintListItem(BaseModel):
     sla_status: str | None = None
     assigned_agent_id: str | None = None
 
+
+
+class ComplaintComplianceExplanationResponse(BaseModel):
+    available: bool
+    message: str
+    complaint_id: str
+    evidence_record_id: str | None = None
+    risk_level: str | None = None
+    regulatory_flag: bool | None = None
+    required_action: str | None = None
+    evaluated_at: datetime | None = None
+    explanation_with_sources: ComplianceExplanationWithSources | None = None
 
 class ComplaintListResponse(BaseModel):
     items: list[ComplaintListItem]

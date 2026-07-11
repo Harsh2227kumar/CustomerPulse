@@ -1,5 +1,4 @@
 import asyncio
-from contextlib import suppress
 from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
 import logging
@@ -9,21 +8,25 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.analytics.router import router as analytics_router
-from app.api import auth, complaints, health, ingestion, jobs, process, review, websocket
+from app.api import auth, complaints, email_ingestion, health, ingestion, jobs, process, review, websocket
 from app.compliance import router as compliance_router
+
 from app.communications.router import router as communications_router
 from app.escalations.router import complaints_escalations_router, escalations_router
 from app.core.config import get_settings
 from app.core.logging import configure_logging
 from app.db.setup import run_startup_checks
-from app.db.session import AsyncSessionLocal
+from app.db.session import AsyncSessionLocal, engine
 from app.duplicates import router as duplicates_router
 from app.exports.api import routes as export_routes
 from app.feedback import router as feedback_router
 from app.operations import router as operations_router
+from app.employees.router import auth_router as employees_auth_router, admin_router as employees_admin_router, me_router as employees_me_router
 from app.services.embedding_service import EmbeddingService
 from app.services.job_service import JobService, ProcessingJobWorker
+from app.services.email_worker import EmailIntakeWorker
 from app.sla.api import routes as sla_routes
+
 
 
 settings = get_settings()
@@ -33,7 +36,10 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    await run_startup_checks(settings, prompt=True, verify_bedrock=True)
+    if not settings.skip_db_checks_on_startup:
+        await run_startup_checks(settings, prompt=True, verify_bedrock=settings.bedrock_verify_on_startup)
+    else:
+        logger.warning('Skipping database startup checks (SKIP_DB_CHECKS_ON_STARTUP=true)')
     if settings.embedding_verify_on_startup:
         await EmbeddingService(
             settings.embedding_model,
@@ -43,13 +49,26 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         await JobService(settings).recover_abandoned_jobs(db)
     worker = ProcessingJobWorker(settings)
     worker_task = asyncio.create_task(worker.run())
+    email_worker: EmailIntakeWorker | None = None
+    email_worker_task: asyncio.Task[None] | None = None
+    if settings.email_intake_enabled:
+        email_worker = EmailIntakeWorker(settings)
+        email_worker_task = asyncio.create_task(email_worker.run())
     try:
         yield
     finally:
+        if email_worker is not None:
+            email_worker.stop()
         worker.stop()
-        worker_task.cancel()
-        with suppress(asyncio.CancelledError):
-            await worker_task
+
+        tasks = [worker_task]
+        if email_worker_task is not None:
+            tasks.append(email_worker_task)
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+        await engine.dispose()
+
 
 
 app = FastAPI(title=settings.app_name, version=settings.app_version, lifespan=lifespan)
@@ -62,6 +81,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# app.include_router(employees_auth_router)
+app.include_router(employees_admin_router)
+app.include_router(employees_me_router)
 app.include_router(auth.router)
 app.include_router(health.router)
 app.include_router(process.router)
@@ -70,7 +92,9 @@ app.include_router(communications_router)
 app.include_router(escalations_router)
 app.include_router(complaints_escalations_router)
 app.include_router(ingestion.router)
+app.include_router(email_ingestion.router)
 app.include_router(review.router)
+
 app.include_router(jobs.router)
 app.include_router(feedback_router.router)
 app.include_router(duplicates_router.router)
