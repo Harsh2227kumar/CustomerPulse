@@ -9,9 +9,18 @@ interface Credential {
   username: string;
   password: string;
   role: string;
+  helperText?: string;
+  featured?: boolean;
 }
 
 const HINT_CREDENTIALS: Credential[] = [
+  {
+    username: "superadmin@example.com",
+    password: "SuperAdmin@123",
+    role: "Superadmin",
+    helperText: "Click here to login as super admin",
+    featured: true,
+  },
   { username: "admin", password: "Admin@123", role: "Admin" },
   { username: "manager", password: "Manager@123", role: "Manager" },
   { username: "agent", password: "Agent@123", role: "Agent" },
@@ -283,17 +292,26 @@ export default function LoginPage() {
                   key={cred.role}
                   type="button"
                   onClick={() => fillCredential(cred)}
-                  className="group relative flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 rounded-xl border border-outline-variant bg-surface p-3 sm:px-3.5 sm:py-2.5 hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-all duration-150 text-left cursor-pointer"
+                  className={`group relative flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 rounded-xl border p-3 sm:px-3.5 sm:py-2.5 hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-all duration-150 text-left cursor-pointer ${
+                    cred.featured
+                      ? "border-primary/60 bg-primary/10 shadow-md shadow-primary/10"
+                      : "border-outline-variant bg-surface"
+                  }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <RoleBadge role={cred.role} />
                     <div className="min-w-0 truncate">
-                      <p className="text-xs sm:text-sm font-semibold text-on-surface truncate">
+                      <p className={`text-xs sm:text-sm text-on-surface truncate ${cred.featured ? "font-bold" : "font-semibold"}`}>
                         {cred.username}
                       </p>
                       <p className="text-[11px] sm:text-xs text-on-surface-variant font-mono truncate">
                         {cred.password}
                       </p>
+                      {cred.helperText && (
+                        <p className="mt-1 text-[11px] font-bold text-primary truncate">
+                          {cred.helperText}
+                        </p>
+                      )}
                     </div>
                   </div>
                   
@@ -355,6 +373,7 @@ function Spinner({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
 
 function RoleBadge({ role }: { role: string }) {
   const badgeStyles: Record<string, string> = {
+    Superadmin: "bg-primary/15 text-primary border-primary/40",
     Admin: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800",
     Manager: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800",
     Agent: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800",
@@ -368,4 +387,3 @@ function RoleBadge({ role }: { role: string }) {
     </span>
   );
 }
-
