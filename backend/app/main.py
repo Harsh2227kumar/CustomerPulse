@@ -1,5 +1,4 @@
 import asyncio
-from contextlib import suppress
 from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
 import logging
@@ -17,7 +16,7 @@ from app.escalations.router import complaints_escalations_router, escalations_ro
 from app.core.config import get_settings
 from app.core.logging import configure_logging
 from app.db.setup import run_startup_checks
-from app.db.session import AsyncSessionLocal
+from app.db.session import AsyncSessionLocal, engine
 from app.duplicates import router as duplicates_router
 from app.exports.api import routes as export_routes
 from app.feedback import router as feedback_router
@@ -37,7 +36,10 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    await run_startup_checks(settings, prompt=True, verify_bedrock=settings.bedrock_verify_on_startup)
+    if not settings.skip_db_checks_on_startup:
+        await run_startup_checks(settings, prompt=True, verify_bedrock=settings.bedrock_verify_on_startup)
+    else:
+        logger.warning('Skipping database startup checks (SKIP_DB_CHECKS_ON_STARTUP=true)')
     if settings.embedding_verify_on_startup:
         await EmbeddingService(
             settings.embedding_model,
@@ -64,8 +66,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             tasks.append(email_worker_task)
         for task in tasks:
             task.cancel()
-        with suppress(asyncio.CancelledError):
-            await asyncio.gather(*tasks)
+        await asyncio.gather(*tasks, return_exceptions=True)
+        await engine.dispose()
 
 
 

@@ -72,17 +72,3 @@ Feature branches are integrated into `dev` through a reviewed pull request. Afte
 Never commit `.env`, database passwords, Bedrock keys, AWS credentials, or generated dependency/build directories.
 The active deployment deliberately uses one backend instance for in-process
 WebSocket events and its PostgreSQL-backed job worker; Redis is not included.
-
-
-
-
-Term 1: Run Backend
-
-cd backend
-.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-
-
-Term 2: Run Frontend
-bash
-cd frontend
-npm run dev

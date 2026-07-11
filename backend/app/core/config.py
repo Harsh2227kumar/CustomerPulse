@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     bedrock_model: str = Field(default="global.anthropic.claude-sonnet-4-6", min_length=1)
     bedrock_base_url: str | None = None
     bedrock_verify_on_startup: bool = Field(default=True)
+    skip_db_checks_on_startup: bool = Field(default=False)
     s3_bucket_name: str | None = None
     cfpb_s3_key: str | None = None
     aws_region: str = Field(default="ap-south-1", min_length=1)
@@ -58,7 +59,6 @@ class Settings(BaseSettings):
     # Kept as fallback for existing tests.
     auth_users_json: str = "[]"
 
-<<<<<<< HEAD
     # Email Intake Configuration
     email_intake_enabled: bool = Field(default=False)
     email_intake_imap_server: str = Field(default="imap.gmail.com")
@@ -70,14 +70,6 @@ class Settings(BaseSettings):
     jwt_secret_key: str = Field(default="placeholder_secret_key_must_be_32_chars_long", min_length=32)
     jwt_expiry_hours: int = 8
 
-=======
-
-    jwt_secret_key: str = Field(default="placeholder_secret_key_must_be_32_chars_long", min_length=32)
-
-    jwt_expiry_hours: int = 8
-
-
->>>>>>> 28a6894 (Add member-3 changes: employees module, escalations, exports, and backend updates)
     @property
     def parsed_cors_origins(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
