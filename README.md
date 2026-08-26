@@ -5,6 +5,8 @@
 CustomerPulse ingests customer complaints from multiple channels, enriches each one with a hybrid AI pipeline (local ML signals + Amazon Bedrock, grounded by retrieval-augmented generation), and drives the full resolution lifecycle — triage, similar-case reuse, SLA tracking, auto-escalation, explainable regulatory reporting, and a human-in-the-loop review workflow — through a real-time Next.js dashboard.
 
 <div align="center">
+<br/>
+
 
 [![Backend Tests](https://img.shields.io/github/actions/workflow/status/Harsh2227kumar/CustomerPulse/backend-tests.yml?branch=main&style=for-the-badge&label=Backend%20Tests&logo=githubactions&logoColor=white&color=2ea44f)](https://github.com/Harsh2227kumar/CustomerPulse/actions/workflows/backend-tests.yml)
 
